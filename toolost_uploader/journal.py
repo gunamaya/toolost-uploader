@@ -4,6 +4,7 @@ import json
 import uuid
 
 from .storage import StorageError, _atomic_write, _digest, _encode, _read, _require
+from .fake_ui import FakeUI
 
 
 STATES = ("prepared", "unknown", "applied", "not_applied", "conflict")
@@ -12,7 +13,12 @@ KEYS = {"journal_version", "attempt_id", "run_id", "checkpoint_sha256", "profile
 
 
 def _fake_state(value):
-    _require(isinstance(value, dict) and set(value) == {"title", "track_ids"}, "invalid_fake_state")
+    _require(isinstance(value, dict) and set(value) in ({"title", "track_ids"},
+             {"title", "track_ids", "metadata_sha256"}), "invalid_fake_state")
+    if "metadata_sha256" in value:
+        digest = value["metadata_sha256"]
+        _require(isinstance(digest, str) and len(digest) == 64
+                 and all(c in "0123456789abcdef" for c in digest), "invalid_fake_state")
     _require(isinstance(value["title"], str) and bool(value["title"].strip()), "invalid_fake_state")
     tracks = value["track_ids"]
     _require(isinstance(tracks, list) and all(isinstance(item, str) and item for item in tracks), "invalid_fake_state")
@@ -98,7 +104,7 @@ def read_attempt(session, release_id, *, run_id):
 
 
 def prepare(session, release_id, *, run_id, expected_revision, adapter, desired):
-    _require(type(adapter) is FakeAdapter, "fake_adapter_required")
+    _require(type(adapter) in (FakeAdapter, FakeUI), "fake_adapter_required")
     checkpoint = _checkpoint(session, release_id, run_id)
     _require(type(expected_revision) is int and checkpoint["revision"] == expected_revision, "revision_conflict")
     desired = _fake_state(desired)
@@ -124,7 +130,7 @@ def prepare(session, release_id, *, run_id, expected_revision, adapter, desired)
 
 
 def reconcile(session, release_id, *, run_id, attempt_id, adapter):
-    _require(type(adapter) is FakeAdapter, "fake_adapter_required")
+    _require(type(adapter) in (FakeAdapter, FakeUI), "fake_adapter_required")
     record = read_attempt(session, release_id, run_id=run_id)
     _require(record["attempt_id"] == attempt_id, "attempt_mismatch")
     _require(record["state"] == "unknown", "invalid_attempt_transition")
@@ -145,7 +151,7 @@ def reconcile(session, release_id, *, run_id, attempt_id, adapter):
 
 
 def execute(session, release_id, *, run_id, attempt_id, adapter, desired):
-    _require(type(adapter) is FakeAdapter, "fake_adapter_required")
+    _require(type(adapter) in (FakeAdapter, FakeUI), "fake_adapter_required")
     record = read_attempt(session, release_id, run_id=run_id)
     _require(record["attempt_id"] == attempt_id, "attempt_mismatch")
     _require(record["state"] == "prepared", "reconciliation_required")

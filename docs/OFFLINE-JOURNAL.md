@@ -2,6 +2,8 @@
 
 Implementasi internal `toolost_uploader/journal.py`, atas permintaan pengguna. Bukan executor Too Lost, bukan API integrator stabil, tidak ada command baru. Hanya menerima exact class `FakeAdapter` sintetis dalam memori; adapter browser/arbitrary object ditolak. Tidak ada network, login, publish atau state produksi `draft_saved`.
 
+Update fake UI: kini juga menerima exact class `FakeUI` internal, dengan proyeksi opsional metadata_sha256. Lihat FAKE-UI.md. Deskripsi FakeAdapter-only dan proyeksi title/track_ids di bawah adalah baseline awal; tidak ada adapter nyata yang diizinkan.
+
 ## Scope kecil
 
 Satu operasi `fake.save`, satu attempt per checkpoint. Fake state hanya `{title, track_ids}`; stable track IDs di sini adalah data sintetis, **bukan solusi identitas track Too Lost**. Baseline dan desired simulasi independen dari metadata rilis checkpoint; ini harness keselamatan outcome, bukan penerapan manifest ke layanan. Unknown keys/duplikat track IDs ditolak. Tidak ada create/upload/delete/reorder executor atau retry/reset attempt.

@@ -4,6 +4,8 @@ Riset dimulai: 2026-10-24. Diperbarui: 2026-10-25. Status: observasi uploader da
 
 ## Peta dokumen
 
+- [FAKE-UI.md](FAKE-UI.md): model state UI sintetis + tes Save/read-back; tidak menambah bukti live/selector.
+
 - [OFFLINE-JOURNAL.md](OFFLINE-JOURNAL.md): intent sebelum fake save, unknown outcome dan read-only reconciliation sintetis; bukan bukti UI/akun baru.
 
 - [LOCAL-STATE.md](LOCAL-STATE.md): implementasi internal profil privat, lock dan checkpoint atomik offline; tidak menambah bukti akun/remote.
