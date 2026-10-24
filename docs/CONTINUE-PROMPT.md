@@ -8,6 +8,10 @@ Update setelah review offline pada tanggal yang sama: pengguna menyetujui tahap 
 
 ---
 
+Update attempt journal: pengguna mengizinkan jurnal + rekonsiliasi dengan fake adapter offline. `journal.py` dan `tests/test_journal.py` kini menyimulasikan satu fake.save, prepared→unknown sebelum mutasi, complete read-back ke applied/not_applied/conflict, timeout/partial/ambiguity tetap unknown, tanpa retry otomatis. Jurnal terpisah terikat exact checkpoint hash/run. Baca OFFLINE-JOURNAL.md; belum ada executor browser, attempt history atau binding remote. Baseline lama yang menyebut jurnal belum tersedia adalah histori untuk produksi. Tidak ada izin commit/push baru otomatis.
+
+Update storage setelah packaging: pengguna meminta konfigurasi profil aman + checkpoint atomik dengan tes offline. Helper internal `toolost_uploader/storage.py` tersedia: default root macOS/Linux per user, alias tervalidasi, 0700/0600/owner/symlink guards, flock satu penulis, snapshot create/read dan cancel lokal dengan run/revision/hash guard. Baca LOCAL-STATE.md; account_fingerprint dan remote_draft_id tetap null, CLI masih hanya validate. Belum ada attempt journal, binding UI, browser profile manager atau remote resume. Riwayat di bawah yang menyebut checkpoint belum dibuat hanya baseline lama. Tidak ada izin commit/push otomatis.
+
 Lanjutkan pengembangan project **toolost-uploader**, CLI Python + Playwright yang terpisah dan dapat dipanggil integrator `yt-to-flowmusic`. Gunakan bahasa Indonesia. Repo GitHub private: https://github.com/gunamaya/toolost-uploader.
 
 ## Baca sebelum bertindak

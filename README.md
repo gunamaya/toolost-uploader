@@ -8,6 +8,8 @@ Riset dan rancangan CLI Python + Playwright untuk mengelola draft release Too Lo
 - [Kontrak release list/detail/publish](docs/RELEASE-CONTRACT.md) — publish masih capability future, tidak diuji atau dieksekusi selama riset.
 - [Script browser riset](docs/BROWSER.md)
 - [Validator offline dan cakupan schema](docs/OFFLINE-VALIDATION.md)
+- [Profil privat dan checkpoint offline](docs/LOCAL-STATE.md) — helper internal POSIX, bukan command akun/login/resume.
+- [Attempt journal dan rekonsiliasi fake offline](docs/OFFLINE-JOURNAL.md) — simulasi satu save, bukan executor akun.
 
 ```sh
 python3 -m venv .venv

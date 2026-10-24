@@ -71,6 +71,10 @@ Akun pertama kali perlu manual binding/review; nama alias bukan bukti identitas.
 
 ## Checkpoint dan state
 
+Update simulasi offline: journal.py mendukung satu intent fake.save + reconcile read-only terhadap FakeAdapter memori. Bukan capability akun; tidak mengubah kontrak result CLI atau mengimplementasikan state remote. Lihat OFFLINE-JOURNAL.md untuk batasnya.
+
+Subset offline internal kini tersedia: profil privat POSIX, lock, create/read snapshot manifest dan transisi lokal validated→cancelled dengan run/revision guard. Lihat LOCAL-STATE.md. Belum ada binding akun, remote state/mapping, attempt journal atau command status/resume; daftar field/state berikut tetap target proposal, bukan implementasi lengkap.
+
 run_id adalah ID lokal unik; satu active writer per alias. Checkpoint berisi schema version, release_id, manifest canonical hash, source hashes, profile binding, remote draft ID bila diketahui, track mappings, rencana/attempts, observed order, last verified state. Simpan atomik, permission privat; tidak kredensial/raw lyric/network bodies.
 
 State utama:

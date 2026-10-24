@@ -25,6 +25,8 @@ Update review offline: schema manifest + hasil validate dan script validator std
 
 ## Pemilihan profil — rancangan yang direkomendasikan
 
+Update implementasi offline: helper internal `storage.profile` + checkpoint snapshot/cancel atomik sudah dibuat atas permintaan pengguna; lihat LOCAL-STATE.md. Lokasi macOS/Linux, permission dan lock POSIX ditetapkan untuk subset ini; Windows unsupported. Config account_fingerprint tetap null. Login/binding UI/remote resume dan command profil belum diimplementasikan. Rincian rancangan di bawah tetap konteks historis, bukan capability akun tersedia.
+
 Pengguna meminta agar integrator bisa memilih profil. Direkomendasikan `--profile <nama-lokal>`; syntax/storage final belum ditetapkan dan belum dibuat multi-profile manager.
 
 Bedakan:

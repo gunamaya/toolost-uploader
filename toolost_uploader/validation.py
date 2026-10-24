@@ -69,13 +69,17 @@ def load_manifest(path):
     return json.loads(raw.decode("utf-8"), object_pairs_hook=unique_keys, parse_constant=nonfinite)
 
 
-def file_reference(reference, base, lyrics=False):
+def file_reference_structure(reference):
     object_keys(reference, {"path", "sha256"})
     text(reference["path"])
     if "\x00" in reference["path"]:
         reject("invalid_path", "Path mengandung karakter yang tidak diizinkan.")
     if not isinstance(reference["sha256"], str) or not SHA256.fullmatch(reference["sha256"]):
         reject("invalid_hash", "SHA-256 harus 64 karakter lowercase hex.")
+
+
+def file_reference(reference, base, lyrics=False):
+    file_reference_structure(reference)
     path = Path(reference["path"])
     if not path.is_absolute():
         path = base / path
@@ -117,7 +121,7 @@ def file_reference(reference, base, lyrics=False):
             reject("invalid_lyrics_encoding", "File lirik harus UTF-8.")
 
 
-def validate_manifest(manifest, base):
+def validate_manifest_structure(manifest):
     required = {"schema_version", "release_id", "release_type", "title", "release_date", "artwork", "tracks"}
     object_keys(manifest, required, RELEASE_TEXT | {"copyright"})
     if type(manifest["schema_version"]) is not int or manifest["schema_version"] != 1:
@@ -170,7 +174,17 @@ def validate_manifest(manifest, base):
         if "lyrics" in track:
             references.append((track["lyrics"], True))
     for reference, lyrics in references:
-        file_reference(reference, base, lyrics)
+        file_reference_structure(reference)
+    return warnings
+
+
+def validate_manifest(manifest, base):
+    warnings = validate_manifest_structure(manifest)
+    file_reference(manifest["artwork"], base)
+    for track in manifest["tracks"]:
+        file_reference(track["audio"], base)
+        if "lyrics" in track:
+            file_reference(track["lyrics"], base, lyrics=True)
     return warnings
 
 

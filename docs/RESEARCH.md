@@ -4,6 +4,10 @@ Riset dimulai: 2026-10-24. Diperbarui: 2026-10-25. Status: observasi uploader da
 
 ## Peta dokumen
 
+- [OFFLINE-JOURNAL.md](OFFLINE-JOURNAL.md): intent sebelum fake save, unknown outcome dan read-only reconciliation sintetis; bukan bukti UI/akun baru.
+
+- [LOCAL-STATE.md](LOCAL-STATE.md): implementasi internal profil privat, lock dan checkpoint atomik offline; tidak menambah bukti akun/remote.
+
 - [OFFLINE-VALIDATION.md](OFFLINE-VALIDATION.md): keputusan review pengguna, schema/validator stdlib offline yang tersedia dan batas implementasi; tidak ada tindakan akun baru.
 
 - [CONTRACT-V1.md](CONTRACT-V1.md): proposal konkret command, manifest, hasil JSON, exit code dan state; belum disetujui final atau diimplementasikan.
