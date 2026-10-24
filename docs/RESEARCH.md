@@ -4,6 +4,8 @@ Riset dimulai: 2026-10-24. Diperbarui: 2026-10-25. Status: observasi uploader da
 
 ## Peta dokumen
 
+- [FAKE-UPLOAD.md](FAKE-UPLOAD.md): recovery upload sintetis tersimpan di disk dan tes restart; bukan bukti upload akun.
+
 - [FAKE-UI.md](FAKE-UI.md): model state UI sintetis + tes Save/read-back; tidak menambah bukti live/selector.
 
 - [OFFLINE-JOURNAL.md](OFFLINE-JOURNAL.md): intent sebelum fake save, unknown outcome dan read-only reconciliation sintetis; bukan bukti UI/akun baru.

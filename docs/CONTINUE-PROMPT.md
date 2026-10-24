@@ -8,6 +8,8 @@ Update setelah review offline pada tanggal yang sama: pengguna menyetujui tahap 
 
 ---
 
+Update setelah commit/push fake UI 476512b: dilanjutkan fixture recovery upload persisten offline di fake_upload.py dan test_fake_upload.py. Intent batch terikat checkpoint ditulis unknown sebelum fake ingest JSON, encoding diprogresikan eksplisit dengan settle, restart lintas proses reconcile tanpa upload ulang; partial/failed/duplicate identity tetap unknown. Baca FAKE-UPLOAD.md. Belum terintegrasi dengan FakeUI/Save sebagai executor multi-operation. Tidak ada browser/akun diakses atau izin commit/push otomatis untuk perubahan baru.
+
 Update fake UI offline: pengguna menyetujui model UI sintetis. `fake_ui.py` dan test_fake_ui.py memodelkan upload dialog/chooser, tick encoding, reverse ingest/reorder, delayed fields, mismatch ARIA/native, staging/Done, Save dialog/navigation/error/lost-response/metadata-loss. Jurnal menerima exact FakeUI dengan metadata digest; hanya Save dijurnal, upload belum recovery-safe lintas proses. Baca FAKE-UI.md. Tidak ada HTML/Playwright adapter atau bukti akun baru. CLI tetap validate; tidak ada izin commit/push otomatis.
 
 Update attempt journal: pengguna mengizinkan jurnal + rekonsiliasi dengan fake adapter offline. `journal.py` dan `tests/test_journal.py` kini menyimulasikan satu fake.save, prepared→unknown sebelum mutasi, complete read-back ke applied/not_applied/conflict, timeout/partial/ambiguity tetap unknown, tanpa retry otomatis. Jurnal terpisah terikat exact checkpoint hash/run. Baca OFFLINE-JOURNAL.md; belum ada executor browser, attempt history atau binding remote. Baseline lama yang menyebut jurnal belum tersedia adalah histori untuk produksi. Tidak ada izin commit/push baru otomatis.

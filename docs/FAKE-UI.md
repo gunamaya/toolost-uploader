@@ -21,6 +21,8 @@ Upload dan reorder **belum dijurnal** oleh model ini: jurnal hanya membungkus Sa
 
 ## Tes dan batas berikutnya
 
+Update lanjutan: fixture upload terpisah dengan server JSON persisten + intent atomik tersedia, lihat FAKE-UPLOAD.md. FakeUI ini tetap in-memory; belum diubah menjadi executor multi-operation atau adapter browser.
+
 Verifikasi sesi ini pada macOS/Python 3.14.7: build wheel melalui sdist berhasil; `TOOLOST_TEST_DIST_DIR=dist .local/packaging-venv/bin/python -m unittest discover -s tests -q` **70/70 lulus tanpa skip**, termasuk schema independen dan instalasi wheel bersih. `git diff --check` bersih.
 
 Tes `tests/test_fake_ui.py`: modal/scope, progress vs encoding, reverse ingest/reorder, delayed fields, ARIA/native mismatch, unsaved Done, Save dialog/navigation/error/lost response, metadata persistence, duplicate names, incomplete/identity mismatch, no retry/reupload, dan journal write-before-save. Semua media/state sintetis dan temporary directory.

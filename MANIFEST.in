@@ -4,6 +4,7 @@ include docs/OFFLINE-VALIDATION.md
 include docs/LOCAL-STATE.md
 include docs/OFFLINE-JOURNAL.md
 include docs/FAKE-UI.md
+include docs/FAKE-UPLOAD.md
 include docs/schemas/*.json
 include scripts/validate.py
 include scripts/gather.py
