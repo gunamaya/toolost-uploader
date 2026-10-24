@@ -1,5 +1,15 @@
 # Fake Save terpadu dengan gate approval
 
+## Update: upload persisten bergate
+
+Coordinator kini juga menyediakan `upload_plan`, `execute_upload` dan `reconcile_upload` untuk fixture fake_upload. Plan diambil dari batch exact snapshot checkpoint, operation hanya fake.upload. Target dibaca dari fake server saat execute; approval diverifikasi sebelum prepare, consumed sebelum fake ingest. Mode/revisi salah tidak mengonsumsi approval. Recovery memakai receipt consumed dan hash batch intent, tidak mengulang upload atau consume.
+
+Tes mencakup approval Save ditolak untuk upload, token salah, consume gagal, crash antara consume/execute, before-send not_applied, perubahan identitas setelah ingest, dan subprocess baru yang reconcile pending lalu ready dengan upload_calls tetap satu. Prepared yang stranded tetap fail-closed; tidak ada reset/retry otomatis.
+
+Upload dan Save adalah **dua alur alternatif satu-operasi**, bukan workflow gabungan. Satu approval file per checkpoint membuat keduanya belum dapat dijalankan berantai pada run yang sama. Low-level helper fixture tetap bisa dipanggil langsung; gate bukan security boundary. Membuat rencana multi-operasi/approval history memerlukan keputusan berikutnya, bukan overwrite approval consumed. Semua deskripsi Save-only di bawah merupakan baseline tahap sebelumnya yang tetap berlaku untuk fungsi Save.
+
+Verifikasi update upload bergate: build wheel melalui sdist berhasil, suite lengkap dengan schema/instalasi bersih **100/100 lulus tanpa skip** pada macOS/Python 3.14.7; `git diff --check` bersih. Tidak ada browser atau akun diakses.
+
 `fake_flow.py` menghubungkan approval + journal + exact FakeUI dalam satu coordinator internal. Scope hanya Save atas staging sintetis yang sudah disiapkan; upload/edit staging di fixture masih dilakukan sebelumnya dan **belum tercakup approval coordinator**. Bukan uploader end-to-end, tidak ada browser/network/akun atau command CLI baru.
 
 ## Urutan

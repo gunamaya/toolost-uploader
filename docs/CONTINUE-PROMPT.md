@@ -8,6 +8,8 @@ Update setelah review offline pada tanggal yang sama: pengguna menyetujui tahap 
 
 ---
 
+Update setelah commit/push a8361bb (termasuk commit lokal 2eca961 dan 9054f97): fake_flow kini juga membungkus fake upload persisten dengan gate approval dan recovery receipt lintas proses. Baca FAKE-FLOW.md. Save/upload tetap alternatif satu-operasi karena approval file satu per checkpoint; belum ada workflow gabungan atau approval history. Tidak ada browser/live atau perubahan CLI. Perubahan coordinator upload baru belum otomatis commit/push.
+
 Update setelah commit gate 9054f97 (belum push; fake upload 2eca961 juga lokal): task lanjutan fake_flow.py + test_fake_flow.py menyatukan exact FakeUI Save dengan verify→prepare→consume→journal.execute. Reconcile memverifikasi receipt consumed dan desired intent, bukan staging reload. Scope Save-only; upload/edit staging belum bergate. Baca FAKE-FLOW.md untuk crash antar-file fail-closed dan batas recovery. CLI tetap validate, tidak ada browser/akun. Kode coordinator baru belum otomatis di-commit/push.
 
 Update gate offline setelah commit fake upload 2eca961 (belum push pada sesi ini): pengguna menyetujui binding pertama direview, mismatch/unavailable fail-closed, approval terikat target/hash/rencana. approval.py + test_approval.py tersedia hanya untuk identity sintetis, token satu-pakai disimpan atomik; belum terhubung fake executor/CLI, tidak membuktikan fingerprint UI nyata. Baca OFFLINE-APPROVAL.md. Berikutnya satu bounded alur fake dengan gate sebelum mutasi, bukan browser/live. Tidak ada izin commit/push otomatis untuk kode gate baru.

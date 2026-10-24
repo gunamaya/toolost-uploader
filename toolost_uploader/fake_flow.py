@@ -1,6 +1,6 @@
-"""Satu alur fake Save bergate; tidak mengeksekusi browser, upload atau publish."""
+"""Coordinator operasi fake bergate; tidak mengeksekusi browser atau layanan."""
 
-from . import approval, journal
+from . import approval, fake_upload, journal
 from .fake_ui import FakeUI
 from .storage import _digest, _require
 
@@ -35,3 +35,29 @@ def reconcile(session, release_id, *, run_id, approval_id, attempt_id, ui):
     approval.verify(session, release_id, run_id=run_id, approval_id=approval_id,
                     account=attempt["account"], draft=attempt["draft"], plan=draft_plan, consumed=True)
     return journal.reconcile(session, release_id, run_id=run_id, attempt_id=attempt_id, adapter=ui)
+
+
+def upload_plan(session, release_id, *, run_id):
+    return {"operations": ["fake.upload"],
+            "desired_sha256": _digest(fake_upload._batch(session, release_id, run_id))}
+
+
+def execute_upload(session, release_id, *, run_id, expected_revision, approval_id, mode="pending"):
+    _require(mode in ("pending", "lost_response", "before_send", "partial"), "invalid_fake_mode")
+    draft_plan = upload_plan(session, release_id, run_id=run_id)
+    observed = fake_upload.observe(session, release_id, run_id=run_id)
+    target = dict(account=observed["account"], draft=observed["draft"])
+    approval.verify(session, release_id, run_id=run_id, approval_id=approval_id, plan=draft_plan, **target)
+    attempt = fake_upload.prepare(session, release_id, run_id=run_id, expected_revision=expected_revision)
+    approval.consume(session, release_id, run_id=run_id, approval_id=approval_id, plan=draft_plan, **target)
+    return fake_upload.execute(session, release_id, run_id=run_id, attempt_id=attempt["attempt_id"], mode=mode)
+
+
+def reconcile_upload(session, release_id, *, run_id, approval_id, attempt_id):
+    attempt = fake_upload.read_attempt(session, release_id, run_id=run_id)
+    _require(attempt["attempt_id"] == attempt_id, "attempt_mismatch")
+    draft_plan = {"operations": ["fake.upload"], "desired_sha256": attempt["batch_sha256"]}
+    # Receipt target is the approved synthetic identity; observed changes must conflict below.
+    approval.verify(session, release_id, run_id=run_id, approval_id=approval_id,
+                    account="synthetic-account", draft="synthetic-draft", plan=draft_plan, consumed=True)
+    return fake_upload.reconcile(session, release_id, run_id=run_id, attempt_id=attempt_id)

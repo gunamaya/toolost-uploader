@@ -1,5 +1,7 @@
 # Recovery fake upload persisten offline
 
+Update coordinator: fake_flow kini membungkus upload fixture dengan verify/consume approval sebelum mutasi dan receipt check untuk recovery. Lihat FAKE-FLOW.md; helper fixture ini tetap bukan executor nyata dan upload+Save belum menjadi workflow gabungan.
+
 Tahap lanjutan sesudah commit fake UI `476512b`: `toolost_uploader/fake_upload.py` + tes offline. Tidak ada browser/akun/network, audio tidak dikirim atau dibaca oleh fixture. CLI tetap validate. Ini modul fixture internal, bukan adapter layanan atau kontrak integrator.
 
 ## Model kecil
