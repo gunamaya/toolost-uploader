@@ -1,0 +1,27 @@
+{
+  "schema_version": 1,
+  "release_id": "example-release-001",
+  "release_type": "single",
+  "title": "Example Research Release",
+  "release_date": "2027-01-15",
+  "artwork": {
+    "path": "assets/cover.png",
+    "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+  },
+  "tracks": [
+    {
+      "track_id": "example-track-001",
+      "title": "Example Track",
+      "audio": {
+        "path": "assets/audio.wav",
+        "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+      },
+      "ai_assisted": true,
+      "provenance_known_ai_generated": true,
+      "language": "Indonesian",
+      "instrumental": false,
+      "explicit": false,
+      "clean_version": false
+    }
+  ]
+}

@@ -1,0 +1,32 @@
+{
+  "schema_version": 1,
+  "command": "upload",
+  "run_id": "example-run-001",
+  "status": "reconciliation_required",
+  "profile": "example-label",
+  "release_id": "example-release-001",
+  "draft_id": "example-remote-draft",
+  "remote_verified": true,
+  "observed_state": "save_observed_identity_unverified",
+  "issues": [
+    {
+      "code": "ai_documentation_required",
+      "scope": "example-track-001",
+      "message": "AI documentation requires manual review; draft remains unpublished."
+    }
+  ],
+  "warnings": ["Illustrative output only; no live run produced this file."],
+  "track_results": [
+    {
+      "track_id": "example-track-001",
+      "remote_identity": null,
+      "identity_verified": false,
+      "state": "reconciliation_required"
+    }
+  ],
+  "error": {
+    "code": "track_identity_ambiguous",
+    "message": "Inspect track mapping before any retry; do not reupload automatically.",
+    "retryable": false
+  }
+}

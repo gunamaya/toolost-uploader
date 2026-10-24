@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "command": "release.list",
+  "run_id": null,
+  "status": "ok",
+  "profile": "example-label",
+  "release_id": null,
+  "draft_id": null,
+  "remote_release_id": null,
+  "remote_verified": true,
+  "issues": [],
+  "warnings": ["Illustrative output only."],
+  "error": null,
+  "data": {
+    "items": [{"remote_release_id": "example-remote-draft", "url": "https://toolost.com/user-portal/releases/view/example-remote-draft/info", "title": "Example Research Release", "release_type": "single", "artists": ["Example Artist"], "remote_status": {"normalized": "draft", "raw": "Draft"}, "issue_count": 1, "observed_at": "2026-10-25T10:00:00Z"}],
+    "pagination": {"page": 1, "page_size": 20, "returned": 1, "next_page": null, "total": 1, "complete": true, "consistency": "best_effort"}
+  }
+}

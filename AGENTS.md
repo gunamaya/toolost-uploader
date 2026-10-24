@@ -7,3 +7,4 @@
 - Tool final ditargetkan mendukung sampai publish/release, tetapi implementasi/eksekusi publish harus memakai persetujuan eksplisit terpisah; izin riset bukan izin publish.
 - .local/ berisi session dan capture privat; jangan commit atau bagikan. Jangan capture halaman login. Tes default offline.
 - Jangan commit/push tanpa permintaan eksplisit.
+- Fokus operasi release/draft; jangan memperluas riset ke pengelolaan library Too Lost. Kontrak v1 di docs/CONTRACT-V1.md masih proposal untuk review, bukan implementasi tersedia.

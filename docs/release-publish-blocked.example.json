@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "command": "release.publish.prepare",
+  "run_id": "example-prepare-001",
+  "status": "blocked",
+  "profile": "example-label",
+  "release_id": null,
+  "draft_id": "example-remote-draft",
+  "remote_release_id": "example-remote-draft",
+  "remote_verified": true,
+  "issues": [],
+  "warnings": ["Publish has not been tested or authorized in the current research phase."],
+  "error": {"code": "publish_flow_unverified", "message": "Publish execution is disabled; no approval was issued.", "retryable": false},
+  "data": {"plan_id": "example-plan-001", "remote_release_id": "example-remote-draft", "snapshot_digest": null, "blockers": ["publish_flow_unverified"], "capability_verified": false, "approval_id": null, "approval_expires_at": null}
+}

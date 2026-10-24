@@ -4,6 +4,8 @@ Riset dimulai: 2026-10-24. Diperbarui: 2026-10-25. Status: observasi uploader da
 
 ## Peta dokumen
 
+- [CONTRACT-V1.md](CONTRACT-V1.md): proposal konkret command, manifest, hasil JSON, exit code dan state; belum disetujui final atau diimplementasikan.
+- [RELEASE-CONTRACT.md](RELEASE-CONTRACT.md): proposal release list/detail dan publish dua tahap. Publish belum diuji dan execution disabled selama riset; permintaan dokumentasi bukan izin distribusi.
 - [CONTRACT-PLAN.md](CONTRACT-PLAN.md): parameter AI, profil, kontrak integrator dan prioritas uji. Rancangan belum merupakan schema/command yang tersedia.
 - [BROWSER.md](BROWSER.md): login manual dan observasi CDP.
 - [UI-MAP.md](UI-MAP.md), [RELEASE-MODES.md](RELEASE-MODES.md): navigasi dan empat mode.
@@ -25,6 +27,7 @@ Riset dimulai: 2026-10-24. Diperbarui: 2026-10-25. Status: observasi uploader da
 - Langkah pertama: pahami interface dan operasi Too Lost melalui browser Playwright; pengguna login sendiri.
 - Izin riset terbaru: boleh upload audio/artwork uji dan menyimpan draft. Batas akhir mutlak selama riset adalah simpan draft; DILARANG menekan Publish atau mengirim distribusi, termasuk untuk mengetes validasi/error. File uji harus ditentukan pengguna sebelum dipilih.
 - Scope produk final mencakup sampai publish/release, bukan draft-only. Dukungan publish nanti membutuhkan persetujuan eksplisit terpisah dari izin riset; mekanisme konfirmasi belum dirancang.
+- Pengguna membatasi fokus pada release, bukan pengelolaan library Too Lost. Dampak library yang tidak diketahui cukup menjadi batas bukti, bukan agenda riset tambahan.
 
 ## Keputusan stack yang dikonfirmasi
 

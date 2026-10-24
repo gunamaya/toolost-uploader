@@ -1,0 +1,24 @@
+{
+  "schema_version": 1,
+  "command": "release.detail",
+  "run_id": null,
+  "status": "partial",
+  "profile": "example-label",
+  "release_id": null,
+  "draft_id": "example-remote-draft",
+  "remote_release_id": "example-remote-draft",
+  "remote_verified": true,
+  "issues": [{"code": "ai_documentation_required", "scope": "release", "message": "AI documentation requires manual review."}],
+  "warnings": ["Illustrative output; remote track identity is unavailable."],
+  "error": {"code": "incomplete_detail", "message": "Do not use this partial snapshot to authorize publish.", "retryable": false},
+  "data": {
+    "title": "Example Research Release",
+    "release_type": "single",
+    "remote_status": {"normalized": "draft", "raw": "Draft"},
+    "observed_at": "2026-10-25T10:00:00Z",
+    "tracks": [{"position": 1, "remote_track_id": null, "title": "Example Track", "ai_assisted": true, "lyrics_present": true, "identity_verified": false}],
+    "coverage": {"complete": false, "missing_fields": ["tracks[0].remote_track_id", "effective_options", "artwork"], "limitations": ["Not a publish-ready snapshot."]},
+    "snapshot_digest": null,
+    "snapshot_fields": []
+  }
+}
