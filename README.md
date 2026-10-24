@@ -12,6 +12,7 @@ Riset dan rancangan CLI Python + Playwright untuk mengelola draft release Too Lo
 - [Attempt journal dan rekonsiliasi fake offline](docs/OFFLINE-JOURNAL.md) — simulasi satu save, bukan executor akun.
 - [Fake UI draft offline](docs/FAKE-UI.md) — model modal, encoding, reorder, metadata dan Save; bukan DOM/browser adapter.
 - [Recovery fake upload persisten](docs/FAKE-UPLOAD.md) — intent/encoding/reconcile lintas proses, tanpa layanan nyata.
+- [Gate approval offline](docs/OFFLINE-APPROVAL.md) — binding sintetis dan token satu-pakai; belum terhubung executor.
 
 ```sh
 python3 -m venv .venv

@@ -8,6 +8,8 @@ Update setelah review offline pada tanggal yang sama: pengguna menyetujui tahap 
 
 ---
 
+Update gate offline setelah commit fake upload 2eca961 (belum push pada sesi ini): pengguna menyetujui binding pertama direview, mismatch/unavailable fail-closed, approval terikat target/hash/rencana. approval.py + test_approval.py tersedia hanya untuk identity sintetis, token satu-pakai disimpan atomik; belum terhubung fake executor/CLI, tidak membuktikan fingerprint UI nyata. Baca OFFLINE-APPROVAL.md. Berikutnya satu bounded alur fake dengan gate sebelum mutasi, bukan browser/live. Tidak ada izin commit/push otomatis untuk kode gate baru.
+
 Update setelah commit/push fake UI 476512b: dilanjutkan fixture recovery upload persisten offline di fake_upload.py dan test_fake_upload.py. Intent batch terikat checkpoint ditulis unknown sebelum fake ingest JSON, encoding diprogresikan eksplisit dengan settle, restart lintas proses reconcile tanpa upload ulang; partial/failed/duplicate identity tetap unknown. Baca FAKE-UPLOAD.md. Belum terintegrasi dengan FakeUI/Save sebagai executor multi-operation. Tidak ada browser/akun diakses atau izin commit/push otomatis untuk perubahan baru.
 
 Update fake UI offline: pengguna menyetujui model UI sintetis. `fake_ui.py` dan test_fake_ui.py memodelkan upload dialog/chooser, tick encoding, reverse ingest/reorder, delayed fields, mismatch ARIA/native, staging/Done, Save dialog/navigation/error/lost-response/metadata-loss. Jurnal menerima exact FakeUI dengan metadata digest; hanya Save dijurnal, upload belum recovery-safe lintas proses. Baca FAKE-UI.md. Tidak ada HTML/Playwright adapter atau bukti akun baru. CLI tetap validate; tidak ada izin commit/push otomatis.
