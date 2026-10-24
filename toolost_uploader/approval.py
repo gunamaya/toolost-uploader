@@ -89,7 +89,7 @@ def approve(session, release_id, *, run_id, expected_revision, account, draft, p
                                     state="approved", authority="synthetic-offline"))
 
 
-def consume(session, release_id, *, run_id, approval_id, account, draft, plan):
+def verify(session, release_id, *, run_id, approval_id, account, draft, plan, consumed=False):
     checkpoint = _checkpoint(session, release_id, run_id)
     _identity(account, draft)
     _binding(session, release_id, account)
@@ -98,11 +98,19 @@ def consume(session, release_id, *, run_id, approval_id, account, draft, plan):
     _require(isinstance(token, str) and len(token) == 32
              and all(c in "0123456789abcdef" for c in token)
              and record["state"] in ("approved", "consumed"), "invalid_approval_record")
-    _require(record["state"] == "approved", "approval_consumed")
+    _require(type(consumed) is bool, "invalid_approval_record")
+    _require(record["state"] == ("consumed" if consumed else "approved"),
+             "approval_not_consumed" if consumed else "approval_consumed")
     _require(record["approval_id"] == approval_id and record["run_id"] == run_id,
              "approval_mismatch")
     _require(record["account"] == account and record["draft"] == draft
              and record["checkpoint_sha256"] == checkpoint["record_sha256"]
              and record["plan_sha256"] == _plan(plan), "approval_stale")
+    return record
+
+
+def consume(session, release_id, *, run_id, approval_id, account, draft, plan):
+    record = verify(session, release_id, run_id=run_id, approval_id=approval_id,
+                    account=account, draft=draft, plan=plan)
     record["state"] = "consumed"
     return _save(session, release_id + ".approval.json", record)

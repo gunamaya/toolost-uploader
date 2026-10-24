@@ -6,6 +6,7 @@ include docs/OFFLINE-JOURNAL.md
 include docs/FAKE-UI.md
 include docs/FAKE-UPLOAD.md
 include docs/OFFLINE-APPROVAL.md
+include docs/FAKE-FLOW.md
 include docs/schemas/*.json
 include scripts/validate.py
 include scripts/gather.py

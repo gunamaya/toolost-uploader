@@ -14,6 +14,8 @@ Ini aturan local safety untuk caller kooperatif, bukan security boundary: boolea
 
 ## Batas dan keputusan berikutnya
 
+Update coordinator: fake_flow.py kini memakai verify/consume gate untuk satu Save FakeUI dan read-only reconcile; lihat FAKE-FLOW.md. Upload/edit staging, browser executor dan CLI tetap belum terhubung gate. Pernyataan belum wired di atas mengacu baseline implementasi gate awal.
+
 Belum ada TTL, approval renewal, multi-attempt, invalidation history, command binding/approve, UI account identity extraction, account/draft mapping, approval interactive/noninteractive CLI, atau wiring ke executor. Tidak ada create di plan karena target draft baru belum punya identitas terverifikasi; create approval flow tetap perlu review terpisah. Publikasi musik/PyPI, live smoke dan perubahan akun tidak diizinkan oleh gate offline.
 
 Tes sintetis: manual review required, immutable binding, missing approval/binding, account/draft unavailable/mismatch, stale checkpoint/plan, token satu-pakai, corruption, unsupported publish/delete, dan fsync-after-rename unknown yang tetap consumed. Fixtures temporary directory, bukan profil riset.
