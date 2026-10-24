@@ -15,6 +15,12 @@ Bukti mentah/proyeksi berisi identitas tetap privat di `.local/read-only/`, mode
 
 ## Implementasi tersedia
 
+### Follow-up sumber identitas akun
+
+Sesudah commit/push adapter read-only, pengguna mengizinkan melanjutkan observasi. Link Settings yang tampak di detail diverifikasi menuju `/user-portal/profile`. Navigasi GET dibatasi pada halaman tersebut, tanpa klik atau membaca nilai input. Guard prompt autentikasi/dialog aktif menghentikan inspeksi sebelum struktur label disimpan; penyebab spesifik (prompt vs dialog) belum terklasifikasi. Tidak ada identity snapshot tersimpan dari percobaan ini, tidak ada modal ditutup/dilewati. `finally` mengembalikan halaman detail; guard sesudah kembali menunjukkan nol password terlihat dan nol dialog aktif.
+
+Karena guard menghentikan observasi, **tidak ada kesimpulan bahwa Settings tidak memiliki account ID**. Binding masih unresolved dan tidak dibuat. Kelanjutan memerlukan operator membuka halaman akun non-login/non-modal yang aman atau mengidentifikasi sumber ID non-secret secara manual; jangan membaca cookie/storage/network auth atau memakai nama artist/email sebagai fallback diam-diam.
+
 `toolost_uploader/read_only.py`: parser snapshot murni dan `observe_page(page)` untuk halaman list/detail **yang sudah terbuka**. Tidak ada connect/login/navigation/click/mutator atau Playwright import pada runtime module. Dependency Playwright tetap hanya environment riset; package runtime stdlib.
 
 Allowlist URL https exact toolost.com/www.toolost.com dengan path manage/<page> atau view/<id>/info, tanpa query/fragment/userinfo. Guard DOM menolak password/OTP/login controls/form, iframe auth/CAPTCHA dan dialog aktif sebelum ekstraksi metadata. Guard bukan detektor autentikasi sempurna: operator tetap wajib memastikan halaman bukan login, termasuk modal/iframe. URL awal/akhir dibandingkan; ini tidak menjamin snapshot atomik saat DOM berubah serentak.

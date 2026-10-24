@@ -16,6 +16,7 @@ Riset dan rancangan CLI Python + Playwright untuk mengelola draft release Too Lo
 - [Operasi fake bergate](docs/FAKE-FLOW.md) — coordinator approval untuk Save atau upload terpisah, bukan workflow gabungan/uploader nyata.
 - [Workflow fake berurutan](docs/FAKE-WORKFLOW.md) — satu approval immutable, receipt upload/edit/Save; cakupan metadata terbatas.
 - [Adapter snapshot read-only](docs/READ-ONLY.md) — list/detail terbatas, tanpa mutasi atau binding akun otomatis.
+- [Script Playwright upload + Save draft](docs/LIVE-DRAFT.md) — executor smoke Single/satu track; belum diuji end-to-end live.
 
 ```sh
 python3 -m venv .venv

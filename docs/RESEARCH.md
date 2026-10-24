@@ -4,6 +4,8 @@ Riset dimulai: 2026-10-24. Diperbarui: 2026-10-25. Status: observasi uploader da
 
 ## Peta dokumen
 
+- [LIVE-DRAFT.md](LIVE-DRAFT.md): script Playwright draft-only yang diimplementasikan, batas subset dan status belum diuji end-to-end live.
+
 - [READ-ONLY.md](READ-ONLY.md): observasi list/detail live terbatas dan parser snapshot; identitas akun/track masih unknown.
 
 - [FAKE-WORKFLOW.md](FAKE-WORKFLOW.md): pilihan approval immutable pengguna dan workflow sintetis tiga langkah; bukan bukti akun.

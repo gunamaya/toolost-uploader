@@ -1,5 +1,7 @@
 # Prompt untuk melanjutkan pengembangan toolost-uploader
 
+**Prioritas terbaru: baca CONTINUE-IMPLEMENTATION.md dan LIVE-DRAFT.md terlebih dahulu. Pengguna meminta implementasi script nyata, bukan pengulangan riset/fake. Executor Playwright draft-only kini ditulis, belum dijalankan end-to-end live.**
+
 Salin bagian berikut sebagai prompt sesi pengembangan selanjutnya. Status handoff: 25 Oktober 2026. Dokumen riset menyimpan sejarah; verifikasi state aktual sebelum tindakan akun.
 
 Update packaging berikutnya: pengguna mengizinkan package minimal. Kini tersedia `pyproject.toml`, modul `toolost_uploader`, entry point `toolost validate`, `python -m toolost_uploader`, dan wrapper script lama dengan validator tunggal. Runtime stdlib, Python minimum deklaratif 3.10, versi lokal 0.1.0a0, classifier Private :: Do Not Upload. Extra dev build/jsonschema dan tes wheel bersih tersedia; lihat README/OFFLINE-VALIDATION untuk cara menjalankan. Operasi akun tetap belum tersedia. Pernyataan packaging belum dibuat di riwayat bawah sudah historis. Tidak ada izin commit/push baru otomatis.
@@ -7,6 +9,8 @@ Update packaging berikutnya: pengguna mengizinkan package minimal. Kini tersedia
 Update setelah review offline pada tanggal yang sama: pengguna menyetujui tahap schema/validator offline, nama distribusi `toolost-uploader`, modul `toolost_uploader`, executable `toolost`, field minimal dan AI boolean wajib pada manifest normal. Kini tersedia `scripts/validate.py`, schema manifest/result validate di `docs/schemas/`, serta `tests/test_validate.py`. Baca `docs/OFFLINE-VALIDATION.md` untuk cakupan/batas lokal. Packaging, command terpasang, profile manager dan operasi akun/publish belum dibuat/diizinkan oleh persetujuan offline. Bagian implementasi dan angka empat tes di bawah adalah baseline handoff sebelum update ini, bukan state kode terbaru. Lanjutkan packaging hanya setelah scope tahap tersebut disepakati; jangan mengulang review minimal yang sudah disetujui.
 
 ---
+
+Follow-up sesudah commit/push read-only 4caaef1: navigasi bounded ke link Settings `/user-portal/profile` dihentikan guard auth/dialog sebelum capture label disimpan. Halaman dikembalikan ke detail release dan guard clear. Tidak ada account ID baru terbukti atau binding dibuat; jangan menyimpulkan ID tidak ada. Baca READ-ONLY.md. Perlu operator membuka halaman identitas aman secara manual sebelum observasi berikutnya, bukan bypass modal/auth atau memperpanjang fake framework.
 
 Update observasi read-only dengan izin pengguna: Chrome riset loopback 9437 aktif. Jalur All Releases + detail release terbuka pasif; smoke list menghasilkan satu kartu/ID href dan smoke detail satu track row, tanpa mutasi. `read_only.py` + `test_read_only.py` menyediakan parser/collector list/detail dengan guard origin/login/dialog, selalu partial, account_verified=false, remote_track_id=null. Baca READ-ONLY.md. Raw proyeksi live tetap `.local/read-only/`, tidak commit. Blocker berikutnya adalah sumber identity binding stabil; jangan mengarang dari artist/title atau langsung membuat CLI account/live executor.
 

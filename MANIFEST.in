@@ -11,5 +11,8 @@ include docs/FAKE-WORKFLOW.md
 include docs/READ-ONLY.md
 include docs/schemas/*.json
 include scripts/validate.py
+include scripts/upload_draft.py
+include docs/LIVE-DRAFT.md
+include docs/CONTINUE-IMPLEMENTATION.md
 include scripts/gather.py
 include tests/test_*.py
