@@ -15,6 +15,7 @@ Riset dan rancangan CLI Python + Playwright untuk mengelola draft release Too Lo
 - [Gate approval offline](docs/OFFLINE-APPROVAL.md) — binding sintetis dan token satu-pakai; belum terhubung executor.
 - [Operasi fake bergate](docs/FAKE-FLOW.md) — coordinator approval untuk Save atau upload terpisah, bukan workflow gabungan/uploader nyata.
 - [Workflow fake berurutan](docs/FAKE-WORKFLOW.md) — satu approval immutable, receipt upload/edit/Save; cakupan metadata terbatas.
+- [Adapter snapshot read-only](docs/READ-ONLY.md) — list/detail terbatas, tanpa mutasi atau binding akun otomatis.
 
 ```sh
 python3 -m venv .venv

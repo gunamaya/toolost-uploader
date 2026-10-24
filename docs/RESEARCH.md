@@ -4,6 +4,8 @@ Riset dimulai: 2026-10-24. Diperbarui: 2026-10-25. Status: observasi uploader da
 
 ## Peta dokumen
 
+- [READ-ONLY.md](READ-ONLY.md): observasi list/detail live terbatas dan parser snapshot; identitas akun/track masih unknown.
+
 - [FAKE-WORKFLOW.md](FAKE-WORKFLOW.md): pilihan approval immutable pengguna dan workflow sintetis tiga langkah; bukan bukti akun.
 
 - [FAKE-FLOW.md](FAKE-FLOW.md): satu alur fake Save dengan gate dan recovery receipt; bukan bukti layanan.

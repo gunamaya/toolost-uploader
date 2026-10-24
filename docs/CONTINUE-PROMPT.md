@@ -8,6 +8,8 @@ Update setelah review offline pada tanggal yang sama: pengguna menyetujui tahap 
 
 ---
 
+Update observasi read-only dengan izin pengguna: Chrome riset loopback 9437 aktif. Jalur All Releases + detail release terbuka pasif; smoke list menghasilkan satu kartu/ID href dan smoke detail satu track row, tanpa mutasi. `read_only.py` + `test_read_only.py` menyediakan parser/collector list/detail dengan guard origin/login/dialog, selalu partial, account_verified=false, remote_track_id=null. Baca READ-ONLY.md. Raw proyeksi live tetap `.local/read-only/`, tidak commit. Blocker berikutnya adalah sumber identity binding stabil; jangan mengarang dari artist/title atau langsung membuat CLI account/live executor.
+
 Update setelah commit d91473d (belum push): pengguna memilih satu approval untuk rencana immutable berurutan. fake_workflow.py + test_fake_workflow.py kini menyatukan subset fake upload→edit→Save dengan ledger/receipt per langkah, unknown memblokir advance dan reconcile tidak mutasi ulang. Baca FAKE-WORKFLOW.md untuk subset title/order/AI, artwork/tanggal belum diterapkan, staging memori dan crash antar-write yang fail-closed. CLI tetap validate; tidak ada browser/akun/publish. Kode workflow baru belum otomatis commit/push.
 
 Update setelah commit/push a8361bb (termasuk commit lokal 2eca961 dan 9054f97): fake_flow kini juga membungkus fake upload persisten dengan gate approval dan recovery receipt lintas proses. Baca FAKE-FLOW.md. Save/upload tetap alternatif satu-operasi karena approval file satu per checkpoint; belum ada workflow gabungan atau approval history. Tidak ada browser/live atau perubahan CLI. Perubahan coordinator upload baru belum otomatis commit/push.
