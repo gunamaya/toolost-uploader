@@ -1,0 +1,62 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Toolost offline manifest v1 (unreleased)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "release_id", "release_type", "title", "release_date", "artwork", "tracks"],
+  "properties": {
+    "schema_version": {"type": "integer", "const": 1},
+    "release_id": {"$ref": "#/$defs/id"},
+    "release_type": {"enum": ["album", "ep", "single", "compilation"]},
+    "title": {"$ref": "#/$defs/text"},
+    "release_date": {"type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$", "format": "date"},
+    "artwork": {"$ref": "#/$defs/file"},
+    "language": {"$ref": "#/$defs/text"},
+    "primary_genre": {"$ref": "#/$defs/text"},
+    "secondary_genre": {"$ref": "#/$defs/text"},
+    "label": {"$ref": "#/$defs/text"},
+    "upc": {"$ref": "#/$defs/text"},
+    "copyright": {
+      "type": "object", "additionalProperties": false, "minProperties": 1,
+      "properties": {
+        "c_year": {"type": "integer", "minimum": 1, "maximum": 9999},
+        "p_year": {"type": "integer", "minimum": 1, "maximum": 9999},
+        "c_owner": {"$ref": "#/$defs/text"},
+        "p_owner": {"$ref": "#/$defs/text"}
+      }
+    },
+    "tracks": {
+      "type": "array", "minItems": 1, "maxItems": 1000,
+      "items": {
+        "type": "object", "additionalProperties": false,
+        "required": ["track_id", "title", "audio", "ai_assisted"],
+        "properties": {
+          "track_id": {"$ref": "#/$defs/id"},
+          "title": {"$ref": "#/$defs/text"},
+          "audio": {"$ref": "#/$defs/file"},
+          "lyrics": {"$ref": "#/$defs/file"},
+          "ai_assisted": {"type": "boolean"},
+          "provenance_known_ai_generated": {"type": "boolean"},
+          "version_line": {"$ref": "#/$defs/text"},
+          "language": {"$ref": "#/$defs/text"},
+          "instrumental": {"type": "boolean"},
+          "explicit": {"type": "boolean"},
+          "clean_version": {"type": "boolean"},
+          "isrc": {"$ref": "#/$defs/text"},
+          "iswc": {"$ref": "#/$defs/text"}
+        }
+      }
+    }
+  },
+  "$defs": {
+    "text": {"type": "string", "pattern": "\\S"},
+    "id": {"type": "string", "pattern": "^[A-Za-z0-9_-]{1,128}$"},
+    "file": {
+      "type": "object", "additionalProperties": false, "required": ["path", "sha256"],
+      "properties": {
+        "path": {"type": "string", "pattern": "\\S"},
+        "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+      }
+    }
+  }
+}

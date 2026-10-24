@@ -2,6 +2,8 @@
 
 Salin bagian berikut sebagai prompt sesi pengembangan selanjutnya. Status handoff: 25 Oktober 2026. Dokumen riset menyimpan sejarah; verifikasi state aktual sebelum tindakan akun.
 
+Update setelah review offline pada tanggal yang sama: pengguna menyetujui tahap schema/validator offline, nama distribusi `toolost-uploader`, modul `toolost_uploader`, executable `toolost`, field minimal dan AI boolean wajib pada manifest normal. Kini tersedia `scripts/validate.py`, schema manifest/result validate di `docs/schemas/`, serta `tests/test_validate.py`. Baca `docs/OFFLINE-VALIDATION.md` untuk cakupan/batas lokal. Packaging, command terpasang, profile manager dan operasi akun/publish belum dibuat/diizinkan oleh persetujuan offline. Bagian implementasi dan angka empat tes di bawah adalah baseline handoff sebelum update ini, bukan state kode terbaru. Lanjutkan packaging hanya setelah scope tahap tersebut disepakati; jangan mengulang review minimal yang sudah disetujui.
+
 ---
 
 Lanjutkan pengembangan project **toolost-uploader**, CLI Python + Playwright yang terpisah dan dapat dipanggil integrator `yt-to-flowmusic`. Gunakan bahasa Indonesia. Repo GitHub private: https://github.com/gunamaya/toolost-uploader.

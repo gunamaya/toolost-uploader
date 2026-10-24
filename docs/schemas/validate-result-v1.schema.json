@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Toolost offline validate result v1 (unreleased)",
+  "type": "object", "additionalProperties": false,
+  "required": ["schema_version", "command", "run_id", "status", "profile", "release_id", "draft_id", "remote_verified", "issues", "warnings", "error"],
+  "properties": {
+    "schema_version": {"type": "integer", "const": 1},
+    "command": {"const": "validate"},
+    "run_id": {"type": "null"},
+    "status": {"enum": ["valid", "invalid_input"]},
+    "profile": {"type": "null"},
+    "release_id": {"type": ["string", "null"], "pattern": "^[A-Za-z0-9_-]{1,128}$"},
+    "draft_id": {"type": "null"},
+    "remote_verified": {"const": false},
+    "issues": {"type": "array", "items": {"type": "object", "additionalProperties": false, "required": ["code", "scope", "message"], "properties": {"code": {"type": "string"}, "scope": {"type": "string"}, "message": {"type": "string"}}}},
+    "warnings": {"type": "array", "items": {"type": "string"}},
+    "error": {"type": ["object", "null"], "additionalProperties": false, "required": ["code", "message", "retryable"], "properties": {"code": {"type": "string"}, "message": {"type": "string"}, "retryable": {"const": false}}}
+  },
+  "allOf": [
+    {"if": {"properties": {"status": {"const": "valid"}}}, "then": {"properties": {"release_id": {"type": "string"}, "issues": {"maxItems": 0}, "error": {"type": "null"}}}},
+    {"if": {"properties": {"status": {"const": "invalid_input"}}}, "then": {"properties": {"issues": {"minItems": 1}, "error": {"type": "object"}}}}
+  ]
+}

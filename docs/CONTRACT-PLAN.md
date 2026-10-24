@@ -2,6 +2,8 @@
 
 Diperbarui: 2026-10-25. Status: catatan keputusan dan rancangan, bukan schema/CLI yang sudah diimplementasikan. Baca bersama RESEARCH.md dan bukti UI terkait.
 
+Update review offline: schema manifest + hasil validate dan script validator stdlib kini tersedia, lihat OFFLINE-VALIDATION.md. Nama distribusi `toolost-uploader`, modul `toolost_uploader`, executable `toolost` disetujui; packaging/operasi akun belum dibuat. Untuk manifest upload normal `ai_assisted` wajib boolean (null/omitted invalid); unknown/null hanya untuk future inspect. `status` fase berikutnya menargetkan run-id, bukan draft-id pada contoh historis di bawah. Approval draft/publish, binding akun dan identity remote tetap proposal/blocker.
+
 ## Keputusan yang disepakati
 
 - Python + Playwright, CLI terpisah untuk integrasi yt-to-flowmusic; kemungkinan distribusi PyPI. Belum ada izin publish paket.

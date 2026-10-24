@@ -2,9 +2,11 @@
 
 Status: PROPOSAL, belum diimplementasikan/disetujui final. Versi kontrak `1` belum dirilis. Basis: bukti riset yang diindeks RESEARCH.md. Operasi draft serta release list/detail diusulkan; kontrak publish juga disertakan sebagai capability future yang disabled selama riset. Scope release/draft, bukan pengelolaan library Too Lost. Lihat [RELEASE-CONTRACT.md](RELEASE-CONTRACT.md) untuk kontrak list/detail/publish dan batas bukti.
 
+Update review offline 25 Oktober 2026: pengguna menyetujui scope schema manifest/result validate + validator offline, nama distribusi/modul/executable, field minimal dan AI boolean wajib pada manifest upload normal. Implementasi script dan batas subset ada di [OFFLINE-VALIDATION.md](OFFLINE-VALIDATION.md). Ini tidak menyetujui seluruh proposal operasi akun/publish; v1 belum dirilis.
+
 ## Command
 
-Nama executable `toolost` sementara; ketersediaan nama PyPI belum diperiksa.
+Nama executable `toolost`, distribusi `toolost-uploader`, modul `toolost_uploader` disetujui; ketersediaan nama PyPI belum diperiksa. Packaging dan command terpasang belum dibuat; hanya script validate offline tersedia.
 
 ```sh
 toolost login --profile <alias>

@@ -1,8 +1,10 @@
 # Too Lost uploader — catatan riset
 
-Riset dimulai: 2026-10-24. Diperbarui: 2026-10-25. Status: observasi uploader dan draft parsial sudah diuji; CLI produk belum diimplementasikan.
+Riset dimulai: 2026-10-24. Diperbarui: 2026-10-25. Status: observasi uploader dan draft parsial sudah diuji; validator offline awal tersedia, uploader/CLI terpasang belum diimplementasikan.
 
 ## Peta dokumen
+
+- [OFFLINE-VALIDATION.md](OFFLINE-VALIDATION.md): keputusan review pengguna, schema/validator stdlib offline yang tersedia dan batas implementasi; tidak ada tindakan akun baru.
 
 - [CONTRACT-V1.md](CONTRACT-V1.md): proposal konkret command, manifest, hasil JSON, exit code dan state; belum disetujui final atau diimplementasikan.
 - [RELEASE-CONTRACT.md](RELEASE-CONTRACT.md): proposal release list/detail dan publish dua tahap. Publish belum diuji dan execution disabled selama riset; permintaan dokumentasi bukan izin distribusi.
