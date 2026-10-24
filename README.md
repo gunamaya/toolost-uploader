@@ -14,6 +14,7 @@ Riset dan rancangan CLI Python + Playwright untuk mengelola draft release Too Lo
 - [Recovery fake upload persisten](docs/FAKE-UPLOAD.md) — intent/encoding/reconcile lintas proses, tanpa layanan nyata.
 - [Gate approval offline](docs/OFFLINE-APPROVAL.md) — binding sintetis dan token satu-pakai; belum terhubung executor.
 - [Operasi fake bergate](docs/FAKE-FLOW.md) — coordinator approval untuk Save atau upload terpisah, bukan workflow gabungan/uploader nyata.
+- [Workflow fake berurutan](docs/FAKE-WORKFLOW.md) — satu approval immutable, receipt upload/edit/Save; cakupan metadata terbatas.
 
 ```sh
 python3 -m venv .venv

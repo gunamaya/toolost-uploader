@@ -4,6 +4,8 @@ Riset dimulai: 2026-10-24. Diperbarui: 2026-10-25. Status: observasi uploader da
 
 ## Peta dokumen
 
+- [FAKE-WORKFLOW.md](FAKE-WORKFLOW.md): pilihan approval immutable pengguna dan workflow sintetis tiga langkah; bukan bukti akun.
+
 - [FAKE-FLOW.md](FAKE-FLOW.md): satu alur fake Save dengan gate dan recovery receipt; bukan bukti layanan.
 
 - [OFFLINE-APPROVAL.md](OFFLINE-APPROVAL.md): aturan binding/review dan approval sintetis yang disetujui; identity UI nyata tetap unresolved.
