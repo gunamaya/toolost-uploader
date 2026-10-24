@@ -1,15 +1,19 @@
 # Validasi offline awal
 
-Keputusan review 25 Oktober 2026: pengguna menyetujui schema/validator offline dan fixture sintetis; nama distribusi `toolost-uploader`, modul `toolost_uploader`, executable `toolost`. Penamaan ini bukan bukti ketersediaan PyPI. Packaging dan console entry point belum dibuat; operasi akun, upload, profil dan publish belum tersedia.
+Keputusan review 25 Oktober 2026: pengguna menyetujui schema/validator offline dan fixture sintetis; nama distribusi `toolost-uploader`, modul `toolost_uploader`, executable `toolost`. Penamaan ini bukan bukti ketersediaan PyPI. Packaging lokal dan console entry point kini tersedia (persetujuan lanjutan pengguna); operasi akun, upload, profil dan publish belum tersedia.
 
 ```sh
+toolost validate path/to/manifest.json --json
+python3 -m toolost_uploader validate path/to/manifest.json --json
 python3 scripts/validate.py path/to/manifest.json --json
 python3 -m unittest discover -s tests -v
 ```
 
-Stdlib saja, tanpa instalasi, browser, jaringan atau pembacaan cookie. Manifest dan aset yang dirujuk dibaca, tidak dimodifikasi. stdout satu objek JSON untuk pemanggilan script yang benar; exit 0 valid, 2 invalid input, 5 bila output tidak dapat ditulis. Usage salah hanya pesan stderr dan exit 2. Tidak ada log berisi nilai input, path, key asing atau lirik. Hasil error pertama dikembalikan, bukan seluruh daftar error.
+Runtime stdlib saja, tanpa browser, jaringan atau pembacaan cookie. Instalasi package lokal memakai setuptools sebagai build dependency; extra `dev` menyediakan `build` dan `jsonschema`, tidak diperlukan saat menjalankan CLI. Manifest dan aset yang dirujuk dibaca, tidak dimodifikasi. stdout satu objek JSON untuk pemanggilan script yang benar; exit 0 valid, 2 invalid input, 5 bila output tidak dapat ditulis. Usage salah hanya usage/pesan generik stderr dan exit 2, tanpa mengulang nilai argumen. Help/version memakai stdout, exit 0. Tanpa `--json`, CLI menampilkan status singkat stdout dan warning/error stderr. Tidak ada log berisi nilai input, path, key asing atau lirik. Hasil error pertama dikembalikan, bukan seluruh daftar error.
 
-Verifikasi sesi ini: `python3 -m unittest discover -s tests -v` menjalankan 22 tes: 21 lulus, 1 skipped karena evaluator independen `jsonschema` tidak terpasang. Tidak ada dependency diinstal. Schema berhasil dibaca sebagai JSON, tetapi validitas meta-schema independen belum terverifikasi. `git diff --check` bersih.
+Verifikasi awal validator (historis): 22 tes, 21 lulus dan 1 skipped saat evaluator independen belum terpasang.
+
+Verifikasi packaging terbaru: 28 tes lulus tanpa skip dengan `TOOLOST_TEST_DIST_DIR=dist .local/packaging-venv/bin/python -m unittest discover -s tests -v`. `jsonschema` 4.26.0 memeriksa kedua meta-schema dan contoh hasil; format tanggal diaktifkan. Build 1.6.1 + setuptools 84.2.1 menghasilkan sdist dan wheel melalui sdist. Instalasi wheel ke venv bersih menggunakan `--no-index --no-deps` berhasil; console entry point dan `python -I -m toolost_uploader` berhasil dari luar checkout. Dependency pengembangan hanya dipasang pada `.local/packaging-venv`, bukan environment browser/global. Tidak ada publikasi paket.
 
 ## Schema dan cakupan
 
@@ -33,3 +37,11 @@ Verifikasi sesi ini: `python3 -m unittest discover -s tests -v` menjalankan 22 t
 Account binding UI stabil, remote track identity, approval take final oleh integrator, profile storage/lock/checkpoint dan penerapan override kode/metadata perlu tahap berikutnya. `status` nantinya memakai run-id, bukan draft-id dalam contoh lama CONTRACT-PLAN. Persetujuan offline ini bukan izin live smoke, implementasi publish, distribusi, commit/push atau publish PyPI.
 
 Referensi spesifikasi: https://json-schema.org/draft/2020-12/json-schema-validation (khususnya `format` yang default-nya annotation, bukan assertion).
+
+## Packaging lokal
+
+`pyproject.toml` memakai setuptools dengan daftar package eksplisit (`toolost_uploader` saja); tidak ada runtime dependency. Versi alpha `0.1.0a0`, Python minimum deklaratif 3.10. Belum ada matriks multi-versi/OS; pengujian sesi packaging pada macOS Python 3.14.7. Tidak ada lisensi redistribusi yang ditetapkan; classifier `Private :: Do Not Upload` sengaja dipertahankan.
+
+Wheel hanya membawa modul runtime/metadata. Sdist membawa sumber, tes, wrapper, contoh sintetis dan schema untuk pengujian; tidak membawa profil/capture/aset privat. Schema tetap di `docs/schemas` dalam checkout/sdist, bukan resource runtime wheel. Import internal bukan kontrak integrator; integrator tetap memakai subprocess dan JSON.
+
+Build: `python -m build`; tes lengkap: `TOOLOST_TEST_DIST_DIR=dist python -m unittest discover -s tests -v` setelah `pip install -e '.[dev]'` di venv terpisah. Tes default tetap offline stdlib, melewati uji instalasi bila variabel tersebut tidak disetel dan melewati evaluator schema bila extra dev belum dipasang.

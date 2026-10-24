@@ -1,6 +1,6 @@
 # Too Lost uploader — catatan riset
 
-Riset dimulai: 2026-10-24. Diperbarui: 2026-10-25. Status: observasi uploader dan draft parsial sudah diuji; validator offline awal tersedia, uploader/CLI terpasang belum diimplementasikan.
+Riset dimulai: 2026-10-24. Diperbarui: 2026-10-25. Status: observasi uploader dan draft parsial sudah diuji; validator dan CLI offline terpasang tersedia, uploader/operasi akun belum diimplementasikan.
 
 ## Peta dokumen
 

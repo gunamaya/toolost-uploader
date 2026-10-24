@@ -1,6 +1,5 @@
 import copy
 import hashlib
-import importlib.util
 import json
 from pathlib import Path
 import subprocess
@@ -11,9 +10,8 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPT = ROOT / 'scripts/validate.py'
-spec = importlib.util.spec_from_file_location('manifest_validator', SCRIPT)
-validator = importlib.util.module_from_spec(spec)
-spec.loader.exec_module(validator)
+sys.path.insert(0, str(ROOT))
+from toolost_uploader import validation as validator
 
 
 class ValidateTests(unittest.TestCase):
@@ -180,7 +178,7 @@ class ValidateTests(unittest.TestCase):
         run = subprocess.run([sys.executable, str(SCRIPT)], capture_output=True, text=True)
         self.assertEqual(run.returncode, 2)
         self.assertEqual(run.stdout, '')
-        self.assertIn('Penggunaan', run.stderr)
+        self.assertIn('usage:', run.stderr)
 
     def test_result_envelope(self):
         for result in (self.run_manifest(), self.run_manifest({})):

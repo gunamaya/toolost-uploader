@@ -2,6 +2,8 @@
 
 Salin bagian berikut sebagai prompt sesi pengembangan selanjutnya. Status handoff: 25 Oktober 2026. Dokumen riset menyimpan sejarah; verifikasi state aktual sebelum tindakan akun.
 
+Update packaging berikutnya: pengguna mengizinkan package minimal. Kini tersedia `pyproject.toml`, modul `toolost_uploader`, entry point `toolost validate`, `python -m toolost_uploader`, dan wrapper script lama dengan validator tunggal. Runtime stdlib, Python minimum deklaratif 3.10, versi lokal 0.1.0a0, classifier Private :: Do Not Upload. Extra dev build/jsonschema dan tes wheel bersih tersedia; lihat README/OFFLINE-VALIDATION untuk cara menjalankan. Operasi akun tetap belum tersedia. Pernyataan packaging belum dibuat di riwayat bawah sudah historis. Tidak ada izin commit/push baru otomatis.
+
 Update setelah review offline pada tanggal yang sama: pengguna menyetujui tahap schema/validator offline, nama distribusi `toolost-uploader`, modul `toolost_uploader`, executable `toolost`, field minimal dan AI boolean wajib pada manifest normal. Kini tersedia `scripts/validate.py`, schema manifest/result validate di `docs/schemas/`, serta `tests/test_validate.py`. Baca `docs/OFFLINE-VALIDATION.md` untuk cakupan/batas lokal. Packaging, command terpasang, profile manager dan operasi akun/publish belum dibuat/diizinkan oleh persetujuan offline. Bagian implementasi dan angka empat tes di bawah adalah baseline handoff sebelum update ini, bukan state kode terbaru. Lanjutkan packaging hanya setelah scope tahap tersebut disepakati; jangan mengulang review minimal yang sudah disetujui.
 
 ---

@@ -6,7 +6,7 @@ Update review offline 25 Oktober 2026: pengguna menyetujui scope schema manifest
 
 ## Command
 
-Nama executable `toolost`, distribusi `toolost-uploader`, modul `toolost_uploader` disetujui; ketersediaan nama PyPI belum diperiksa. Packaging dan command terpasang belum dibuat; hanya script validate offline tersedia.
+Nama executable `toolost`, distribusi `toolost-uploader`, modul `toolost_uploader` disetujui; ketersediaan nama PyPI belum diperiksa. Packaging lokal dan command `toolost validate` tersedia; command lain di bawah tetap proposal. Lihat README untuk instalasi lokal.
 
 ```sh
 toolost login --profile <alias>

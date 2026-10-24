@@ -1,0 +1,7 @@
+include README.md
+include docs/contract-manifest.example.json
+include docs/OFFLINE-VALIDATION.md
+include docs/schemas/*.json
+include scripts/validate.py
+include scripts/gather.py
+include tests/test_*.py
