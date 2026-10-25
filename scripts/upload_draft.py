@@ -1,6 +1,5 @@
 """Executor smoke nyata draft-only. Login manual; tidak menyediakan Publish."""
 
-import argparse
 import json
 from pathlib import Path
 import sys
@@ -8,10 +7,11 @@ import sys
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from toolost_uploader.live_draft import execute
 from toolost_uploader.live_draft import DraftError
+from toolost_uploader.cli import Parser
 
 
 def main():
-    parser = argparse.ArgumentParser(description=__doc__)
+    parser = Parser(description=__doc__, allow_abbrev=False)
     parser.add_argument('manifest')
     parser.add_argument('--profile', required=True)
     parser.add_argument('--expected-account', required=True, help='ID akun yang direview, bukan cookie/token.')
@@ -19,14 +19,17 @@ def main():
     parser.add_argument('--approve-draft', action='store_true')
     parser.add_argument('--accept-ui-date-for-smoke', action='store_true')
     parser.add_argument('--resume-stopped-before-artwork', action='store_true',
-                        help='Hanya setelah operator membuktikan run berhenti sebelum pemilihan artwork.')
+                        help='Dinonaktifkan: recovery debugging lama, bukan resume produksi.')
     parser.add_argument('--resume-stopped-before-audio', action='store_true',
-                        help='Hanya untuk attempt audio sebelum file chooser, setelah review operator.')
+                        help='Dinonaktifkan: tidak boleh mengulang upload.')
     parser.add_argument('--resume-selected-audio', action='store_true',
-                        help='Hanya setelah operator memverifikasi file dipilih tetapi belum Upload.')
+                        help='Dinonaktifkan: tidak boleh mengirim file yang sudah dipilih.')
     parser.add_argument('--resume-open-metadata', action='store_true',
-                        help='Recovery editor satu track yang sudah diupload; tidak mengirim media lagi.')
-    parser.add_argument('--approve-release-title-equals-track', action='store_true')
+                        help='Dinonaktifkan: tidak boleh mengulang metadata/Save.')
+    parser.add_argument('--approve-release-title-equals-track', action='store_true',
+                        help='Persetujuan amendment immutable sebelum create, bukan edit draft existing.')
+    parser.add_argument('--reconcile-readback-only', action='store_true',
+                        help='Reopen/readback setelah attempt Save; wajib mulai portal, tanpa create/upload/Save.')
     args = parser.parse_args()
     try:
         result = execute(args.manifest, alias=args.profile, expected_account=args.expected_account,
@@ -36,7 +39,8 @@ def main():
                          resume_before_audio=args.resume_stopped_before_audio,
                          resume_selected_audio=args.resume_selected_audio,
                          resume_open_metadata=args.resume_open_metadata,
-                         approve_release_title_amendment=args.approve_release_title_equals_track)
+                         approve_release_title_amendment=args.approve_release_title_equals_track,
+                         reconcile_only=args.reconcile_readback_only)
         code = 0
     except Exception as error:
         result = {'status': 'reconciliation_required', 'code': str(error) if isinstance(error, DraftError) else type(error).__name__, 'error': 'Operasi dihentikan; periksa checkpoint privat sebelum tindakan berikutnya. Jangan retry create/upload/Save.'}

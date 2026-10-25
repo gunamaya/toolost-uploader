@@ -4,7 +4,7 @@ Riset dimulai: 2026-10-24. Diperbarui: 2026-10-25. Status: observasi uploader da
 
 ## Peta dokumen
 
-- [LIVE-DRAFT.md](LIVE-DRAFT.md): script Playwright draft-only yang diimplementasikan, batas subset dan status belum diuji end-to-end live.
+- [LIVE-DRAFT.md](LIVE-DRAFT.md): smoke draft-only subset sukses sampai Save/reopen; hardening journal/identity dan rekonsiliasi readback-only sesudahnya diuji offline, bukan resume produksi.
 
 - [READ-ONLY.md](READ-ONLY.md): observasi list/detail live terbatas dan parser snapshot; identitas akun/track masih unknown.
 

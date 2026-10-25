@@ -59,10 +59,12 @@ class LiveDraftTests(unittest.TestCase):
     def make_ui(self):
         page = Mock()
         page.url = 'https://toolost.com/uploader/edit/123'
+        page.is_closed.return_value = False
         page.locator.return_value.count.return_value = 0
         record = Mock()
         ui = DraftUI(page, self.manifest, self.base, '123', record)
         ui.remote_id = '123'
+        ui.identity_verified = True
         return ui, page, record
 
     def test_intent_before_action_and_failure_stays_unknown(self):
