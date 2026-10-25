@@ -7,6 +7,7 @@ import sys
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from toolost_uploader.live_draft import execute
+from toolost_uploader.live_draft import DraftError
 
 
 def main():
@@ -17,14 +18,28 @@ def main():
     parser.add_argument('--cdp', default='http://127.0.0.1:9437')
     parser.add_argument('--approve-draft', action='store_true')
     parser.add_argument('--accept-ui-date-for-smoke', action='store_true')
+    parser.add_argument('--resume-stopped-before-artwork', action='store_true',
+                        help='Hanya setelah operator membuktikan run berhenti sebelum pemilihan artwork.')
+    parser.add_argument('--resume-stopped-before-audio', action='store_true',
+                        help='Hanya untuk attempt audio sebelum file chooser, setelah review operator.')
+    parser.add_argument('--resume-selected-audio', action='store_true',
+                        help='Hanya setelah operator memverifikasi file dipilih tetapi belum Upload.')
+    parser.add_argument('--resume-open-metadata', action='store_true',
+                        help='Recovery editor satu track yang sudah diupload; tidak mengirim media lagi.')
+    parser.add_argument('--approve-release-title-equals-track', action='store_true')
     args = parser.parse_args()
     try:
         result = execute(args.manifest, alias=args.profile, expected_account=args.expected_account,
                          endpoint=args.cdp, approve_draft=args.approve_draft,
-                         accept_ui_date=args.accept_ui_date_for_smoke)
+                         accept_ui_date=args.accept_ui_date_for_smoke,
+                         resume_before_artwork=args.resume_stopped_before_artwork,
+                         resume_before_audio=args.resume_stopped_before_audio,
+                         resume_selected_audio=args.resume_selected_audio,
+                         resume_open_metadata=args.resume_open_metadata,
+                         approve_release_title_amendment=args.approve_release_title_equals_track)
         code = 0
-    except Exception:
-        result = {'status': 'reconciliation_required', 'error': 'Operasi dihentikan; periksa checkpoint privat sebelum tindakan berikutnya. Jangan retry create/upload/Save.'}
+    except Exception as error:
+        result = {'status': 'reconciliation_required', 'code': str(error) if isinstance(error, DraftError) else type(error).__name__, 'error': 'Operasi dihentikan; periksa checkpoint privat sebelum tindakan berikutnya. Jangan retry create/upload/Save.'}
         code = 4
     print(json.dumps(result))
     return code

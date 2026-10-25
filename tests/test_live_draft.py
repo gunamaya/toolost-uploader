@@ -95,12 +95,51 @@ class LiveDraftTests(unittest.TestCase):
             operation.assert_not_called()
             record.assert_not_called()
 
+    def test_matching_locked_title_does_not_fill_or_toggle_blindly(self):
+        ui, page, record = self.make_ui()
+        title = page.get_by_role.return_value
+        title.is_editable.return_value = False
+        title.input_value.return_value = self.manifest['tracks'][0]['title']
+        switch = Mock()
+        switch.get_attribute.return_value = 'true'
+        with patch.object(ui, 'ai_switch', return_value=switch):
+            ui.metadata_open()
+        title.fill.assert_not_called()
+        switch.locator.assert_not_called()
+
+    def test_upload_button_names_allow_observed_subtitles(self):
+        ui, page, _ = self.make_ui()
+        page.expect_file_chooser.side_effect = RuntimeError('stop before file selection')
+        with self.assertRaises(RuntimeError):
+            ui.artwork()
+        patterns = [call.kwargs.get('name') for call in page.get_by_role.call_args_list]
+        self.assertTrue(any(hasattr(pattern, 'search') and pattern.search('Upload Artwork\nJPG, PNG, or TIFF') for pattern in patterns))
+
+    def test_readback_does_not_require_release_title_heading(self):
+        ui, page, _ = self.make_ui()
+        page.get_by_role.return_value.input_value.side_effect = [self.manifest['title'], self.manifest['tracks'][0]['title']]
+        page.locator.side_effect = lambda selector: Mock(count=Mock(return_value=0 if 'password' in selector else 1))
+        with patch.object(ui, 'editor'), patch.object(ui, 'ai_switch') as ai:
+            ai.return_value.get_attribute.return_value = 'true'
+            ui.readback()
+        self.assertFalse(any(call.args and call.args[0] == 'heading' for call in page.get_by_role.call_args_list))
+
     def test_asset_rehashed_before_chooser(self):
         ui, _, _ = self.make_ui()
         self.assertEqual(ui.asset(self.manifest['artwork']), str(self.asset))
         self.asset.write_bytes(b'wrong')
         with self.assertRaises(InvalidInput):
             ui.asset(self.manifest['artwork'])
+
+    def test_disabled_track_title_mismatch_stops_before_ai_or_save(self):
+        ui, page, record = self.make_ui()
+        title = page.get_by_role.return_value
+        title.is_editable.return_value = False
+        title.input_value.return_value = 'Different release title'
+        with self.assertRaisesRegex(DraftError, 'track_title_locked_mismatch'):
+            ui.metadata_open()
+        title.fill.assert_not_called()
+        record.assert_not_called()
 
     def test_existing_modal_never_navigated_away(self):
         ui, page, _ = self.make_ui()

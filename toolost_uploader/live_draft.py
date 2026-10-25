@@ -1,10 +1,11 @@
 """Executor Playwright draft-only bounded; tidak menyediakan aksi Publish."""
 
 import re
+from copy import deepcopy
 from pathlib import Path
 from urllib.parse import urlsplit
 
-from .storage import _atomic_write, profile
+from .storage import _atomic_write, _read, profile
 from .validation import file_reference, load_manifest, validate_manifest
 
 
@@ -99,7 +100,7 @@ class DraftUI:
     def artwork(self):
         page = self.page
         page.get_by_role('button', name='Artwork', exact=True).click()
-        page.get_by_role('button', name='Upload Artwork', exact=True).click()
+        page.get_by_role('button', name=re.compile(r'^Upload Artwork(?:\s|$)')).click()
         dialog = page.get_by_role('dialog').filter(has_text=re.compile('Upload artwork', re.I))
         with page.expect_file_chooser(timeout=10000) as chooser:
             dialog.get_by_text('browse files', exact=True).click()
@@ -111,8 +112,8 @@ class DraftUI:
         page.get_by_role('button', name='Manage Tracks', exact=True).click()
         if page.locator('.track-item:visible').count() != 0:
             raise DraftError('unexpected_existing_tracks')
-        page.get_by_role('button', name='Upload tracks', exact=True).click()
-        dialog = page.get_by_role('dialog').filter(has_text='browse files')
+        page.get_by_role('button', name=re.compile(r'^Upload tracks(?:\s|$)')).click()
+        dialog = page.locator('[role=dialog]:visible').filter(has=page.get_by_role('button', name='Cancel', exact=True))
         with page.expect_file_chooser(timeout=10000) as chooser:
             dialog.get_by_text('browse files', exact=True).click()
         chooser.value.set_files(self.asset(self.manifest['tracks'][0]['audio']))
@@ -120,7 +121,21 @@ class DraftUI:
         page.locator('.track-item:visible').first.wait_for(state='visible', timeout=240000)
         if page.locator('.track-item:visible').count() != 1:
             raise DraftError('track_identity_ambiguous')
-        page.get_by_role('dialog').filter(has_text='browse files').wait_for(state='hidden', timeout=30000)
+        dialog.wait_for(state='hidden', timeout=30000)
+
+    def audio_selected(self):
+        page = self.page
+        dialog = page.locator('[role=dialog]:visible').filter(has=page.get_by_role('button', name='Upload 1 file', exact=True))
+        if dialog.count() != 1 or page.locator('.track-item:visible').count():
+            raise DraftError('audio_selection_requires_review')
+        filename = Path(self.manifest['tracks'][0]['audio']['path']).name
+        dialog.get_by_text(filename, exact=True).wait_for(state='visible')
+        self.asset(self.manifest['tracks'][0]['audio'])
+        dialog.get_by_role('button', name='Upload 1 file', exact=True).click()
+        dialog.wait_for(state='hidden', timeout=240000)
+        page.locator('.track-item:visible').first.wait_for(state='visible', timeout=240000)
+        if page.locator('.track-item:visible').count() != 1:
+            raise DraftError('track_identity_ambiguous')
 
     def editor(self):
         self.page.locator('.track-item:visible').get_by_role('button', name='Edit', exact=True).click()
@@ -128,8 +143,8 @@ class DraftUI:
 
     def ai_switch(self):
         # Scope by the observed AI label, never the first unnamed switch on the page.
-        section = self.page.get_by_text('AI-assisted content', exact=True).locator('..')
-        switches = section.get_by_role('switch').filter(visible=True)
+        section = self.page.locator('.ted__ai-toggle').filter(has=self.page.get_by_text('AI-assisted content', exact=True))
+        switches = section.get_by_role('switch')
         if switches.count() != 1:
             raise DraftError('ai_selector_unverified')
         return switches
@@ -137,16 +152,37 @@ class DraftUI:
     def metadata(self):
         track = self.manifest['tracks'][0]
         self.editor()
-        self.page.get_by_role('textbox', name='Track name', exact=True).fill(track['title'])
+        self.metadata_open()
+
+    def metadata_open(self):
+        track = self.manifest['tracks'][0]
+        title = self.page.get_by_role('textbox', name='Track name', exact=True)
+        if not title.is_editable():
+            if title.input_value() != track['title']:
+                raise DraftError('track_title_locked_mismatch')
+        else:
+            self.record('metadata_title', 'unknown', self.remote_id)
+            title.fill(track['title'])
+            self.record('metadata_title', 'observed', self.remote_id)
         switch = self.ai_switch()
         value = switch.get_attribute('aria-checked')
         if value not in ('true', 'false'):
             raise DraftError('ai_semantics_unavailable')
         if (value == 'true') != track['ai_assisted']:
-            switch.click()
+            switch.locator('..').click()
         if switch.get_attribute('aria-checked') != str(track['ai_assisted']).lower():
             raise DraftError('ai_readback_mismatch')
         self.page.get_by_role('button', name='Done', exact=True).click()
+
+    def amend_release_title(self):
+        self.page.get_by_role('button', name='Done', exact=True).click()
+        self.page.get_by_role('button', name='Basic Information', exact=True).click()
+        title = self.page.get_by_role('textbox', name='Single name', exact=True)
+        title.fill(self.manifest['tracks'][0]['title'])
+        self.manifest = deepcopy(self.manifest)
+        self.manifest['title'] = self.manifest['tracks'][0]['title']
+        self.page.get_by_role('button', name='Manage Tracks', exact=True).click()
+        self.editor()
 
     def save(self):
         page = self.page
@@ -170,7 +206,7 @@ class DraftUI:
         page = self.page
         page.goto('https://toolost.com/uploader/edit/' + self.remote_id, wait_until='domcontentloaded', timeout=30000)
         self.guard()
-        page.get_by_role('heading', name=self.manifest['title'], exact=True).wait_for(state='visible', timeout=30000)
+        page.get_by_role('button', name='Basic Information', exact=True).wait_for(state='visible', timeout=30000)
         title = page.get_by_role('textbox', name='Single name', exact=True)
         page.get_by_role('button', name='Basic Information', exact=True).click()
         title.wait_for(state='visible')
@@ -199,7 +235,9 @@ def run_steps(ui):
     ui.record('readback', 'verified_subset', ui.remote_id)
 
 
-def execute(path, *, alias, expected_account, endpoint, approve_draft, accept_ui_date, root=None):
+def execute(path, *, alias, expected_account, endpoint, approve_draft, accept_ui_date, root=None,
+            resume_before_artwork=False, resume_before_audio=False, resume_selected_audio=False,
+            resume_open_metadata=False, approve_release_title_amendment=False):
     if approve_draft is not True or accept_ui_date is not True:
         raise DraftError('confirmation_required')
     if not re.fullmatch(r'[1-9][0-9]*', expected_account):
@@ -209,13 +247,40 @@ def execute(path, *, alias, expected_account, endpoint, approve_draft, accept_ui
     manifest, base = preflight(path)
     from playwright.sync_api import sync_playwright
     with profile(alias, root=root) as session:
-        checkpoint = session.create_checkpoint(manifest, base)
-        events = []
+        recovery = resume_before_artwork or resume_before_audio or resume_selected_audio or resume_open_metadata
+        if sum((resume_before_artwork, resume_before_audio, resume_selected_audio, resume_open_metadata)) > 1:
+            raise DraftError('ambiguous_recovery_stage')
+        if recovery:
+            checkpoint = session.read_checkpoint(manifest['release_id'])
+            if checkpoint['manifest'] != manifest or checkpoint['manifest_dir'] != str(base):
+                raise DraftError('resume_manifest_mismatch')
+            previous = _read(session.directory, manifest['release_id'] + '.live.json')
+            expected = [('preflight', 'validated'), ('create', 'unknown'), ('create', 'observed'), ('artwork', 'unknown')]
+            if resume_before_audio or resume_selected_audio or resume_open_metadata:
+                expected += [('artwork_reconciled', 'not_selected_operator_review'),
+                             ('artwork', 'unknown'), ('artwork', 'observed'), ('audio', 'unknown')]
+            if resume_selected_audio or resume_open_metadata:
+                expected += [('audio_reconciled', 'not_selected_operator_review'), ('audio', 'unknown')]
+            if resume_open_metadata:
+                expected += [('audio_selected', 'unknown'), ('audio_selected', 'observed'), ('metadata', 'unknown')]
+                actual = [(e.get('operation'), e.get('outcome')) for e in previous.get('events', [])]
+                suffix = actual[len(expected):]
+                if suffix and all(e in (('metadata_reconciled', 'unknown'), ('metadata_title', 'unknown')) for e in suffix):
+                    expected += suffix
+            if (previous.get('run_id') != checkpoint['run_id'] or
+                    [(e.get('operation'), e.get('outcome')) for e in previous.get('events', [])] != expected or
+                    not re.fullmatch(r'[0-9]+', str(previous.get('remote_draft_id', '')))):
+                raise DraftError('resume_requires_manual_reconciliation')
+            events = previous['events'][:]
+        else:
+            checkpoint = session.create_checkpoint(manifest, base)
+            events = []
         def record(operation, outcome, remote_id):
             events.append(dict(operation=operation, outcome=outcome))
             _atomic_write(session.directory, manifest['release_id'] + '.live.json',
                           dict(run_id=checkpoint['run_id'], remote_draft_id=remote_id, events=events))
-        record('preflight', 'validated', None)
+        if not recovery:
+            record('preflight', 'validated', None)
         with sync_playwright() as p:
             browser = p.chromium.connect_over_cdp(endpoint)
             pages = [page for context in browser.contexts for page in context.pages
@@ -224,7 +289,59 @@ def execute(path, *, alias, expected_account, endpoint, approve_draft, accept_ui
             if len(pages) != 1:
                 raise DraftError('ambiguous_browser_target')
             ui = DraftUI(pages[0], manifest, base, expected_account, record)
-            run_steps(ui)
+            if recovery:
+                # Explicit operator reconciliation only: first run stopped before file selection.
+                ui.remote_id = previous['remote_draft_id']
+                if urlsplit(ui.page.url).path != '/uploader/edit/' + ui.remote_id:
+                    raise DraftError('draft_target_changed')
+                ui.guard()
+                if resume_open_metadata:
+                    if not ui.page.get_by_role('textbox', name='Track name', exact=True).is_visible():
+                        raise DraftError('track_editor_not_open')
+                    if approve_release_title_amendment:
+                        record('title_amendment', 'approved_release_equals_track', ui.remote_id)
+                        ui.action('amend_release_title', ui.amend_release_title)
+                    ui.action('metadata_reconciled', ui.metadata_open)
+                    ui.action('save', ui.save)
+                    ui.readback()
+                    ui.record('readback', 'verified_subset', ui.remote_id)
+                    return dict(status='draft_saved_subset', run_id=checkpoint['run_id'], draft_id=ui.remote_id,
+                                warnings=['Smoke subset only; UI date inherited, remote track ID and rights unverified.'])
+                if resume_selected_audio:
+                    ui.action('audio_selected', ui.audio_selected)
+                    for name in ('metadata', 'save'):
+                        ui.action(name, getattr(ui, name))
+                    ui.readback()
+                    ui.record('readback', 'verified_subset', ui.remote_id)
+                    return dict(status='draft_saved_subset', run_id=checkpoint['run_id'], draft_id=ui.remote_id,
+                                warnings=['Smoke subset only; UI date inherited, remote track ID and rights unverified.'])
+                if ui.page.locator('[role=dialog]:visible').count() and not resume_before_audio:
+                    raise DraftError('unexpected_dialog')
+                ui.page.get_by_role('button', name='Basic Information', exact=True).click()
+                title = ui.page.get_by_role('textbox', name='Single name', exact=True)
+                title.wait_for(state='visible')
+                if title.input_value() != manifest['title']:
+                    raise DraftError('draft_target_changed')
+                if resume_before_artwork:
+                    ui.page.get_by_role('button', name='Artwork', exact=True).click()
+                    ui.page.get_by_role('button', name=re.compile(r'^Upload Artwork(?:\s|$)')).wait_for(state='visible')
+                    if ui.page.get_by_text('Artwork selected', exact=True).is_visible():
+                        raise DraftError('existing_artwork_requires_review')
+                    record('artwork_reconciled', 'not_selected_operator_review', ui.remote_id)
+                    stages = ('artwork', 'audio', 'metadata', 'save')
+                else:
+                    ui.page.get_by_role('button', name='Manage Tracks', exact=True).click()
+                    ui.page.get_by_role('button', name=re.compile(r'^Upload tracks(?:\s|$)')).wait_for(state='visible')
+                    if ui.page.locator('.track-item:visible').count():
+                        raise DraftError('existing_audio_requires_review')
+                    record('audio_reconciled', 'not_selected_operator_review', ui.remote_id)
+                    stages = ('audio', 'metadata', 'save')
+                for name in stages:
+                    ui.action(name, getattr(ui, name))
+                ui.readback()
+                ui.record('readback', 'verified_subset', ui.remote_id)
+            else:
+                run_steps(ui)
         return dict(status='draft_saved_subset', run_id=checkpoint['run_id'], draft_id=ui.remote_id,
                     warnings=['Tanggal UI diwarisi; bukan release_date manifest terverifikasi.',
                               'Remote track identity dan rights/services belum diverifikasi; bukan siap distribusi.'])

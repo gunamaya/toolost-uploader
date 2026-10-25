@@ -1,6 +1,6 @@
 # Executor Playwright smoke draft-only
 
-Koreksi arah setelah pengguna meminta implementasi, bukan pengulangan riset manual. Kini tersedia `scripts/upload_draft.py` dan `toolost_uploader/live_draft.py`: kode nyata Playwright, bukan FakeUI. **Belum dijalankan end-to-end live dan belum dianggap uploader produksi.** Tidak ada aksi Publish/delete/rights/artist/services. CLI terpasang `toolost` masih validate.
+Koreksi arah setelah pengguna meminta implementasi, bukan pengulangan riset manual. Kini tersedia `scripts/upload_draft.py` dan `toolost_uploader/live_draft.py`: kode nyata Playwright, bukan FakeUI. **Smoke live selesai sampai Save/reopen dengan perbaikan locator; belum dianggap uploader produksi.** Tidak ada aksi Publish/delete/rights/artist/services. CLI terpasang `toolost` masih validate.
 
 ## Command
 
@@ -33,3 +33,13 @@ Guard akun dilakukan saat preflight; belum memantau pergantian akun serentak sep
 Sebelum kode ditulis, langkah manual berhenti di modal **Name your release** setelah memilih Single. **Create Release belum diklik, file belum diupload, Save belum dilakukan.** Script belum dijalankan pada modal tersebut dan menolak memulai dari `/uploader`. Tidak membuat manifest produksi/aset fixture baru otomatis. Persetujuan live yang sudah diberikan tetap hanya draft uji baru dan aset riset yang dipilih, bukan izin merilis.
 
 Tes offline menggunakan mocks untuk urutan mutasi, fail-stop, journal-before-action, login/target/modal guard, hash mismatch, field unsupported, approval/loopback flags. Bukan bukti selector end-to-end. Packaging extra browser opsional; runtime validate tetap stdlib. Tidak ada instalasi dependency baru dalam sesi implementasi ini.
+
+## Hasil smoke live dan perbaikan
+
+Satu draft baru dibuat lewat script; artwork dan satu WAV terpilih dari daftar riset ber-hash diupload, tanpa duplicate create/media. Tombol artwork/audio ternyata memiliki subtitle; locator diperbaiki memakai awalan label. Dialog audio di-scope Cancel yang stabil karena browse files hilang setelah file dipilih. Recovery hanya setelah operator membuktikan tahap sebelum kirim/file sudah dipilih, memakai exact jejak jurnal run; bukan retry otomatis.
+
+Pada Single ini Track name disabled dan mengikuti release title. Tidak bypass disabled. Pengguna menyetujui amendment release title menjadi judul lagu; amendment dicatat privat terpisah dari snapshot awal. AI memakai scope .ted__ai-toggle dan ARIA read-back, klik pembungkus visual hanya bila nilai berbeda. Save dipanggil sekali. Read-back awal timeout karena asumsi heading judul; diperbaiki menunggu panel Basic Information dan Single name. Verifikasi berikut hanya readback(), tanpa Save kedua.
+
+Hasil reopen terverifikasi: Single; judul release dan track Terangnya Belum Pulang; artwork selected; tepat satu track; AI=true. AI Documentation masih issue manual; tanggal/default rights/services tidak diklaim verified, tidak ada Publish. ID draft, manifest/amendment, aset dan event ledger tetap privat. Draft lama tidak dimodifikasi.
+
+Flag recovery --resume-stopped-before-artwork/--resume-stopped-before-audio/--resume-selected-audio/--resume-open-metadata sengaja sempit terhadap jejak debugging ini. --approve-release-title-equals-track hanya untuk amendment yang direview. Bukan resume umum dan jangan memakai release_id baru untuk melewati unknown. Preflight identity tidak diulang penuh oleh recovery khusus ini; jangan memakai mode recovery unattended atau saat operator mengganti sesi akun. Perlu refactor/test recovery lebih lanjut sebelum distribusi.
