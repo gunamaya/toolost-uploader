@@ -4,7 +4,7 @@ import json
 from pathlib import Path
 import sys
 import unittest
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
@@ -147,6 +147,49 @@ class CLITests(unittest.TestCase):
             # Pastikan stdout tetap valid JSON murni
             payload = json.loads(out)
             self.assertEqual(payload['status'], 'draft_saved_subset')
+
+    def test_setup_help_and_execution(self):
+        code, out, err = self.invoke(['setup', '--help'])
+        self.assertEqual(code, 0)
+        self.assertIn('--profile', out)
+
+        mock_proc = Mock()
+        mock_proc.wait.return_value = 0
+        with patch('toolost_uploader.browser.find_chrome_binary', return_value=Path('/mock/chrome')), \
+             patch('toolost_uploader.browser.launch_chrome', return_value=mock_proc):
+            code, out, err = self.invoke(['setup', '--profile', 'test'])
+            self.assertEqual(code, 0)
+            self.assertIn('Profil lokal siap digunakan', err)
+
+    def test_check_command_ready_and_mismatch(self):
+        code, out, err = self.invoke(['check', '--help'])
+        self.assertEqual(code, 0)
+        self.assertIn('--expected-account', out)
+        self.assertIn('--auto-bootup', out)
+
+        # Mock check ready
+        with patch('toolost_uploader.browser.find_chrome_binary', return_value=Path('/mock/chrome')), \
+             patch('toolost_uploader.browser.check_and_clean_stale_lock', return_value=(False, 'ok')), \
+             patch('toolost_uploader.browser.is_cdp_available', return_value=True), \
+             patch('toolost_uploader.browser.check_auth_identity', return_value={'status': 'authenticated', 'account_id': '422512'}):
+            # JSON format
+            code, out, err = self.invoke(['check', '--expected-account', '422512', '--json'])
+            self.assertEqual(code, 0)
+            res = json.loads(out)
+            self.assertEqual(res['status'], 'ready')
+            self.assertEqual(res['account_id'], '422512')
+
+            # Human format
+            code, out, err = self.invoke(['check', '--expected-account', '422512'])
+            self.assertEqual(code, 0)
+            self.assertIn('Lingkungan SIAP', out)
+
+            # Account mismatch
+            code, out, err = self.invoke(['check', '--expected-account', '999999', '--json'])
+            self.assertEqual(code, 2)
+            res = json.loads(out)
+            self.assertEqual(res['status'], 'account_mismatch')
+
 
 
 

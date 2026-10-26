@@ -46,11 +46,14 @@ Status/prioritas/dependency/klaim terkini mengikuti [current index](../ANTRIAN-P
 - **Verifier:** `python3 -m unittest discover -s tests -q`, `python3 -m toolost_uploader upload --help`, `git diff --check`.
 - **Hasil:** Subcommand `toolost upload --draft-only` terpasang di CLI; `live_draft.py` mendukung rilis Album multi-track lengkap dengan file chooser multi-file, editor metadata per-track, dan readback `Album name`; 161 tes unit offline lolos regresi.
 
-## RES-01 — Resume mutasi produksi (deferred)
+## RES-01 — Resume mutasi produksi (superseded)
 
-- **Masuk setelah aktivasi user:** tentukan bounded operasi yang boleh dilanjutkan, identitas remote yang diperlukan dan perilaku unknown/conflict. Reuse executor/journal existing; jangan menyalin scheduler FlowStudio.
-- **Keluar:** implementasi otomatis hanya karena REC-01 selesai; retry buta create/upload/Save; izin live/publish implisit.
-- **Acceptance sebelum mulai implementasi:** scope konkret dipilih user, plan/field/target jelas, verifier offline dan izin live terpisah bila diperlukan. Detail belum ditetapkan, bukan task implementasi siap jalan.
+- **Sumber:** evaluasi pasca CLI-02 & LIVE-02; keputusan eksplisit pengguna 2026-10-26.
+- **Alasan penutupan:**
+  1. Eksekusi alur penuh live Playwright pembuatan draft Album multi-track dari nol terbukti sangat cepat (~50 detik total), sehingga resume parsial tidak memberikan nilai tambah signifikan.
+  2. Retry/resume mutasi di tengah jalan (partial upload) berisiko tinggi memicu duplikasi track dan pergeseran urutan di UI Too Lost.
+  3. Mekanisme rekonsiliasi pasca-Save (`--reconcile-readback-only`) dan proteksi idempotensi fail-stop via journal v2 sudah tersedia dan jauh lebih aman.
+- **Status:** `superseded`. Tidak ada kode mutasi resume tambahan yang akan dibangun.
 
 ## LIVE-02 — Verifikasi live Playwright Album multi-track (done)
 
@@ -66,6 +69,43 @@ Status/prioritas/dependency/klaim terkini mengikuti [current index](../ANTRIAN-P
 - **Acceptance:** seluruh langkah dari preflight hingga readback subset berhasil diselesaikan tanpa intervensi manual; exit code 0; JSON output berstatus `draft_saved_subset`; tidak ada klik Publish; seluruh test suite offline 100% lulus.
 - **Verifier:** eksekusi live Playwright CDP exit 0; `python3 -m unittest discover -s tests -q`; `git diff --check`.
 - **Hasil:** Selesai (`done`, [CP-011](CHECKPOINT-HISTORY.md#cp-011--selesai-live-02-verifikasi-live-playwright-draft-album-multi-track)). Rilis Album live terbuat (draft ID `2004317`), artwork dan 2 tracks MP3 terunggah serta ter-encode, metadata dan AI status terisi, Save Changes berhasil, dan readback verifikasi subset 100% cocok. Exit code 0.
+
+## ENV-01 — Subcommand setup, check (readiness), dan auto-bootup Chrome CDP (done)
+
+- **Sumber:** masukan dan persetujuan pengguna 2026-10-26: "perlu step setup dan check readyness dulu, dan bootup chrome masuk ke verbose bila diperlukan".
+- **Masuk:**
+  1. Modul pendukung browser `toolost_uploader/browser.py`:
+     - Deteksi Google Chrome binary lintas platform (macOS/Linux/Windows).
+     - Resolusi path direktori profil browser dan pembersihan stale lock PID.
+     - Pengecekan ketersediaan port CDP loopback (HTTP `/json/version`).
+     - Peluncuran proses Chrome (mode setup manual tanpa debugging, atau mode observe/CDP di latar belakang).
+  2. Subcommand `toolost setup`:
+     - Membuka Chrome biasa dengan profil yang ditentukan ke `https://toolost.com/login` untuk login manual operator.
+     - Menunggu proses browser ditutup operator, memastikan profil siap.
+  3. Subcommand `toolost check`:
+     - Diagnosa kesiapan lingkungan: Chrome binary, profil, port CDP, dan pengecekan sesi auth `/api/auth/me` terhadap `--expected-account`.
+     - Opsi `--auto-bootup` (opsional): menyalakan Chrome di port CDP bila belum berjalan.
+     - Output human & JSON murni (`--json`), exit codes: 0 (ready), 2 (login_required / not_ready / mismatch), 5 (OS error).
+  4. Auto-bootup pada `toolost upload`:
+     - Bila port CDP belum aktif saat upload dijalankan, uploader memanggil auto-bootup Chrome CDP secara mulus.
+     - Pelaporan log proses bootup dialirkan ke stderr via mode verbose `[toolost] ...`.
+  5. Pengujian offline komprehensif menggunakan mock subprocess dan network di `tests/test_browser.py` dan `tests/test_cli.py`.
+- **Keluar:** bypass autentikasi / CAPTCHA otomatis (tetap manual login), pembacaan cookie/password mentah dari file profil Chrome, modifikasi Chrome harian pengguna.
+- **Acceptance:** `toolost setup --help` dan `toolost check --help` tersedia; `toolost check` menghasilkan JSON readiness deterministik; auto-bootup CDP terhubung dan memancarkan verbose log ke stderr; seluruh test suite offline 100% lulus; `git diff --check` bersih.
+- **Verifier:** `python3 -m unittest discover -s tests -q`, CLI help & check offline tests, `git diff --check`.
+- **Hasil:** Selesai (`done`, [CP-013](CHECKPOINT-HISTORY.md#cp-013--selesai-env-01-subcommand-setup-check-readiness-dan-auto-bootup-cdp)). Subcommand `setup`, `check`, dan auto-bootup pada `upload` terimplementasi dan teruji live & offline. 171 tes lulus, 2 skipped; `git diff --check` bersih.
+
+## INT-01 — Rencana & spesifikasi adapter integrasi subprocess yt-to-flowmusic (ready)
+
+- **Sumber:** arahan pengguna untuk membuat rencana integrasi uploader ke repo `yt-to-flowmusic`.
+- **Masuk:**
+  1. Spesifikasi adapter klien `TooLostClient` di `yt-to-flowmusic` berbasis `ProcessRunner`.
+  2. Pemetaan model rilis Album/Track dari `production/album_designer.py` dan `production/workspace_cover.py` ke format manifest JSON `toolost-uploader` (schema v1).
+  3. Penanganan eksekusi subprocess CLI (`toolost upload <manifest> --draft-only ... --json`).
+  4. Penguraian output JSON, penanganan exit code (0, 2, 4, 5), logging progres, dan penyimpanan `draft_id` rilis pada workspace/state `yt-to-flowmusic`.
+- **Keluar:** perubahan langsung ke publish/distribusi tanpa persetujuan; pengubahan binary pihak ketiga.
+- **Acceptance:** dokumen rencana integrasi komprehensif tersedia di `docs/INTEGRATION-PLAN.md` mencakup arsitektur, pemetaan data, kontrak subprocess, error handling, dan tahapan implementasi bertahap.
+- **Verifier:** review offline dokumen rencana integrasi.
 
 ## PUB-01 — Publish/distribusi (deferred)
 

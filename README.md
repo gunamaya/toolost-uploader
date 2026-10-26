@@ -24,6 +24,8 @@ Riset dan rancangan CLI Python + Playwright untuk mengelola draft release Too Lo
 python3 -m venv .venv
 .venv/bin/python -m pip install .
 .venv/bin/toolost validate path/to/manifest.json --json
+.venv/bin/toolost setup --profile <alias>
+.venv/bin/toolost check --profile <alias> --expected-account <id> --json
 .venv/bin/toolost upload path/to/manifest.json --draft-only --profile <alias> --expected-account <id> --json
 ```
 
@@ -33,7 +35,7 @@ Scope riset maksimal upload dan simpan draft. Tidak ada izin/tindakan Publish at
 
 Profil browser, capture akun dan aset riset disimpan lokal dalam `.local/` dan tidak boleh di-commit. Repo private bukan tempat penyimpanan cookie, kredensial atau media pengguna.
 
-Contoh JSON pada docs hanya ilustrasi: hash nol dan path contoh bukan aset valid. Hanya command `validate` yang sudah diimplementasikan; command akun dalam kontrak masih proposal.
+Contoh JSON pada docs hanya ilustrasi: hash nol dan path contoh bukan aset valid. Command CLI terpasang meliputi `validate` (offline), `setup` (buka browser login manual), `check` (kesiapan binary/lock/CDP/auth), dan `upload --draft-only` (eksekutor Playwright Single/Album). Operasi publish/distribusi tetap dilarang keras.
 
 Tes offline harness dan validator (stdlib, tanpa login/network):
 

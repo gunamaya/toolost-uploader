@@ -150,3 +150,47 @@ Append-only sejak adopsi governance. Ini **bukan checkpoint executor/runtime**, 
 - **Evidence:** Eksekusi aktual CDP port 9437 selesai exit 0; test suite offline 162 passed, 2 skipped; `git diff --check` bersih.
 - **Batas bukti:** Pengujian terbatas pada simpan draft (**draft-only**); tombol Publish **DILARANG dan TIDAK DITEKAN**; rights, pricing, stores/services, dan penjadwalan tanggal rilis spesifik di luar scope subset riset ini.
 - **Next priority:** Meminta keputusan pengguna: integrasi pemanggilan subprocess uploader dari sisi `yt-to-flowmusic`, atau evaluasi lanjutan sebelum perancangan release/publish.
+
+
+## CP-012 — Penutupan RES-01 (Superseded) dan Inisiasi INT-01
+
+- **Waktu/owner:** 2026-10-26 15:20 WIB, sesi-integrasi / assistant.
+- **Baseline:** a3a4542 + dirty docs (`docs/ANTRIAN-PEKERJAAN-UTAMA.md`, `docs/backlog/*`).
+- **Status:** RES-01 `deferred` → `superseded`. INT-01 `ready`.
+- **Keputusan:**
+  1. Pengguna menyetujui penutupan RES-01 (resume mutasi produksi) sebagai `superseded` karena eksekusi dari nol terbukti sangat cepat (~50 detik), fail-stop idempotensi via journal v2 lebih aman, dan rekonsiliasi pasca-Save `--reconcile-readback-only` sudah tersedia tanpa risiko duplikasi track/lagu.
+  2. Mendaftarkan INT-01 untuk penyusunan rencana integrasi pemanggilan CLI subprocess dari sisi `yt-to-flowmusic`.
+- **Hasil/files:** Pembaruan antrean kanonikal dan detail task; penulisan dokumen rencana integrasi di `docs/INTEGRATION-PLAN.md`.
+- **Next priority:** Menyelesaikan dokumen rencana integrasi INT-01 untuk review pengguna.
+
+## CP-013 — Selesai ENV-01: Subcommand Setup, Check Readiness, dan Auto-bootup CDP
+
+- **Waktu/owner:** 2026-10-26 15:45 WIB, sesi-env-01 / assistant.
+- **Baseline:** a3a4542 + dirty files (`toolost_uploader/browser.py`, `toolost_uploader/cli.py`, `tests/test_browser.py`, `tests/test_cli.py`, `README.md`, `docs/CLI-REVIEW.md`, `docs/ANTRIAN-PEKERJAAN-UTAMA.md`, `docs/backlog/*`).
+- **Status:** ENV-01 `in_progress` → `done`. Claim mandiri dilepas.
+- **Hasil/eksekusi:**
+  1. `toolost_uploader/browser.py`:
+     - Deteksi Google Chrome binary lintas sistem operasi (macOS default ke `/Applications/Google Chrome.app/...`, Linux, Windows, serta override custom).
+     - Resolusi path profil lokal di `.local/profiles/<alias>` dan pembersihan stale `SingletonLock` otomatis jika Chrome tidak aktif.
+     - Deteksi ketersediaan endpoint loopback CDP (HTTP `http://127.0.0.1:9437/json/version`).
+     - Peluncuran proses Chrome: mode setup interaktif (tanpa debugging flag) dan mode background CDP (`--remote-debugging-port=9437`).
+     - Deteksi status autentikasi Too Lost via Playwright interaktif yang mengamati respons `/api/auth/me` pada event navigasi portal Too Lost.
+  2. Subcommand `toolost setup`:
+     - Membuka Chrome biasa dengan profil terisolasi ke halaman login Too Lost agar operator dapat login manual dengan aman tanpa pembacaan cookie/kredensial otomatis.
+  3. Subcommand `toolost check`:
+     - Memvalidasi kesiapan runtime: keberadaan binary Chrome, status lock profil, port CDP, serta mencocokkan identitas akun pengguna dengan `--expected-account`.
+     - Mendukung argumen `--auto-bootup` untuk menyalakan CDP secara otomatis bila belum aktif.
+     - Menyediakan keluaran human-readable dan JSON murni (`--json`) dengan exit code deterministik (0=ready, 2=login_required/mismatch, 5=error binary/OS).
+  4. Auto-bootup pada `toolost upload`:
+     - Perintah `toolost upload` kini secara otomatis memeriksa dan menyalakan browser Chrome CDP jika port belum aktif sebelum menghubungkan Playwright.
+     - Informasi bootup dan pemeriksaan status dialirkan secara rapi ke stderr saat mode verbose (`-v, --verbose`) aktif.
+  5. Pengujian unit:
+     - 7 unit test baru di `tests/test_browser.py` dan 2 test integrasi CLI di `tests/test_cli.py` (total 171 passed, 2 skipped offline).
+- **Evidence:**
+  - `python3 -m unittest discover -s tests -q`: 171 tests passed, 2 skipped, 0 failure, 0 error.
+  - `git diff --check`: bersih (exit 0).
+  - Eksekusi live: `toolost check --profile live-album-smoke --expected-account 422512 --json` mengembalikan status `ready`, account ID `422512`.
+- **Batas bukti:**
+  - Browser login tetap manual oleh pengguna; tidak ada pembacaan password/cookie langsung dari disk.
+  - Upload tetap terkunci pada simpan draft (**draft-only**); operasi publish dilarang keras.
+- **Next priority:** INT-01 (Implementasi adapter integrasi `TooLostClient` di repo `yt-to-flowmusic` mengacu pada `docs/INTEGRATION-PLAN.md`).

@@ -20,22 +20,24 @@ Status: `ready`, `in_progress`, `blocked`, `needs_reconciliation`, `done`, `defe
 | REC-01 | P1 | done | Hardening recovery executor + regresi offline | Implementasi 684acd6; batas offline CP-001 |
 | CLI-01 | P2 | done | Review subset draft CLI dan kontrak integrator yang benar-benar didukung | Hasil di CLI-REVIEW.md; CP-005 |
 | CLI-02 | P2 | done | Subcommand CLI toolost upload --draft-only untuk Album (multi-track) | Implementasi CLI & live_draft; 161 tes; CP-007 |
-| RES-01 | P2 | deferred | Resume mutasi produksi | User memilih scope setelah CLI-01/02; bukan perluasan hardening otomatis |
+| RES-01 | P2 | superseded | Resume mutasi produksi | Tidak diperlukan; fail-stop idempotensi + eksekusi ~50s lebih aman; CP-012 |
 | LIVE-02 | P2 | done | Verifikasi live Playwright Album multi-track sesudah implementasi CLI-02 | Sukses live draft Album exit 0; 162 tes; CP-011 |
+| ENV-01 | P2 | done | Subcommand setup, check (readiness), dan auto-bootup Chrome CDP | Sukses check readiness & 171 unit tests; CP-013 |
+| INT-01 | P2 | ready | Rencana & spesifikasi adapter integrasi subprocess yt-to-flowmusic | Selesainya CLI-02 & LIVE-02; integrasi manifest JSON & ProcessRunner |
 | PUB-01 | P3 | deferred | Implementasi publish/distribusi | Persetujuan eksplisit terpisah; tidak masuk executor saat ini |
 
 Alasan urutan: tata kerja dulu, kemudian review command/integrasi sesuai arah produk. Tidak menambah hardening/refactor otomatis. Smoke draft sukses tidak diulang. Resume dan publish belum diaktifkan; rights/artist/services/AI Documentation otomatis di luar scope.
 
 ## Register klaim aktif
 
-Tidak ada klaim aktif saat ini. Seluruh task ready/in_progress pada siklus ini telah selesai.
+*Tidak ada klaim aktif saat ini.*
 
 ## Checkpoint terbaru
 
-- [CP-007](backlog/CHECKPOINT-HISTORY.md#cp-007--selesai-cli-02): CLI-02 done; toolost upload --draft-only Album multi-track; 161 tes.
-- [CP-008](backlog/CHECKPOINT-HISTORY.md#cp-008--mulai-live-02): claim intake LIVE-02 verifikasi live draft Album multi-track.
 - [CP-009](backlog/CHECKPOINT-HISTORY.md#cp-009--blocker-live-02-sesi-browser-401-unauthorized): blocker 401 Unauthorized pada preflight akun; ditahan.
 - [CP-010](backlog/CHECKPOINT-HISTORY.md#cp-010--implementasi-verbose-progress-logging-cli--draftui): penambahan flag --verbose CLI & logging progress DraftUI ke stderr; 162 tes.
 - [CP-011](backlog/CHECKPOINT-HISTORY.md#cp-011--selesai-live-02-verifikasi-live-playwright-draft-album-multi-track): LIVE-02 done; verifikasi live draft Album multi-track sukses exit 0 (draft ID 2004317); 162 tes.
+- [CP-012](backlog/CHECKPOINT-HISTORY.md#cp-012--penutupan-res-01-superseded-dan-inisiasi-int-01): RES-01 ditutup (superseded); inisiasi task rencana integrasi INT-01.
+- [CP-013](backlog/CHECKPOINT-HISTORY.md#cp-013--selesai-env-01-subcommand-setup-check-readiness-dan-auto-bootup-cdp): ENV-01 done; subcommand setup, check, auto-bootup CDP, dan 171 unit tests offline sukses.
 
 Maksimal lima ringkasan terbaru di sini; history lengkap append-only. Jangan memasukkan path privat, ID akun/draft, aset, token, capture atau isi checkpoint runtime ke backlog.
