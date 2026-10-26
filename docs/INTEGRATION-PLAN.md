@@ -46,6 +46,29 @@ flowchart TD
   - `toolost-uploader`: Bertanggung jawab secara independen dan terisolasi untuk kesiapan browser/autentikasi (`check`, `setup`, auto-bootup CDP), interaksi web Too Lost via Playwright CDP, validasi manifest, fail-stop idempotensi, dan pelaporan status terstruktur.
 - **Kopling Longgar (Loose Coupling)**: Integrasi murni melalui **CLI subprocess** dengan manifest JSON file temporer dan hasil stdout JSON deterministik. Tidak ada dependency impor modul langsung antar-repo. Browser Chrome CDP otomatis dinyalakan jika belum aktif.
 
+### 1.1. Pengambilan Dependency via PyPI Resmi
+
+Paket `toolost-uploader` telah resmi dipublikasikan di PyPI: [https://pypi.org/project/toolost-uploader/](https://pypi.org/project/toolost-uploader/).
+
+Integrator `yt-to-flowmusic` tidak perlu melakukan kloning kode sumber manual, symlink lokal, atau manipulasi `PYTHONPATH`. Cukup deklarasikan sebagai dependency di `yt-to-flowmusic`:
+
+```toml
+# pyproject.toml di yt-to-flowmusic
+dependencies = [
+    # ... dependencies lainnya
+    "toolost-uploader>=0.1.0",
+]
+```
+
+Atau instalasi langsung ke dalam virtual environment proyek:
+
+```sh
+pip install toolost-uploader
+playwright install chromium
+```
+
+Perintah `toolost` secara otomatis terdaftar di `bin/` virtual environment `yt-to-flowmusic` dan siap dieksekusi oleh `ProcessRunner`.
+
 ---
 
 ## 2. Kontrak Data (Schema v1)
@@ -154,7 +177,7 @@ Menyediakan:
    - Menulis file manifest sementara berizin `0o600`.
 2. `class TooLostClient`:
    - Mewarisi atau menggunakan `ProcessRunner` async dari `flowmusic_core/process.py`.
-   - Mendeteksi letak executable `toolost` (menggunakan path binary konfigurasi atau virtualenv lokal / PATH).
+   - Mendeteksi letak executable `toolost` secara otomatis melalui `shutil.which("toolost")` atau fallback ke binary virtual environment saat ini (`Path(sys.executable).parent / "toolost"`).
    - Method async `check_readiness(...) -> dict`: Mengecek status login dan auto-bootup CDP sebelum proses upload.
    - Method async `launch_setup(...) -> int`: Membantu operator membuka Chrome untuk login manual jika sesi kedaluwarsa.
    - Method async `upload_album_draft(...) -> dict`: Menjalankan subprocess upload, menangani stream progres stderr untuk update loading bar Textual UI, dan mengembalikan hasil parsed JSON.
@@ -162,7 +185,7 @@ Menyediakan:
 ### 4.2. File Baru: Settings / Config di `flowmusic_core/config.py` atau `settings.py`
 
 Menyimpan konfigurasi operator Too Lost (disimpan privat di config user, bukan di git):
-- `toolost_binary_path`: Path ke binary `toolost` (default auto-detect di PATH atau direktori proyek tetangga).
+- `toolost_binary_path`: Path ke binary `toolost` (default auto-detect via `shutil.which("toolost")`).
 - `toolost_expected_account`: User ID Too Lost yang sudah direview (misal `422512`).
 - `toolost_profile_alias`: Alias profil lokal (misal `flowstudio-production`).
 - `toolost_cdp_endpoint`: Loopback CDP port (default `http://127.0.0.1:9437`).

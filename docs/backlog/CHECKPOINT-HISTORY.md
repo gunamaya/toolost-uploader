@@ -193,7 +193,7 @@ Append-only sejak adopsi governance. Ini **bukan checkpoint executor/runtime**, 
 - **Batas bukti:**
   - Browser login tetap manual oleh pengguna; tidak ada pembacaan password/cookie langsung dari disk.
   - Upload tetap terkunci pada simpan draft (**draft-only**); operasi publish dilarang keras.
-- **Next priority:** INT-01 (Implementasi adapter integrasi `TooLostClient` di repo `yt-to-flowmusic` mengacu pada `docs/INTEGRATION-PLAN.md`).
+- **Next priority:** PKG-01 (Persiapan packaging, metadata, lisensi MIT, build wheel & sdist, dan rilis PyPI).
 
 ## CP-014 — Selesai PKG-01: Metadata, Lisensi MIT, Sanitasi Manifest, Build & Twine Verification
 
@@ -252,4 +252,34 @@ Append-only sejak adopsi governance. Ini **bukan checkpoint executor/runtime**, 
 - **Batas bukti:**
   - Publikasi saat ini berada di TestPyPI (`test.pypi.org`).
   - Rilis ke PyPI produksi (`pypi.org`) membutuhkan token terpisah untuk produksi.
+- **Next priority:** INT-01 (Implementasi adapter integrasi `TooLostClient` di repo `yt-to-flowmusic` mengacu pada `docs/INTEGRATION-PLAN.md`).
+
+## CP-016 — Publikasi Resmi ke PyPI Produksi dan Integrasi Dependency
+
+- **Waktu/owner:** 2026-10-26 16:11 WIB, sesi-pypi / assistant.
+- **Baseline:** c7b3163 + dirty docs (`docs/INTEGRATION-PLAN.md`, `docs/ANTRIAN-PEKERJAAN-UTAMA.md`, `docs/backlog/*`).
+- **Status:** Publikasi PyPI produksi `done`.
+- **Hasil/eksekusi:**
+  1. Eksekusi pengunggahan paket ke PyPI produksi via `twine upload`:
+     - Endpoint: `https://upload.pypi.org/legacy/`
+     - Kredensial: API token produksi dari `~/.secrets/pypi-cred.txt` (`__token__`).
+     - Berkas terunggah:
+       - `toolost_uploader-0.1.0-py3-none-any.whl` (54.4 kB)
+       - `toolost_uploader-0.1.0.tar.gz` (78.0 kB)
+     - URL rilis resmi: `https://pypi.org/project/toolost-uploader/0.1.0/`
+  2. Verifikasi instalasi live dari PyPI produksi di virtual environment bersih:
+     - Perintah: `pip install toolost-uploader`
+     - Hasil: Paket `toolost-uploader-0.1.0` terpasang sukses bersama core dependencies (`playwright-1.64.1`).
+     - Verifikasi CLI: `toolost --version` ➔ `toolost 0.1.0`; `toolost --help` exit code 0.
+  3. Pembaruan Dokumen Integrasi `docs/INTEGRATION-PLAN.md`:
+     - Menetapkan pengambilan paket langsung via PyPI (`pip install toolost-uploader` / `"toolost-uploader>=0.1.0"` pada `pyproject.toml` `yt-to-flowmusic`).
+     - Deteksi binary `toolost` via `shutil.which("toolost")` tanpa manipulasi path lokal.
+- **Evidence:**
+  - URL publikasi: `https://pypi.org/project/toolost-uploader/0.1.0/`
+  - Output instalasi live pip exit code 0 (`Successfully installed toolost-uploader-0.1.0 ...`).
+  - Unit tests offline: 171 passed, 2 skipped.
+  - `git diff --check`: bersih (exit 0).
+- **Batas bukti:**
+  - Paket publikasi resmi aktif di PyPI publik.
+  - Alur eksekusi draft uploader tetap terkunci pada simpan draft (**draft-only**); operasi publish dilarang keras.
 - **Next priority:** INT-01 (Implementasi adapter integrasi `TooLostClient` di repo `yt-to-flowmusic` mengacu pada `docs/INTEGRATION-PLAN.md`).

@@ -35,10 +35,10 @@ Alasan urutan: tata kerja dulu, kemudian review command/integrasi sesuai arah pr
 
 ## Checkpoint terbaru
 
-- [CP-011](backlog/CHECKPOINT-HISTORY.md#cp-011--selesai-live-02-verifikasi-live-playwright-draft-album-multi-track): LIVE-02 done; verifikasi live draft Album multi-track sukses exit 0 (draft ID 2004317); 162 tes.
 - [CP-012](backlog/CHECKPOINT-HISTORY.md#cp-012--penutupan-res-01-superseded-dan-inisiasi-int-01): RES-01 ditutup (superseded); inisiasi task rencana integrasi INT-01.
 - [CP-013](backlog/CHECKPOINT-HISTORY.md#cp-013--selesai-env-01-subcommand-setup-check-readiness-dan-auto-bootup-cdp): ENV-01 done; subcommand setup, check, auto-bootup CDP, dan 171 unit tests offline sukses.
 - [CP-014](backlog/CHECKPOINT-HISTORY.md#cp-014--selesai-pkg-01-metadata-lisensi-mit-sanitasi-manifest-build--twine-verification): PKG-01 done; lisensi MIT, metadata 0.1.0, sanitasi sdist/wheel, lolos twine check.
 - [CP-015](backlog/CHECKPOINT-HISTORY.md#cp-015--publikasi-paket-ke-testpypi-dan-verifikasi-instalasi-live-clean-venv): Publikasi perdana toolost-uploader 0.1.0 ke TestPyPI dan verifikasi instalasi clean-venv sukses.
+- [CP-016](backlog/CHECKPOINT-HISTORY.md#cp-016--publikasi-resmi-ke-pypi-produksi-dan-integrasi-dependency): Rilis resmi ke PyPI produksi (pypi.org) dan pembaruan kontrak dependency di INTEGRATION-PLAN.md.
 
 Maksimal lima ringkasan terbaru di sini; history lengkap append-only. Jangan memasukkan path privat, ID akun/draft, aset, token, capture atau isi checkpoint runtime ke backlog.
