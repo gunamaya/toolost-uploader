@@ -161,6 +161,25 @@ Status/prioritas/dependency/klaim terkini mengikuti [current index](../ANTRIAN-P
 - **Verifier:** `python3 -m unittest discover -s tests -q`, `git diff --check`.
 - **Hasil:** Selesai (`done`, [CP-019](CHECKPOINT-HISTORY.md#cp-019--selesai-tab-01-optimalisasi-manajemen-tab-browser-cdp-reuse-tab-aktif--tutup-tab-redundan)). Helper `acquire_active_page` terpasang di `browser.py` dan `live_draft.py`, 5 unit test baru memvalidasi skenario tab tunggal, multi-tab redundan, non-domain tab reuse, dan fallback new_page. Verifikasi live pada profil `aidoto` membuktikan pembersihan otomatis tab ekstra menjadi 1 tab aktif. 178 unit tests offline lulus.
 
+## CDP-02 — Dukungan unggah berkas audio besar (>50MB) via is_local di CDP (done)
+
+- **Sumber:** Laporan error pengguna: `FileChooser.set_files: Cannot transfer files larger than 50Mb to a browser not co-located with the server` saat mengunggah berkas audio nyata.
+- **Masuk:**
+  1. Helper `is_local_endpoint(endpoint: str) -> bool` di `toolost_uploader/browser.py` untuk mendeteksi apakah endpoint CDP berjalan di host loopback lokal (`127.0.0.1`, `localhost`, `::1`).
+  2. Penggunaan flag `is_local=is_local_endpoint(endpoint)` pada pemanggilan `p.chromium.connect_over_cdp(...)` di:
+     - `toolost_uploader/live_draft.py` (`execute`)
+     - `toolost_uploader/browser.py` (`check_auth_identity`)
+  3. Memungkinkan Chromium membaca berkas audio lokal langsung via path OS (`DOM.setFileInputFiles`) alih-alih mentransfer buffer Base64 lewat WebSocket, sehingga batas 50MB Playwright terangkat sepenuhnya.
+  4. Unit test offline di `tests/test_browser.py` dan regresi test suite.
+  5. Version bump ke `0.1.3` dan rilis baru ke PyPI.
+- **Keluar:** Pengunggahan ke remote host non-lokal di luar subnet loopback (tetap mematuhi limit keamanan Playwright).
+- **Acceptance:**
+  - `is_local=True` diaktifkan otomatis saat endpoint adalah IP loopback lokal (`127.0.0.1`, `localhost`).
+  - Berkas audio besar (>50MB) tidak lagi memicu error `Cannot transfer files larger than 50Mb`.
+  - Seluruh unit tests offline 100% lulus; `git diff --check` bersih.
+- **Verifier:** `python3 -m unittest discover -s tests -q`, `git diff --check`.
+- **Hasil:** Selesai (`done`, [CP-021](CHECKPOINT-HISTORY.md#cp-021--selesai-cdp-02--rilis-013-dukungan-unggah-berkas-audio-besar-50mb-via-is_local-di-cdp)). `is_local_endpoint` diterapkan pada `connect_over_cdp`, lolos uji upload 60MB live CDP, 179 unit tests offline lulus, paket `toolost-uploader==0.1.3` terbit di PyPI dan diverifikasi di clean-venv.
+
 ## PUB-01 — Publish/distribusi (deferred)
 
 - **Sumber:** arah produk final, bukan izin implementasi/eksekusi; [RELEASE-CONTRACT](../RELEASE-CONTRACT.md) masih proposal.

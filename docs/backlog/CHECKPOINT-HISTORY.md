@@ -351,6 +351,36 @@ Append-only sejak adopsi governance. Ini **bukan checkpoint executor/runtime**, 
   - Pengujian live tetap berada dalam mode aman simpan draft (**draft-only**); tombol Publish **DILARANG dan TIDAK DITEKAN**.
 - **Next priority:** INT-01 (Implementasi adapter integrasi `TooLostClient` di repo `yt-to-flowmusic` mengacu pada `docs/INTEGRATION-PLAN.md`).
 
+## CP-021 — Selesai CDP-02 & Rilis 0.1.3: Dukungan Unggah Berkas Audio Besar (>50MB) via is_local di CDP
+
+- **Waktu/owner:** 2026-10-26 22:12 WIB, sesi-cdp-02 / assistant.
+- **Baseline:** 1bee2a3 + dirty files (`toolost_uploader/browser.py`, `toolost_uploader/live_draft.py`, `tests/test_browser.py`, `toolost_uploader/__init__.py`, `README.md`, `docs/*`).
+- **Status:** CDP-02 `in_progress` → `done`. Claim mandiri dilepas.
+- **Hasil/eksekusi:**
+  1. Helper `is_local_endpoint`:
+     - Menambahkan fungsi helper `is_local_endpoint(endpoint: str) -> bool` di `toolost_uploader/browser.py` untuk mendeteksi apakah koneksi CDP mengarah ke loopback host (`127.0.0.1`, `localhost`, `::1`, subnet `127.*`).
+  2. Integrasi `is_local=True` pada `connect_over_cdp`:
+     - `toolost_uploader/live_draft.py`: `browser = p.chromium.connect_over_cdp(endpoint, is_local=is_local_endpoint(endpoint))`.
+     - `toolost_uploader/browser.py`: `browser = p.chromium.connect_over_cdp(endpoint, is_local=is_local_endpoint(endpoint))`.
+     - Efek: Mengangkat batas hardcoded 50MB Playwright (`fileUploadSizeLimit`) saat mengontrol browser CDP lokal, sehingga Chromium membaca path berkas langsung dari filesystem OS (`DOM.setFileInputFiles`). Menghilangkan error `Cannot transfer files larger than 50Mb to a browser not co-located with the server`.
+  3. Verifikasi & Pengujian:
+     - Tes langsung live CDP dengan file dummy 60MB: terbukti berhasil diunggah tanpa error (`SUCCESS: File >50MB uploaded without error!`).
+     - Unit test baru `test_is_local_endpoint` di `tests/test_browser.py` memvalidasi berbagai skenario host loopback dan non-loopback.
+     - Seluruh test suite offline lulus 100% (**179 passed**, 2 skipped).
+  4. Rilis PyPI 0.1.3:
+     - Versi dinaikkan ke `0.1.3` di `toolost_uploader/__init__.py` dan badge `README.md`.
+     - `uv build`: Memproduksi `toolost_uploader-0.1.3-py3-none-any.whl` (56.3 kB) dan `toolost_uploader-0.1.3.tar.gz` (81.1 kB).
+     - `twine check dist/*`: Lolos `PASSED` 100%.
+     - `twine upload`: Berhasil dipublikasikan ke https://pypi.org/project/toolost-uploader/0.1.3/.
+- **Evidence:**
+  - URL publikasi: `https://pypi.org/project/toolost-uploader/0.1.3/`
+  - `twine check dist/*`: PASSED.
+  - 179 unit tests offline lulus (2 skipped).
+  - `git diff --check`: bersih (exit 0).
+- **Batas bukti:**
+  - Perbaikan `is_local` berlaku saat endpoint adalah loopback host lokal. Rilis tetap terkunci aman pada batas **draft-only** (tombol Publish dilarang ditekan).
+- **Next priority:** INT-01 (Implementasi adapter integrasi `TooLostClient` di repo `yt-to-flowmusic` mengacu pada `docs/INTEGRATION-PLAN.md`).
+
 ## CP-020 — Publikasi Rilis 0.1.2 ke PyPI: Optimalisasi Tab Memory & Tab Lyrics
 
 - **Waktu/owner:** 2026-10-26 22:02 WIB, sesi-release-0.1.2 / assistant.
@@ -380,6 +410,36 @@ Append-only sejak adopsi governance. Ini **bukan checkpoint executor/runtime**, 
 - **Batas bukti:**
   - Rilis 0.1.2 aktif dan live di PyPI produksi dengan fitur optimalisasi memori tab dan otomasi lirik.
   - Alur eksekusi tetap aman dalam batas draft-only; tombol Publish dilarang keras ditekan.
+- **Next priority:** INT-01 (Implementasi adapter integrasi `TooLostClient` di repo `yt-to-flowmusic` mengacu pada `docs/INTEGRATION-PLAN.md`).
+
+## CP-021 — Selesai CDP-02 & Rilis 0.1.3: Dukungan Unggah Berkas Audio Besar (>50MB) via is_local di CDP
+
+- **Waktu/owner:** 2026-10-26 22:12 WIB, sesi-cdp-02 / assistant.
+- **Baseline:** 1bee2a3 + dirty files (`toolost_uploader/browser.py`, `toolost_uploader/live_draft.py`, `tests/test_browser.py`, `toolost_uploader/__init__.py`, `README.md`, `docs/*`).
+- **Status:** CDP-02 `in_progress` → `done`. Claim mandiri dilepas.
+- **Hasil/eksekusi:**
+  1. Helper `is_local_endpoint`:
+     - Menambahkan fungsi helper `is_local_endpoint(endpoint: str) -> bool` di `toolost_uploader/browser.py` untuk mendeteksi apakah koneksi CDP mengarah ke loopback host (`127.0.0.1`, `localhost`, `::1`, subnet `127.*`).
+  2. Integrasi `is_local=True` pada `connect_over_cdp`:
+     - `toolost_uploader/live_draft.py`: `browser = p.chromium.connect_over_cdp(endpoint, is_local=is_local_endpoint(endpoint))`.
+     - `toolost_uploader/browser.py`: `browser = p.chromium.connect_over_cdp(endpoint, is_local=is_local_endpoint(endpoint))`.
+     - Efek: Mengangkat batas hardcoded 50MB Playwright (`fileUploadSizeLimit`) saat mengontrol browser CDP lokal, sehingga Chromium membaca path berkas langsung dari filesystem OS (`DOM.setFileInputFiles`). Menghilangkan error `Cannot transfer files larger than 50Mb to a browser not co-located with the server`.
+  3. Verifikasi & Pengujian:
+     - Tes langsung live CDP dengan file dummy 60MB: terbukti berhasil diunggah tanpa error (`SUCCESS: File >50MB uploaded without error!`).
+     - Unit test baru `test_is_local_endpoint` di `tests/test_browser.py` memvalidasi berbagai skenario host loopback dan non-loopback.
+     - Seluruh test suite offline lulus 100% (**179 passed**, 2 skipped).
+  4. Rilis PyPI 0.1.3:
+     - Versi dinaikkan ke `0.1.3` di `toolost_uploader/__init__.py` dan badge `README.md`.
+     - `uv build`: Memproduksi `toolost_uploader-0.1.3-py3-none-any.whl` (56.3 kB) dan `toolost_uploader-0.1.3.tar.gz` (81.1 kB).
+     - `twine check dist/*`: Lolos `PASSED` 100%.
+     - `twine upload`: Berhasil dipublikasikan ke https://pypi.org/project/toolost-uploader/0.1.3/.
+- **Evidence:**
+  - URL publikasi: `https://pypi.org/project/toolost-uploader/0.1.3/`
+  - `twine check dist/*`: PASSED.
+  - 179 unit tests offline lulus (2 skipped).
+  - `git diff --check`: bersih (exit 0).
+- **Batas bukti:**
+  - Perbaikan `is_local` berlaku saat endpoint adalah loopback host lokal. Rilis tetap terkunci aman pada batas **draft-only** (tombol Publish dilarang ditekan).
 - **Next priority:** INT-01 (Implementasi adapter integrasi `TooLostClient` di repo `yt-to-flowmusic` mengacu pada `docs/INTEGRATION-PLAN.md`).
 
 ## CP-019 — Selesai TAB-01: Optimalisasi Manajemen Tab Browser CDP (Reuse Tab Aktif & Tutup Tab Redundan)
@@ -420,6 +480,36 @@ Append-only sejak adopsi governance. Ini **bukan checkpoint executor/runtime**, 
   - Pengujian live draft tetap aman draft-only; tidak menyentuh tombol Publish.
 - **Next priority:** INT-01 (Implementasi adapter integrasi `TooLostClient` di repo `yt-to-flowmusic` mengacu pada `docs/INTEGRATION-PLAN.md`).
 
+## CP-021 — Selesai CDP-02 & Rilis 0.1.3: Dukungan Unggah Berkas Audio Besar (>50MB) via is_local di CDP
+
+- **Waktu/owner:** 2026-10-26 22:12 WIB, sesi-cdp-02 / assistant.
+- **Baseline:** 1bee2a3 + dirty files (`toolost_uploader/browser.py`, `toolost_uploader/live_draft.py`, `tests/test_browser.py`, `toolost_uploader/__init__.py`, `README.md`, `docs/*`).
+- **Status:** CDP-02 `in_progress` → `done`. Claim mandiri dilepas.
+- **Hasil/eksekusi:**
+  1. Helper `is_local_endpoint`:
+     - Menambahkan fungsi helper `is_local_endpoint(endpoint: str) -> bool` di `toolost_uploader/browser.py` untuk mendeteksi apakah koneksi CDP mengarah ke loopback host (`127.0.0.1`, `localhost`, `::1`, subnet `127.*`).
+  2. Integrasi `is_local=True` pada `connect_over_cdp`:
+     - `toolost_uploader/live_draft.py`: `browser = p.chromium.connect_over_cdp(endpoint, is_local=is_local_endpoint(endpoint))`.
+     - `toolost_uploader/browser.py`: `browser = p.chromium.connect_over_cdp(endpoint, is_local=is_local_endpoint(endpoint))`.
+     - Efek: Mengangkat batas hardcoded 50MB Playwright (`fileUploadSizeLimit`) saat mengontrol browser CDP lokal, sehingga Chromium membaca path berkas langsung dari filesystem OS (`DOM.setFileInputFiles`). Menghilangkan error `Cannot transfer files larger than 50Mb to a browser not co-located with the server`.
+  3. Verifikasi & Pengujian:
+     - Tes langsung live CDP dengan file dummy 60MB: terbukti berhasil diunggah tanpa error (`SUCCESS: File >50MB uploaded without error!`).
+     - Unit test baru `test_is_local_endpoint` di `tests/test_browser.py` memvalidasi berbagai skenario host loopback dan non-loopback.
+     - Seluruh test suite offline lulus 100% (**179 passed**, 2 skipped).
+  4. Rilis PyPI 0.1.3:
+     - Versi dinaikkan ke `0.1.3` di `toolost_uploader/__init__.py` dan badge `README.md`.
+     - `uv build`: Memproduksi `toolost_uploader-0.1.3-py3-none-any.whl` (56.3 kB) dan `toolost_uploader-0.1.3.tar.gz` (81.1 kB).
+     - `twine check dist/*`: Lolos `PASSED` 100%.
+     - `twine upload`: Berhasil dipublikasikan ke https://pypi.org/project/toolost-uploader/0.1.3/.
+- **Evidence:**
+  - URL publikasi: `https://pypi.org/project/toolost-uploader/0.1.3/`
+  - `twine check dist/*`: PASSED.
+  - 179 unit tests offline lulus (2 skipped).
+  - `git diff --check`: bersih (exit 0).
+- **Batas bukti:**
+  - Perbaikan `is_local` berlaku saat endpoint adalah loopback host lokal. Rilis tetap terkunci aman pada batas **draft-only** (tombol Publish dilarang ditekan).
+- **Next priority:** INT-01 (Implementasi adapter integrasi `TooLostClient` di repo `yt-to-flowmusic` mengacu pada `docs/INTEGRATION-PLAN.md`).
+
 ## CP-020 — Publikasi Rilis 0.1.2 ke PyPI: Optimalisasi Tab Memory & Tab Lyrics
 
 - **Waktu/owner:** 2026-10-26 22:02 WIB, sesi-release-0.1.2 / assistant.
@@ -449,4 +539,34 @@ Append-only sejak adopsi governance. Ini **bukan checkpoint executor/runtime**, 
 - **Batas bukti:**
   - Rilis 0.1.2 aktif dan live di PyPI produksi dengan fitur optimalisasi memori tab dan otomasi lirik.
   - Alur eksekusi tetap aman dalam batas draft-only; tombol Publish dilarang keras ditekan.
+- **Next priority:** INT-01 (Implementasi adapter integrasi `TooLostClient` di repo `yt-to-flowmusic` mengacu pada `docs/INTEGRATION-PLAN.md`).
+
+## CP-021 — Selesai CDP-02 & Rilis 0.1.3: Dukungan Unggah Berkas Audio Besar (>50MB) via is_local di CDP
+
+- **Waktu/owner:** 2026-10-26 22:12 WIB, sesi-cdp-02 / assistant.
+- **Baseline:** 1bee2a3 + dirty files (`toolost_uploader/browser.py`, `toolost_uploader/live_draft.py`, `tests/test_browser.py`, `toolost_uploader/__init__.py`, `README.md`, `docs/*`).
+- **Status:** CDP-02 `in_progress` → `done`. Claim mandiri dilepas.
+- **Hasil/eksekusi:**
+  1. Helper `is_local_endpoint`:
+     - Menambahkan fungsi helper `is_local_endpoint(endpoint: str) -> bool` di `toolost_uploader/browser.py` untuk mendeteksi apakah koneksi CDP mengarah ke loopback host (`127.0.0.1`, `localhost`, `::1`, subnet `127.*`).
+  2. Integrasi `is_local=True` pada `connect_over_cdp`:
+     - `toolost_uploader/live_draft.py`: `browser = p.chromium.connect_over_cdp(endpoint, is_local=is_local_endpoint(endpoint))`.
+     - `toolost_uploader/browser.py`: `browser = p.chromium.connect_over_cdp(endpoint, is_local=is_local_endpoint(endpoint))`.
+     - Efek: Mengangkat batas hardcoded 50MB Playwright (`fileUploadSizeLimit`) saat mengontrol browser CDP lokal, sehingga Chromium membaca path berkas langsung dari filesystem OS (`DOM.setFileInputFiles`). Menghilangkan error `Cannot transfer files larger than 50Mb to a browser not co-located with the server`.
+  3. Verifikasi & Pengujian:
+     - Tes langsung live CDP dengan file dummy 60MB: terbukti berhasil diunggah tanpa error (`SUCCESS: File >50MB uploaded without error!`).
+     - Unit test baru `test_is_local_endpoint` di `tests/test_browser.py` memvalidasi berbagai skenario host loopback dan non-loopback.
+     - Seluruh test suite offline lulus 100% (**179 passed**, 2 skipped).
+  4. Rilis PyPI 0.1.3:
+     - Versi dinaikkan ke `0.1.3` di `toolost_uploader/__init__.py` dan badge `README.md`.
+     - `uv build`: Memproduksi `toolost_uploader-0.1.3-py3-none-any.whl` (56.3 kB) dan `toolost_uploader-0.1.3.tar.gz` (81.1 kB).
+     - `twine check dist/*`: Lolos `PASSED` 100%.
+     - `twine upload`: Berhasil dipublikasikan ke https://pypi.org/project/toolost-uploader/0.1.3/.
+- **Evidence:**
+  - URL publikasi: `https://pypi.org/project/toolost-uploader/0.1.3/`
+  - `twine check dist/*`: PASSED.
+  - 179 unit tests offline lulus (2 skipped).
+  - `git diff --check`: bersih (exit 0).
+- **Batas bukti:**
+  - Perbaikan `is_local` berlaku saat endpoint adalah loopback host lokal. Rilis tetap terkunci aman pada batas **draft-only** (tombol Publish dilarang ditekan).
 - **Next priority:** INT-01 (Implementasi adapter integrasi `TooLostClient` di repo `yt-to-flowmusic` mengacu pada `docs/INTEGRATION-PLAN.md`).

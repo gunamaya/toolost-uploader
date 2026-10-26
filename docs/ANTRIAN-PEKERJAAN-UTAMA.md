@@ -27,6 +27,7 @@ Status: `ready`, `in_progress`, `blocked`, `needs_reconciliation`, `done`, `defe
 | PKG-01 | P2 | done | Persiapan packaging, metadata, lisensi, sanitasi sdist/wheel, dan rilis PyPI | Build sdist/wheel bersih, lolos twine check & 171 tes; CP-014 |
 | LYR-01 | P2 | done | Dukungan tab Lyrics di Playwright live executor | Sukses live draft Album dengan lirik profil aidoto; CP-018 |
 | TAB-01 | P2 | done | Optimalisasi tab browser CDP: reuse tab aktif & tutup tab redundan | Sukses reuse tab & cleanup redundan; 178 tes; CP-019 |
+| CDP-02 | P2 | done | Dukungan unggah berkas audio besar (>50MB) via is_local di CDP | Sukses bypass limit 50MB; 179 tes; rilis 0.1.3; CP-021 |
 | PUB-01 | P3 | deferred | Implementasi publish/distribusi | Persetujuan eksplisit terpisah; tidak masuk executor saat ini |
 
 Alasan urutan: tata kerja dulu, kemudian review command/integrasi sesuai arah produk. Tidak menambah hardening/refactor otomatis. Smoke draft sukses tidak diulang. Resume dan publish belum diaktifkan; rights/artist/services/AI Documentation otomatis di luar scope.
@@ -37,10 +38,10 @@ Alasan urutan: tata kerja dulu, kemudian review command/integrasi sesuai arah pr
 
 ## Checkpoint terbaru
 
-- [CP-016](backlog/CHECKPOINT-HISTORY.md#cp-016--publikasi-resmi-ke-pypi-produksi-dan-integrasi-dependency): Rilis resmi ke PyPI produksi (pypi.org) dan pembaruan kontrak dependency di INTEGRATION-PLAN.md.
 - [CP-017](backlog/CHECKPOINT-HISTORY.md#cp-017--rilis-pypi-011-perbaikan-metadata-author-broken-links-dan-desain-mandiri): Rilis 0.1.1 ke PyPI produksi; perbaikan author email anggi@gunamanya.id, fix broken links, dan dokumentasi mandiri.
 - [CP-018](backlog/CHECKPOINT-HISTORY.md#cp-018--selesai-lyr-01-otomasi-tab-lyrics-playwright--live-verification-profil-aidoto): LYR-01 done; verifikasi live draft Album dengan lirik di profil aidoto sukses exit 0 (draft ID 2009368).
 - [CP-019](backlog/CHECKPOINT-HISTORY.md#cp-019--selesai-tab-01-optimalisasi-manajemen-tab-browser-cdp-reuse-tab-aktif--tutup-tab-redundan): TAB-01 done; helper acquire_active_page mencegah tab baru berlebih dan menutup tab redundan untuk menghemat memori.
 - [CP-020](backlog/CHECKPOINT-HISTORY.md#cp-020--publikasi-rilis-012-ke-pypi-optimalisasi-tab-memory--tab-lyrics): Rilis 0.1.2 ke PyPI produksi; menyertakan fitur optimalisasi memori tab dan otomasi lirik.
+- [CP-021](backlog/CHECKPOINT-HISTORY.md#cp-021--selesai-cdp-02--rilis-013-dukungan-unggah-berkas-audio-besar-50mb-via-is_local-di-cdp): CDP-02 done; dukungan is_local di connect_over_cdp mengangkat batas 50MB Playwright; rilis 0.1.3 live di PyPI.
 
 Maksimal lima ringkasan terbaru di sini; history lengkap append-only. Jangan memasukkan path privat, ID akun/draft, aset, token, capture atau isi checkpoint runtime ke backlog.

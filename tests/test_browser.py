@@ -14,6 +14,7 @@ from toolost_uploader.browser import (
     ensure_cdp_ready,
     find_chrome_binary,
     is_cdp_available,
+    is_local_endpoint,
     launch_chrome,
     resolve_profile_dir,
 )
@@ -26,6 +27,14 @@ class BrowserModuleTests(unittest.TestCase):
 
     def tearDown(self):
         self.tmp.cleanup()
+
+    def test_is_local_endpoint(self):
+        self.assertTrue(is_local_endpoint("http://127.0.0.1:9437"))
+        self.assertTrue(is_local_endpoint("http://localhost:9222"))
+        self.assertTrue(is_local_endpoint("127.0.0.1:9437"))
+        self.assertTrue(is_local_endpoint("http://[::1]:9437"))
+        self.assertFalse(is_local_endpoint("http://192.168.1.100:9222"))
+        self.assertFalse(is_local_endpoint("http://remote-cdp.internal:9222"))
 
     def test_find_chrome_binary_custom(self):
         dummy = self.root / "chrome"

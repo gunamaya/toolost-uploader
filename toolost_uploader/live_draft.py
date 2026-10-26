@@ -470,8 +470,8 @@ def execute(path, *, alias, expected_account, endpoint, approve_draft, accept_ui
             log(f"Menghubungkan ke browser CDP di {endpoint}...")
         from playwright.sync_api import sync_playwright
         with sync_playwright() as p:
-            browser = p.chromium.connect_over_cdp(endpoint)
-            from toolost_uploader.browser import DEFAULT_PORTAL_URL, acquire_active_page
+            from toolost_uploader.browser import DEFAULT_PORTAL_URL, acquire_active_page, is_local_endpoint
+            browser = p.chromium.connect_over_cdp(endpoint, is_local=is_local_endpoint(endpoint))
             page = acquire_active_page(browser, domain='toolost.com', default_url=DEFAULT_PORTAL_URL, log=log)
             ui = DraftUI(page, journal.effective_manifest(), base, expected_account, record, log=log)
             ui.read_only = reconcile_only

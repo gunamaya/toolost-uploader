@@ -126,6 +126,26 @@ def check_and_clean_stale_lock(profile_dir: Path) -> tuple[bool, str]:
         return True, f"Proses PID {pid} masih berjalan (izin terbatas)."
 
 
+def is_local_endpoint(endpoint: str) -> bool:
+    """Periksa apakah endpoint CDP mengarah ke host loopback lokal.
+
+    Ketika browser berjalan di host lokal yang sama, Playwright dapat mengaktifkan
+    is_local=True untuk mengizinkan unggahan berkas audio berukuran besar (>50MB)
+    langsung dari filesystem lokal tanpa batasan transfer WebSocket remote.
+    """
+    try:
+        raw = endpoint if "://" in endpoint else f"http://{endpoint}"
+        parsed = urlsplit(raw)
+        hostname = (parsed.hostname or "").lower()
+        if hostname in ("127.0.0.1", "localhost", "::1", "0.0.0.0"):
+            return True
+        if hostname.startswith("127."):
+            return True
+    except Exception:
+        pass
+    return False
+
+
 def is_cdp_available(endpoint: str = DEFAULT_CDP_ENDPOINT, timeout: float = 1.0) -> bool:
     """Periksa apakah endpoint CDP browser loopback aktif dan merespons."""
     url = f"{endpoint.rstrip('/')}/json/version"
@@ -288,7 +308,7 @@ def check_auth_identity(endpoint: str = DEFAULT_CDP_ENDPOINT, timeout: float = 1
     try:
         from playwright.sync_api import sync_playwright
         with sync_playwright() as p:
-            browser = p.chromium.connect_over_cdp(endpoint)
+            browser = p.chromium.connect_over_cdp(endpoint, is_local=is_local_endpoint(endpoint))
             try:
                 page = acquire_active_page(browser, domain="toolost.com")
 
