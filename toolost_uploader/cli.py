@@ -17,17 +17,47 @@ class Parser(argparse.ArgumentParser):
 
 
 def main(argv=None):
+    root_epilog = """Alur Kerja Utama:
+  1. Validasi manifest rilis:
+     toolost validate manifest.json --json
+  2. Setup sesi browser login manual:
+     toolost setup --profile <alias>
+  3. Diagnosa kesiapan lingkungan (Chrome, port CDP, akun login):
+     toolost check --profile <alias> --expected-account <id> --auto-bootup --json
+  4. Unggah dan simpan draft rilis (draft-only):
+     toolost upload manifest.json --draft-only --profile <alias> --expected-account <id> \\
+       --approve-draft --accept-ui-date --verbose --json
+"""
     parser = Parser(prog="toolost", allow_abbrev=False,
-                    description="CLI Toolost Uploader untuk validasi manifest dan penyimpanan draft release.")
+                    formatter_class=argparse.RawDescriptionHelpFormatter,
+                    description="CLI Toolost Uploader untuk validasi manifest dan penyimpanan draft release.",
+                    epilog=root_epilog)
     parser.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
     commands = parser.add_subparsers(dest="command", required=True)
 
-    validate_cmd = commands.add_parser("validate", allow_abbrev=False, help="Periksa manifest dan hash file lokal.")
+    validate_epilog = """Contoh:
+  toolost validate manifest.json
+  toolost validate manifest.json --json
+"""
+    validate_cmd = commands.add_parser("validate", allow_abbrev=False,
+                                       formatter_class=argparse.RawDescriptionHelpFormatter,
+                                       help="Periksa manifest dan hash file lokal.",
+                                       epilog=validate_epilog)
     validate_cmd.add_argument("manifest", help="Path manifest JSON UTF-8.")
     validate_cmd.add_argument("--json", action="store_true", help="Tulis satu objek JSON hasil ke stdout.")
 
+    upload_epilog = """Contoh:
+  toolost upload album.json --draft-only --profile my-profile --expected-account 422512 \\
+    --approve-draft --accept-ui-date --verbose --json
+
+Catatan Keamanan:
+  Operasi upload DIBATASI HANYA sampai tahap penyimpanan draft (Save Changes).
+  Perintah ini TIDAK PERNAH menekan tombol Publish atau memicu distribusi rilis.
+"""
     upload_cmd = commands.add_parser("upload", allow_abbrev=False,
-                                     help="Unggah draft release ke Too Lost (draft-only).")
+                                     formatter_class=argparse.RawDescriptionHelpFormatter,
+                                     help="Unggah draft release ke Too Lost (draft-only).",
+                                     epilog=upload_epilog)
     upload_cmd.add_argument("manifest", help="Path manifest JSON UTF-8.")
     upload_cmd.add_argument("--draft-only", action="store_true",
                             help="Wajib: batasi operasi hanya simpan draft; tidak memicu publish.")
@@ -48,15 +78,27 @@ def main(argv=None):
                             help="Tampilkan progres verbose secara real-time ke stderr.")
     upload_cmd.add_argument("--json", action="store_true", help="Tulis satu objek JSON hasil ke stdout.")
 
+    setup_epilog = """Contoh:
+  toolost setup --profile my-profile
+  toolost setup --profile my-profile --url https://toolost.com/login
+"""
     setup_cmd = commands.add_parser("setup", allow_abbrev=False,
-                                    help="Buka browser Chrome lokal untuk login manual Too Lost.")
+                                    formatter_class=argparse.RawDescriptionHelpFormatter,
+                                    help="Buka browser Chrome lokal untuk login manual Too Lost.",
+                                    epilog=setup_epilog)
     setup_cmd.add_argument("--profile", default="default", help="Alias profil browser lokal (default: 'default').")
     setup_cmd.add_argument("--chrome", help="Path khusus ke Google Chrome executable.")
     setup_cmd.add_argument("--url", help="URL target pembuka (default: https://toolost.com/login).")
     setup_cmd.add_argument("-v", "--verbose", action="store_true", help="Tampilkan progres verbose ke stderr.")
 
+    check_epilog = """Contoh:
+  toolost check --profile my-profile --expected-account 422512
+  toolost check --profile my-profile --expected-account 422512 --auto-bootup --json
+"""
     check_cmd = commands.add_parser("check", allow_abbrev=False,
-                                    help="Periksa kesiapan lingkungan (Chrome, profil, CDP, dan akun login).")
+                                    formatter_class=argparse.RawDescriptionHelpFormatter,
+                                    help="Periksa kesiapan lingkungan (Chrome, profil, CDP, dan akun login).",
+                                    epilog=check_epilog)
     check_cmd.add_argument("--profile", default="default", help="Alias profil browser lokal (default: 'default').")
     check_cmd.add_argument("--expected-account", help="ID akun numerik yang diharapkan.")
     check_cmd.add_argument("--cdp", default="http://127.0.0.1:9437", help="Endpoint CDP browser loopback.")

@@ -107,6 +107,20 @@ Status/prioritas/dependency/klaim terkini mengikuti [current index](../ANTRIAN-P
 - **Acceptance:** dokumen rencana integrasi komprehensif tersedia di `docs/INTEGRATION-PLAN.md` mencakup arsitektur, pemetaan data, kontrak subprocess, error handling, dan tahapan implementasi bertahap.
 - **Verifier:** review offline dokumen rencana integrasi.
 
+## PKG-01 — Persiapan packaging, metadata, lisensi, sanitasi sdist/wheel, dan rilis PyPI (ready)
+
+- **Sumber:** permintaan pengguna 2026-10-26: "susun cli --help dan buat rencana packaging buat di up ke PyPI".
+- **Masuk:**
+  1. Penyusunan dokumen rencana packaging komprehensif di `docs/PACKAGING-PLAN.md`.
+  2. Penataan metadata rilis di `pyproject.toml` (authors, license, keywords, project URLs, deskripsi).
+  3. Pemindahan dependency `playwright` ke core dependencies agar paket siap pakai saat di-install pengguna.
+  4. Pembuatan berkas `LICENSE` (MIT) dan `MANIFEST.in` untuk sanitasi sdist/wheel (mencegah folder privat `.local/`, fixture, dan testing masuk archive).
+  5. Pengujian lokal build wheel & sdist via `python -m build`, verifikasi `twine check`, dan uji instalasi di virtualenv bersih.
+  6. Dry-run publikasi ke TestPyPI sebelum rilis resmi ke PyPI produksi.
+- **Keluar:** publish PyPI tanpa izin pengguna eksplisit; pengunggahan berkas kredensial/capture privat.
+- **Acceptance:** dokumen `docs/PACKAGING-PLAN.md` tersedia; `pyproject.toml` valid; build sdist & wheel terisolasi; verifikasi twine lolos; upload PyPI hanya dieksekusi dengan izin pengguna terpisah.
+- **Verifier:** `python3 -m unittest discover -s tests -q`, `git diff --check`, build sanitasi offline.
+
 ## PUB-01 — Publish/distribusi (deferred)
 
 - **Sumber:** arah produk final, bukan izin implementasi/eksekusi; [RELEASE-CONTRACT](../RELEASE-CONTRACT.md) masih proposal.
