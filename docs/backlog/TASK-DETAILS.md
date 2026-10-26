@@ -198,6 +198,35 @@ Status/prioritas/dependency/klaim terkini mengikuti [current index](../ANTRIAN-P
 - **Verifier:** `python3 -m unittest discover -s tests -q`, `git diff --check`.
 - **Hasil:** Selesai (`done`, [CP-022](CHECKPOINT-HISTORY.md#cp-022--selesai-fin-01--rilis-014-finalisasi-step-pasca-readback-done-track-terakhir-save-changes--kembali-ke-portal)). Tombol Done track terakhir selalu diklik, Save Changes dipicu pasca-readback, navigasi kembali ke portal releases terpasang, unit test memvalidasi 100%, dan versi 0.1.4 live di PyPI.
 
+## UPD-01 — Fitur update komprehensif metadata & append track ke draft existing (done)
+
+- **Sumber:** Permintaan pengguna 2026-10-26: "tambahin update aja kali ya?? jadi gak cuman append doang, tapi update juga", "kalau judul album/release, gambar juga diganti masukkin juga ke update dong", "tanggal release juga, pokokknya kalau dari manifest terdeteksi ada perubahan ikuti yang terbaru".
+- **Masuk:**
+  1. CLI: Menambahkan argumen `--update` dan `--append` pada subcommand `upload` di `toolost_uploader/cli.py`.
+  2. Storage: Memperluas `update_checkpoint` di `toolost_uploader/storage.py`:
+     - Memvalidasi kontinuitas dan melarang penghapusan track atau penggantian audio track lama.
+     - Mengizinkan pembaruan judul rilis, tanggal rilis, artwork, metadata track (judul, AI toggle, lirik), dan penambahan lagu baru (append).
+     - Menaikkan nomor revisi lokal (`revision + 1`) atomik.
+  3. Live Journal: Memperluas `toolost_uploader/live_journal.py` agar menyelaraskan binding checkpoint baru (`update_for_append`) dan memvalidasi operasi: `update_title`, `update_date`, `update_artwork`, `append_audio`, `update_metadata`, `save`, dan `readback`.
+  4. Live Executor: Di `toolost_uploader/live_draft.py`:
+     - `update_title`: memperbarui nama album di tab Basic Information.
+     - `update_date`: memperbarui tanggal rilis via navigasi Vuetify datepicker di tab Release Information.
+     - `update_artwork`: memperbarui cover artwork via tombol Replace di tab Artwork.
+     - `append_tracks`: mengunggah audio lagu susulan via tombol Upload di tab Manage Tracks.
+     - `metadata_update_and_append`: memperbarui metadata lagu lama yang direvisi dan mengisi metadata lagu baru.
+     - `update_run_steps`: alur sinkronisasi berurutan, Save Changes, readback verifikasi seluruh isi rilis, dan navigasi kembali ke portal.
+     - Idempotent: langsung melaporkan `draft_up_to_date` jika manifest identik.
+  5. Pengujian unit offline di `tests/test_storage.py`, `tests/test_cli.py`, `tests/test_live_draft.py`, dan `tests/test_live_recovery.py` (total 188 tests lolos 100%).
+  6. Version bump ke `0.1.5` dan publikasi rilis PyPI baru.
+- **Keluar:** Menghapus track yang sudah ada, mengubah urutan lagu lama secara destruktif, atau memicu publish distribusi.
+- **Acceptance:**
+  - `toolost upload manifest.json --draft-only --update` (atau `--append`) memproses pembaruan judul, tanggal rilis, artwork, lirik/AI/judul track lama, serta lagu susulan baru tanpa error `checkpoint_exists`.
+  - Datepicker Too Lost diotomatisasi untuk memilih tanggal rilis target secara presisi.
+  - Perubahan disimpan (*Save Changes*) dan diverifikasi lewat readback.
+  - Seluruh test suite offline (188 tests) 100% lulus; `git diff --check` bersih.
+- **Verifier:** `python3 -m unittest discover -s tests -q`, `git diff --check`.
+- **Hasil:** Selesai (`done`, [CP-023](CHECKPOINT-HISTORY.md#cp-023--selesai-upd-01--rilis-015-fitur-update-komprehensif-judul-tanggal-rilis-artwork-metadata-track--append-lagu-susulan)); seluruh acceptance terpenuhi dan versi `0.1.5` dipublikasikan ke PyPI.
+
 ## PUB-01 — Publish/distribusi (deferred)
 
 - **Sumber:** arah produk final, bukan izin implementasi/eksekusi; [RELEASE-CONTRACT](../RELEASE-CONTRACT.md) masih proposal.

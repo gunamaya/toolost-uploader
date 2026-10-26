@@ -472,6 +472,44 @@ class LiveRecoveryTests(unittest.TestCase):
                 p2.close.assert_called_once()
                 p1.close.assert_not_called()
 
+    def test_live_journal_update_for_append(self):
+        import hashlib
+        album = copy.deepcopy(self.manifest)
+        album['release_type'] = 'album'
+        track2_asset = self.base / 't2.bin'
+        track2_asset.write_bytes(b'track 2\n')
+        ref2 = {'path': track2_asset.name, 'sha256': hashlib.sha256(b'track 2\n').hexdigest()}
+
+        with self.profile() as session:
+            chk1 = session.create_checkpoint(album, self.base)
+            j = LiveJournal(session, chk1, '123', 'http://127.0.0.1:9437')
+            # Jalankan siklus base run sampai readback
+            self.through(j, 'save', 'observed')
+            j.record('readback', 'verified_subset', '456')
+
+            # Append track 2 ke checkpoint
+            album2 = copy.deepcopy(album)
+            album2['tracks'].append({'track_id': 't2', 'title': 'Track 2', 'audio': ref2, 'ai_assisted': False})
+            chk2 = session.update_checkpoint(album2, self.base, expected_revision=1)
+
+            # Update journal untuk append
+            j.update_for_append(chk2)
+            self.assertEqual(j.binding['checkpoint_sha256'], chk2['record_sha256'])
+
+            # Rekam event siklus append
+            j.record('append_audio', 'unknown', '456')
+            j.record('append_audio', 'observed', '456')
+            j.record('append_metadata', 'unknown', '456')
+            j.record('append_metadata', 'observed', '456')
+            j.record('save', 'unknown', '456')
+            j.record('save', 'observed', '456')
+            j.record('readback', 'verified_subset', '456')
+
+            # Baca ulang verifikasi
+            reloaded = LiveJournal(session, chk2, '123', 'http://127.0.0.1:9437', existing=True)
+            self.assertEqual(len(reloaded.value['events']), 18)
+            self.assertEqual(reloaded.value['events'][-1]['operation'], 'readback')
+
 
 if __name__ == '__main__':
     unittest.main()

@@ -381,6 +381,48 @@ Append-only sejak adopsi governance. Ini **bukan checkpoint executor/runtime**, 
   - Seluruh verifikasi draft readback dan penutupan UI portal selesai; mode eksekusi tetap aman dalam batas **draft-only** (tombol Publish tidak ditekan).
 - **Next priority:** INT-01 (Implementasi adapter integrasi `TooLostClient` di repo `yt-to-flowmusic` mengacu pada `docs/INTEGRATION-PLAN.md`).
 
+## CP-023 — Selesai UPD-01 & Rilis 0.1.5: Fitur Update Komprehensif (Judul, Tanggal Rilis, Artwork, Metadata Track, & Append Lagu Susulan)
+
+- **Waktu/owner:** 2026-10-26 23:58 WIB, sesi-upd-01 / assistant.
+- **Baseline:** 2637b36 + dirty files (`toolost_uploader/storage.py`, `toolost_uploader/live_journal.py`, `toolost_uploader/live_draft.py`, `toolost_uploader/cli.py`, `tests/*`, `toolost_uploader/__init__.py`, `README.md`, `docs/*`).
+- **Status:** UPD-01 `in_progress` → `done`. Claim mandiri dilepas.
+- **Hasil/eksekusi:**
+  1. Storage Checkpoint Update (`toolost_uploader/storage.py`):
+     - Memperluas `update_checkpoint` untuk mendukung pembaruan seluruh elemen rilis yang berubah di manifest (`title`, `release_date`, `artwork`, dan metadata track `title`/`ai_assisted`/`lyrics`), serta penambahan lagu susulan (`new_tracks > old_tracks`).
+     - Mempertahankan integritas immutable: audio lagu lama tidak boleh tertukar dan track tidak boleh dihapus.
+     - Menaikkan nomor revisi atomik (`revision + 1`) dan memperbarui SHA-256 digest record.
+  2. Live Journal Lifecycle (`toolost_uploader/live_journal.py`):
+     - Menambahkan method `update_for_append` untuk menyelaraskan hash binding checkpoint baru.
+     - Memperluas sequence validator agar mendukung operasi-operasi pembaruan: `update_title`, `update_date`, `update_artwork`, `append_audio`, `update_metadata`, `append_metadata`, `save`, dan `readback`.
+  3. Playwright Automation Update & Date Picker (`toolost_uploader/live_draft.py`):
+     - Menambahkan method `update_title` untuk mengupdate `Album name` / `Single name` di tab Basic Information.
+     - Menambahkan method `update_date` untuk mengupdate tanggal rilis di tab Release Information via Vuetify datepicker navigation (bulan, tahun, dan hari).
+     - Mendukung `update_artwork` (Replace cover artwork).
+     - Menambahkan `append_tracks` untuk mengunggah file audio track susulan via tombol `Upload` di tab Manage Tracks.
+     - Menambahkan `metadata_update_and_append` untuk memperbarui metadata track lama dan mengisi metadata track baru.
+     - Alur `update_run_steps`: mengeksekusi semua perubahan secara berurutan, lalu `save()`, `readback()`, dan navigasi kembali ke portal releases.
+     - Otomatis melaporkan `draft_up_to_date` jika manifest identik tanpa operasi upload redundan.
+  4. CLI & Interface (`toolost_uploader/cli.py`):
+     - Menambahkan argumen `--update` dan `--append` pada subcommand `upload`.
+     - Output informatif untuk `draft_up_to_date`, `draft_updated_subset`, dan `draft_appended_subset`.
+  5. Pengujian & Verifikasi:
+     - Menambahkan unit test baru di `tests/test_storage.py`, `tests/test_live_draft.py`, `tests/test_cli.py`, dan `tests/test_live_recovery.py`.
+     - Seluruh test suite offline (**188 tests**) lulus 100% (`OK, skipped=2`).
+  6. Rilis PyPI 0.1.5:
+     - Versi dinaikkan ke `0.1.5` di `toolost_uploader/__init__.py` dan badge `README.md`.
+     - `uv build`: Memproduksi `toolost_uploader-0.1.5-py3-none-any.whl` (60.9 kB) dan `toolost_uploader-0.1.5.tar.gz` (89.2 kB).
+     - `twine check dist/*`: Lolos `PASSED` 100%.
+     - `twine upload`: Berhasil dipublikasikan ke https://pypi.org/project/toolost-uploader/0.1.5/.
+     - Verifikasi instalasi live dari PyPI berhasil (`toolost 0.1.5`).
+- **Evidence:**
+  - URL publikasi: `https://pypi.org/project/toolost-uploader/0.1.5/`
+  - `twine check dist/*`: PASSED.
+  - 188 unit tests offline lulus (2 skipped).
+  - `git diff --check`: bersih (exit 0).
+- **Batas bukti:**
+  - Mode eksekusi tetap aman dalam batas **draft-only** (tombol Publish dilarang ditekan).
+- **Next priority:** INT-01 (Implementasi adapter integrasi `TooLostClient` di repo `yt-to-flowmusic` mengacu pada `docs/INTEGRATION-PLAN.md`).
+
 ## CP-021 — Selesai CDP-02 & Rilis 0.1.3: Dukungan Unggah Berkas Audio Besar (>50MB) via is_local di CDP
 
 - **Waktu/owner:** 2026-10-26 22:12 WIB, sesi-cdp-02 / assistant.
@@ -439,6 +481,48 @@ Append-only sejak adopsi governance. Ini **bukan checkpoint executor/runtime**, 
   - `git diff --check`: bersih (exit 0).
 - **Batas bukti:**
   - Seluruh verifikasi draft readback dan penutupan UI portal selesai; mode eksekusi tetap aman dalam batas **draft-only** (tombol Publish tidak ditekan).
+- **Next priority:** INT-01 (Implementasi adapter integrasi `TooLostClient` di repo `yt-to-flowmusic` mengacu pada `docs/INTEGRATION-PLAN.md`).
+
+## CP-023 — Selesai UPD-01 & Rilis 0.1.5: Fitur Update Komprehensif (Judul, Tanggal Rilis, Artwork, Metadata Track, & Append Lagu Susulan)
+
+- **Waktu/owner:** 2026-10-26 23:58 WIB, sesi-upd-01 / assistant.
+- **Baseline:** 2637b36 + dirty files (`toolost_uploader/storage.py`, `toolost_uploader/live_journal.py`, `toolost_uploader/live_draft.py`, `toolost_uploader/cli.py`, `tests/*`, `toolost_uploader/__init__.py`, `README.md`, `docs/*`).
+- **Status:** UPD-01 `in_progress` → `done`. Claim mandiri dilepas.
+- **Hasil/eksekusi:**
+  1. Storage Checkpoint Update (`toolost_uploader/storage.py`):
+     - Memperluas `update_checkpoint` untuk mendukung pembaruan seluruh elemen rilis yang berubah di manifest (`title`, `release_date`, `artwork`, dan metadata track `title`/`ai_assisted`/`lyrics`), serta penambahan lagu susulan (`new_tracks > old_tracks`).
+     - Mempertahankan integritas immutable: audio lagu lama tidak boleh tertukar dan track tidak boleh dihapus.
+     - Menaikkan nomor revisi atomik (`revision + 1`) dan memperbarui SHA-256 digest record.
+  2. Live Journal Lifecycle (`toolost_uploader/live_journal.py`):
+     - Menambahkan method `update_for_append` untuk menyelaraskan hash binding checkpoint baru.
+     - Memperluas sequence validator agar mendukung operasi-operasi pembaruan: `update_title`, `update_date`, `update_artwork`, `append_audio`, `update_metadata`, `append_metadata`, `save`, dan `readback`.
+  3. Playwright Automation Update & Date Picker (`toolost_uploader/live_draft.py`):
+     - Menambahkan method `update_title` untuk mengupdate `Album name` / `Single name` di tab Basic Information.
+     - Menambahkan method `update_date` untuk mengupdate tanggal rilis di tab Release Information via Vuetify datepicker navigation (bulan, tahun, dan hari).
+     - Mendukung `update_artwork` (Replace cover artwork).
+     - Menambahkan `append_tracks` untuk mengunggah file audio track susulan via tombol `Upload` di tab Manage Tracks.
+     - Menambahkan `metadata_update_and_append` untuk memperbarui metadata track lama dan mengisi metadata track baru.
+     - Alur `update_run_steps`: mengeksekusi semua perubahan secara berurutan, lalu `save()`, `readback()`, dan navigasi kembali ke portal releases.
+     - Otomatis melaporkan `draft_up_to_date` jika manifest identik tanpa operasi upload redundan.
+  4. CLI & Interface (`toolost_uploader/cli.py`):
+     - Menambahkan argumen `--update` dan `--append` pada subcommand `upload`.
+     - Output informatif untuk `draft_up_to_date`, `draft_updated_subset`, dan `draft_appended_subset`.
+  5. Pengujian & Verifikasi:
+     - Menambahkan unit test baru di `tests/test_storage.py`, `tests/test_live_draft.py`, `tests/test_cli.py`, dan `tests/test_live_recovery.py`.
+     - Seluruh test suite offline (**188 tests**) lulus 100% (`OK, skipped=2`).
+  6. Rilis PyPI 0.1.5:
+     - Versi dinaikkan ke `0.1.5` di `toolost_uploader/__init__.py` dan badge `README.md`.
+     - `uv build`: Memproduksi `toolost_uploader-0.1.5-py3-none-any.whl` (60.9 kB) dan `toolost_uploader-0.1.5.tar.gz` (89.2 kB).
+     - `twine check dist/*`: Lolos `PASSED` 100%.
+     - `twine upload`: Berhasil dipublikasikan ke https://pypi.org/project/toolost-uploader/0.1.5/.
+     - Verifikasi instalasi live dari PyPI berhasil (`toolost 0.1.5`).
+- **Evidence:**
+  - URL publikasi: `https://pypi.org/project/toolost-uploader/0.1.5/`
+  - `twine check dist/*`: PASSED.
+  - 188 unit tests offline lulus (2 skipped).
+  - `git diff --check`: bersih (exit 0).
+- **Batas bukti:**
+  - Mode eksekusi tetap aman dalam batas **draft-only** (tombol Publish dilarang ditekan).
 - **Next priority:** INT-01 (Implementasi adapter integrasi `TooLostClient` di repo `yt-to-flowmusic` mengacu pada `docs/INTEGRATION-PLAN.md`).
 
 ## CP-020 — Publikasi Rilis 0.1.2 ke PyPI: Optimalisasi Tab Memory & Tab Lyrics
@@ -502,6 +586,48 @@ Append-only sejak adopsi governance. Ini **bukan checkpoint executor/runtime**, 
   - Seluruh verifikasi draft readback dan penutupan UI portal selesai; mode eksekusi tetap aman dalam batas **draft-only** (tombol Publish tidak ditekan).
 - **Next priority:** INT-01 (Implementasi adapter integrasi `TooLostClient` di repo `yt-to-flowmusic` mengacu pada `docs/INTEGRATION-PLAN.md`).
 
+## CP-023 — Selesai UPD-01 & Rilis 0.1.5: Fitur Update Komprehensif (Judul, Tanggal Rilis, Artwork, Metadata Track, & Append Lagu Susulan)
+
+- **Waktu/owner:** 2026-10-26 23:58 WIB, sesi-upd-01 / assistant.
+- **Baseline:** 2637b36 + dirty files (`toolost_uploader/storage.py`, `toolost_uploader/live_journal.py`, `toolost_uploader/live_draft.py`, `toolost_uploader/cli.py`, `tests/*`, `toolost_uploader/__init__.py`, `README.md`, `docs/*`).
+- **Status:** UPD-01 `in_progress` → `done`. Claim mandiri dilepas.
+- **Hasil/eksekusi:**
+  1. Storage Checkpoint Update (`toolost_uploader/storage.py`):
+     - Memperluas `update_checkpoint` untuk mendukung pembaruan seluruh elemen rilis yang berubah di manifest (`title`, `release_date`, `artwork`, dan metadata track `title`/`ai_assisted`/`lyrics`), serta penambahan lagu susulan (`new_tracks > old_tracks`).
+     - Mempertahankan integritas immutable: audio lagu lama tidak boleh tertukar dan track tidak boleh dihapus.
+     - Menaikkan nomor revisi atomik (`revision + 1`) dan memperbarui SHA-256 digest record.
+  2. Live Journal Lifecycle (`toolost_uploader/live_journal.py`):
+     - Menambahkan method `update_for_append` untuk menyelaraskan hash binding checkpoint baru.
+     - Memperluas sequence validator agar mendukung operasi-operasi pembaruan: `update_title`, `update_date`, `update_artwork`, `append_audio`, `update_metadata`, `append_metadata`, `save`, dan `readback`.
+  3. Playwright Automation Update & Date Picker (`toolost_uploader/live_draft.py`):
+     - Menambahkan method `update_title` untuk mengupdate `Album name` / `Single name` di tab Basic Information.
+     - Menambahkan method `update_date` untuk mengupdate tanggal rilis di tab Release Information via Vuetify datepicker navigation (bulan, tahun, dan hari).
+     - Mendukung `update_artwork` (Replace cover artwork).
+     - Menambahkan `append_tracks` untuk mengunggah file audio track susulan via tombol `Upload` di tab Manage Tracks.
+     - Menambahkan `metadata_update_and_append` untuk memperbarui metadata track lama dan mengisi metadata track baru.
+     - Alur `update_run_steps`: mengeksekusi semua perubahan secara berurutan, lalu `save()`, `readback()`, dan navigasi kembali ke portal releases.
+     - Otomatis melaporkan `draft_up_to_date` jika manifest identik tanpa operasi upload redundan.
+  4. CLI & Interface (`toolost_uploader/cli.py`):
+     - Menambahkan argumen `--update` dan `--append` pada subcommand `upload`.
+     - Output informatif untuk `draft_up_to_date`, `draft_updated_subset`, dan `draft_appended_subset`.
+  5. Pengujian & Verifikasi:
+     - Menambahkan unit test baru di `tests/test_storage.py`, `tests/test_live_draft.py`, `tests/test_cli.py`, dan `tests/test_live_recovery.py`.
+     - Seluruh test suite offline (**188 tests**) lulus 100% (`OK, skipped=2`).
+  6. Rilis PyPI 0.1.5:
+     - Versi dinaikkan ke `0.1.5` di `toolost_uploader/__init__.py` dan badge `README.md`.
+     - `uv build`: Memproduksi `toolost_uploader-0.1.5-py3-none-any.whl` (60.9 kB) dan `toolost_uploader-0.1.5.tar.gz` (89.2 kB).
+     - `twine check dist/*`: Lolos `PASSED` 100%.
+     - `twine upload`: Berhasil dipublikasikan ke https://pypi.org/project/toolost-uploader/0.1.5/.
+     - Verifikasi instalasi live dari PyPI berhasil (`toolost 0.1.5`).
+- **Evidence:**
+  - URL publikasi: `https://pypi.org/project/toolost-uploader/0.1.5/`
+  - `twine check dist/*`: PASSED.
+  - 188 unit tests offline lulus (2 skipped).
+  - `git diff --check`: bersih (exit 0).
+- **Batas bukti:**
+  - Mode eksekusi tetap aman dalam batas **draft-only** (tombol Publish dilarang ditekan).
+- **Next priority:** INT-01 (Implementasi adapter integrasi `TooLostClient` di repo `yt-to-flowmusic` mengacu pada `docs/INTEGRATION-PLAN.md`).
+
 ## CP-021 — Selesai CDP-02 & Rilis 0.1.3: Dukungan Unggah Berkas Audio Besar (>50MB) via is_local di CDP
 
 - **Waktu/owner:** 2026-10-26 22:12 WIB, sesi-cdp-02 / assistant.
@@ -560,6 +686,48 @@ Append-only sejak adopsi governance. Ini **bukan checkpoint executor/runtime**, 
   - `git diff --check`: bersih (exit 0).
 - **Batas bukti:**
   - Seluruh verifikasi draft readback dan penutupan UI portal selesai; mode eksekusi tetap aman dalam batas **draft-only** (tombol Publish tidak ditekan).
+- **Next priority:** INT-01 (Implementasi adapter integrasi `TooLostClient` di repo `yt-to-flowmusic` mengacu pada `docs/INTEGRATION-PLAN.md`).
+
+## CP-023 — Selesai UPD-01 & Rilis 0.1.5: Fitur Update Komprehensif (Judul, Tanggal Rilis, Artwork, Metadata Track, & Append Lagu Susulan)
+
+- **Waktu/owner:** 2026-10-26 23:58 WIB, sesi-upd-01 / assistant.
+- **Baseline:** 2637b36 + dirty files (`toolost_uploader/storage.py`, `toolost_uploader/live_journal.py`, `toolost_uploader/live_draft.py`, `toolost_uploader/cli.py`, `tests/*`, `toolost_uploader/__init__.py`, `README.md`, `docs/*`).
+- **Status:** UPD-01 `in_progress` → `done`. Claim mandiri dilepas.
+- **Hasil/eksekusi:**
+  1. Storage Checkpoint Update (`toolost_uploader/storage.py`):
+     - Memperluas `update_checkpoint` untuk mendukung pembaruan seluruh elemen rilis yang berubah di manifest (`title`, `release_date`, `artwork`, dan metadata track `title`/`ai_assisted`/`lyrics`), serta penambahan lagu susulan (`new_tracks > old_tracks`).
+     - Mempertahankan integritas immutable: audio lagu lama tidak boleh tertukar dan track tidak boleh dihapus.
+     - Menaikkan nomor revisi atomik (`revision + 1`) dan memperbarui SHA-256 digest record.
+  2. Live Journal Lifecycle (`toolost_uploader/live_journal.py`):
+     - Menambahkan method `update_for_append` untuk menyelaraskan hash binding checkpoint baru.
+     - Memperluas sequence validator agar mendukung operasi-operasi pembaruan: `update_title`, `update_date`, `update_artwork`, `append_audio`, `update_metadata`, `append_metadata`, `save`, dan `readback`.
+  3. Playwright Automation Update & Date Picker (`toolost_uploader/live_draft.py`):
+     - Menambahkan method `update_title` untuk mengupdate `Album name` / `Single name` di tab Basic Information.
+     - Menambahkan method `update_date` untuk mengupdate tanggal rilis di tab Release Information via Vuetify datepicker navigation (bulan, tahun, dan hari).
+     - Mendukung `update_artwork` (Replace cover artwork).
+     - Menambahkan `append_tracks` untuk mengunggah file audio track susulan via tombol `Upload` di tab Manage Tracks.
+     - Menambahkan `metadata_update_and_append` untuk memperbarui metadata track lama dan mengisi metadata track baru.
+     - Alur `update_run_steps`: mengeksekusi semua perubahan secara berurutan, lalu `save()`, `readback()`, dan navigasi kembali ke portal releases.
+     - Otomatis melaporkan `draft_up_to_date` jika manifest identik tanpa operasi upload redundan.
+  4. CLI & Interface (`toolost_uploader/cli.py`):
+     - Menambahkan argumen `--update` dan `--append` pada subcommand `upload`.
+     - Output informatif untuk `draft_up_to_date`, `draft_updated_subset`, dan `draft_appended_subset`.
+  5. Pengujian & Verifikasi:
+     - Menambahkan unit test baru di `tests/test_storage.py`, `tests/test_live_draft.py`, `tests/test_cli.py`, dan `tests/test_live_recovery.py`.
+     - Seluruh test suite offline (**188 tests**) lulus 100% (`OK, skipped=2`).
+  6. Rilis PyPI 0.1.5:
+     - Versi dinaikkan ke `0.1.5` di `toolost_uploader/__init__.py` dan badge `README.md`.
+     - `uv build`: Memproduksi `toolost_uploader-0.1.5-py3-none-any.whl` (60.9 kB) dan `toolost_uploader-0.1.5.tar.gz` (89.2 kB).
+     - `twine check dist/*`: Lolos `PASSED` 100%.
+     - `twine upload`: Berhasil dipublikasikan ke https://pypi.org/project/toolost-uploader/0.1.5/.
+     - Verifikasi instalasi live dari PyPI berhasil (`toolost 0.1.5`).
+- **Evidence:**
+  - URL publikasi: `https://pypi.org/project/toolost-uploader/0.1.5/`
+  - `twine check dist/*`: PASSED.
+  - 188 unit tests offline lulus (2 skipped).
+  - `git diff --check`: bersih (exit 0).
+- **Batas bukti:**
+  - Mode eksekusi tetap aman dalam batas **draft-only** (tombol Publish dilarang ditekan).
 - **Next priority:** INT-01 (Implementasi adapter integrasi `TooLostClient` di repo `yt-to-flowmusic` mengacu pada `docs/INTEGRATION-PLAN.md`).
 
 ## CP-019 — Selesai TAB-01: Optimalisasi Manajemen Tab Browser CDP (Reuse Tab Aktif & Tutup Tab Redundan)
@@ -630,6 +798,48 @@ Append-only sejak adopsi governance. Ini **bukan checkpoint executor/runtime**, 
   - Seluruh verifikasi draft readback dan penutupan UI portal selesai; mode eksekusi tetap aman dalam batas **draft-only** (tombol Publish tidak ditekan).
 - **Next priority:** INT-01 (Implementasi adapter integrasi `TooLostClient` di repo `yt-to-flowmusic` mengacu pada `docs/INTEGRATION-PLAN.md`).
 
+## CP-023 — Selesai UPD-01 & Rilis 0.1.5: Fitur Update Komprehensif (Judul, Tanggal Rilis, Artwork, Metadata Track, & Append Lagu Susulan)
+
+- **Waktu/owner:** 2026-10-26 23:58 WIB, sesi-upd-01 / assistant.
+- **Baseline:** 2637b36 + dirty files (`toolost_uploader/storage.py`, `toolost_uploader/live_journal.py`, `toolost_uploader/live_draft.py`, `toolost_uploader/cli.py`, `tests/*`, `toolost_uploader/__init__.py`, `README.md`, `docs/*`).
+- **Status:** UPD-01 `in_progress` → `done`. Claim mandiri dilepas.
+- **Hasil/eksekusi:**
+  1. Storage Checkpoint Update (`toolost_uploader/storage.py`):
+     - Memperluas `update_checkpoint` untuk mendukung pembaruan seluruh elemen rilis yang berubah di manifest (`title`, `release_date`, `artwork`, dan metadata track `title`/`ai_assisted`/`lyrics`), serta penambahan lagu susulan (`new_tracks > old_tracks`).
+     - Mempertahankan integritas immutable: audio lagu lama tidak boleh tertukar dan track tidak boleh dihapus.
+     - Menaikkan nomor revisi atomik (`revision + 1`) dan memperbarui SHA-256 digest record.
+  2. Live Journal Lifecycle (`toolost_uploader/live_journal.py`):
+     - Menambahkan method `update_for_append` untuk menyelaraskan hash binding checkpoint baru.
+     - Memperluas sequence validator agar mendukung operasi-operasi pembaruan: `update_title`, `update_date`, `update_artwork`, `append_audio`, `update_metadata`, `append_metadata`, `save`, dan `readback`.
+  3. Playwright Automation Update & Date Picker (`toolost_uploader/live_draft.py`):
+     - Menambahkan method `update_title` untuk mengupdate `Album name` / `Single name` di tab Basic Information.
+     - Menambahkan method `update_date` untuk mengupdate tanggal rilis di tab Release Information via Vuetify datepicker navigation (bulan, tahun, dan hari).
+     - Mendukung `update_artwork` (Replace cover artwork).
+     - Menambahkan `append_tracks` untuk mengunggah file audio track susulan via tombol `Upload` di tab Manage Tracks.
+     - Menambahkan `metadata_update_and_append` untuk memperbarui metadata track lama dan mengisi metadata track baru.
+     - Alur `update_run_steps`: mengeksekusi semua perubahan secara berurutan, lalu `save()`, `readback()`, dan navigasi kembali ke portal releases.
+     - Otomatis melaporkan `draft_up_to_date` jika manifest identik tanpa operasi upload redundan.
+  4. CLI & Interface (`toolost_uploader/cli.py`):
+     - Menambahkan argumen `--update` dan `--append` pada subcommand `upload`.
+     - Output informatif untuk `draft_up_to_date`, `draft_updated_subset`, dan `draft_appended_subset`.
+  5. Pengujian & Verifikasi:
+     - Menambahkan unit test baru di `tests/test_storage.py`, `tests/test_live_draft.py`, `tests/test_cli.py`, dan `tests/test_live_recovery.py`.
+     - Seluruh test suite offline (**188 tests**) lulus 100% (`OK, skipped=2`).
+  6. Rilis PyPI 0.1.5:
+     - Versi dinaikkan ke `0.1.5` di `toolost_uploader/__init__.py` dan badge `README.md`.
+     - `uv build`: Memproduksi `toolost_uploader-0.1.5-py3-none-any.whl` (60.9 kB) dan `toolost_uploader-0.1.5.tar.gz` (89.2 kB).
+     - `twine check dist/*`: Lolos `PASSED` 100%.
+     - `twine upload`: Berhasil dipublikasikan ke https://pypi.org/project/toolost-uploader/0.1.5/.
+     - Verifikasi instalasi live dari PyPI berhasil (`toolost 0.1.5`).
+- **Evidence:**
+  - URL publikasi: `https://pypi.org/project/toolost-uploader/0.1.5/`
+  - `twine check dist/*`: PASSED.
+  - 188 unit tests offline lulus (2 skipped).
+  - `git diff --check`: bersih (exit 0).
+- **Batas bukti:**
+  - Mode eksekusi tetap aman dalam batas **draft-only** (tombol Publish dilarang ditekan).
+- **Next priority:** INT-01 (Implementasi adapter integrasi `TooLostClient` di repo `yt-to-flowmusic` mengacu pada `docs/INTEGRATION-PLAN.md`).
+
 ## CP-021 — Selesai CDP-02 & Rilis 0.1.3: Dukungan Unggah Berkas Audio Besar (>50MB) via is_local di CDP
 
 - **Waktu/owner:** 2026-10-26 22:12 WIB, sesi-cdp-02 / assistant.
@@ -688,6 +898,48 @@ Append-only sejak adopsi governance. Ini **bukan checkpoint executor/runtime**, 
   - `git diff --check`: bersih (exit 0).
 - **Batas bukti:**
   - Seluruh verifikasi draft readback dan penutupan UI portal selesai; mode eksekusi tetap aman dalam batas **draft-only** (tombol Publish tidak ditekan).
+- **Next priority:** INT-01 (Implementasi adapter integrasi `TooLostClient` di repo `yt-to-flowmusic` mengacu pada `docs/INTEGRATION-PLAN.md`).
+
+## CP-023 — Selesai UPD-01 & Rilis 0.1.5: Fitur Update Komprehensif (Judul, Tanggal Rilis, Artwork, Metadata Track, & Append Lagu Susulan)
+
+- **Waktu/owner:** 2026-10-26 23:58 WIB, sesi-upd-01 / assistant.
+- **Baseline:** 2637b36 + dirty files (`toolost_uploader/storage.py`, `toolost_uploader/live_journal.py`, `toolost_uploader/live_draft.py`, `toolost_uploader/cli.py`, `tests/*`, `toolost_uploader/__init__.py`, `README.md`, `docs/*`).
+- **Status:** UPD-01 `in_progress` → `done`. Claim mandiri dilepas.
+- **Hasil/eksekusi:**
+  1. Storage Checkpoint Update (`toolost_uploader/storage.py`):
+     - Memperluas `update_checkpoint` untuk mendukung pembaruan seluruh elemen rilis yang berubah di manifest (`title`, `release_date`, `artwork`, dan metadata track `title`/`ai_assisted`/`lyrics`), serta penambahan lagu susulan (`new_tracks > old_tracks`).
+     - Mempertahankan integritas immutable: audio lagu lama tidak boleh tertukar dan track tidak boleh dihapus.
+     - Menaikkan nomor revisi atomik (`revision + 1`) dan memperbarui SHA-256 digest record.
+  2. Live Journal Lifecycle (`toolost_uploader/live_journal.py`):
+     - Menambahkan method `update_for_append` untuk menyelaraskan hash binding checkpoint baru.
+     - Memperluas sequence validator agar mendukung operasi-operasi pembaruan: `update_title`, `update_date`, `update_artwork`, `append_audio`, `update_metadata`, `append_metadata`, `save`, dan `readback`.
+  3. Playwright Automation Update & Date Picker (`toolost_uploader/live_draft.py`):
+     - Menambahkan method `update_title` untuk mengupdate `Album name` / `Single name` di tab Basic Information.
+     - Menambahkan method `update_date` untuk mengupdate tanggal rilis di tab Release Information via Vuetify datepicker navigation (bulan, tahun, dan hari).
+     - Mendukung `update_artwork` (Replace cover artwork).
+     - Menambahkan `append_tracks` untuk mengunggah file audio track susulan via tombol `Upload` di tab Manage Tracks.
+     - Menambahkan `metadata_update_and_append` untuk memperbarui metadata track lama dan mengisi metadata track baru.
+     - Alur `update_run_steps`: mengeksekusi semua perubahan secara berurutan, lalu `save()`, `readback()`, dan navigasi kembali ke portal releases.
+     - Otomatis melaporkan `draft_up_to_date` jika manifest identik tanpa operasi upload redundan.
+  4. CLI & Interface (`toolost_uploader/cli.py`):
+     - Menambahkan argumen `--update` dan `--append` pada subcommand `upload`.
+     - Output informatif untuk `draft_up_to_date`, `draft_updated_subset`, dan `draft_appended_subset`.
+  5. Pengujian & Verifikasi:
+     - Menambahkan unit test baru di `tests/test_storage.py`, `tests/test_live_draft.py`, `tests/test_cli.py`, dan `tests/test_live_recovery.py`.
+     - Seluruh test suite offline (**188 tests**) lulus 100% (`OK, skipped=2`).
+  6. Rilis PyPI 0.1.5:
+     - Versi dinaikkan ke `0.1.5` di `toolost_uploader/__init__.py` dan badge `README.md`.
+     - `uv build`: Memproduksi `toolost_uploader-0.1.5-py3-none-any.whl` (60.9 kB) dan `toolost_uploader-0.1.5.tar.gz` (89.2 kB).
+     - `twine check dist/*`: Lolos `PASSED` 100%.
+     - `twine upload`: Berhasil dipublikasikan ke https://pypi.org/project/toolost-uploader/0.1.5/.
+     - Verifikasi instalasi live dari PyPI berhasil (`toolost 0.1.5`).
+- **Evidence:**
+  - URL publikasi: `https://pypi.org/project/toolost-uploader/0.1.5/`
+  - `twine check dist/*`: PASSED.
+  - 188 unit tests offline lulus (2 skipped).
+  - `git diff --check`: bersih (exit 0).
+- **Batas bukti:**
+  - Mode eksekusi tetap aman dalam batas **draft-only** (tombol Publish dilarang ditekan).
 - **Next priority:** INT-01 (Implementasi adapter integrasi `TooLostClient` di repo `yt-to-flowmusic` mengacu pada `docs/INTEGRATION-PLAN.md`).
 
 ## CP-020 — Publikasi Rilis 0.1.2 ke PyPI: Optimalisasi Tab Memory & Tab Lyrics
@@ -751,6 +1003,48 @@ Append-only sejak adopsi governance. Ini **bukan checkpoint executor/runtime**, 
   - Seluruh verifikasi draft readback dan penutupan UI portal selesai; mode eksekusi tetap aman dalam batas **draft-only** (tombol Publish tidak ditekan).
 - **Next priority:** INT-01 (Implementasi adapter integrasi `TooLostClient` di repo `yt-to-flowmusic` mengacu pada `docs/INTEGRATION-PLAN.md`).
 
+## CP-023 — Selesai UPD-01 & Rilis 0.1.5: Fitur Update Komprehensif (Judul, Tanggal Rilis, Artwork, Metadata Track, & Append Lagu Susulan)
+
+- **Waktu/owner:** 2026-10-26 23:58 WIB, sesi-upd-01 / assistant.
+- **Baseline:** 2637b36 + dirty files (`toolost_uploader/storage.py`, `toolost_uploader/live_journal.py`, `toolost_uploader/live_draft.py`, `toolost_uploader/cli.py`, `tests/*`, `toolost_uploader/__init__.py`, `README.md`, `docs/*`).
+- **Status:** UPD-01 `in_progress` → `done`. Claim mandiri dilepas.
+- **Hasil/eksekusi:**
+  1. Storage Checkpoint Update (`toolost_uploader/storage.py`):
+     - Memperluas `update_checkpoint` untuk mendukung pembaruan seluruh elemen rilis yang berubah di manifest (`title`, `release_date`, `artwork`, dan metadata track `title`/`ai_assisted`/`lyrics`), serta penambahan lagu susulan (`new_tracks > old_tracks`).
+     - Mempertahankan integritas immutable: audio lagu lama tidak boleh tertukar dan track tidak boleh dihapus.
+     - Menaikkan nomor revisi atomik (`revision + 1`) dan memperbarui SHA-256 digest record.
+  2. Live Journal Lifecycle (`toolost_uploader/live_journal.py`):
+     - Menambahkan method `update_for_append` untuk menyelaraskan hash binding checkpoint baru.
+     - Memperluas sequence validator agar mendukung operasi-operasi pembaruan: `update_title`, `update_date`, `update_artwork`, `append_audio`, `update_metadata`, `append_metadata`, `save`, dan `readback`.
+  3. Playwright Automation Update & Date Picker (`toolost_uploader/live_draft.py`):
+     - Menambahkan method `update_title` untuk mengupdate `Album name` / `Single name` di tab Basic Information.
+     - Menambahkan method `update_date` untuk mengupdate tanggal rilis di tab Release Information via Vuetify datepicker navigation (bulan, tahun, dan hari).
+     - Mendukung `update_artwork` (Replace cover artwork).
+     - Menambahkan `append_tracks` untuk mengunggah file audio track susulan via tombol `Upload` di tab Manage Tracks.
+     - Menambahkan `metadata_update_and_append` untuk memperbarui metadata track lama dan mengisi metadata track baru.
+     - Alur `update_run_steps`: mengeksekusi semua perubahan secara berurutan, lalu `save()`, `readback()`, dan navigasi kembali ke portal releases.
+     - Otomatis melaporkan `draft_up_to_date` jika manifest identik tanpa operasi upload redundan.
+  4. CLI & Interface (`toolost_uploader/cli.py`):
+     - Menambahkan argumen `--update` dan `--append` pada subcommand `upload`.
+     - Output informatif untuk `draft_up_to_date`, `draft_updated_subset`, dan `draft_appended_subset`.
+  5. Pengujian & Verifikasi:
+     - Menambahkan unit test baru di `tests/test_storage.py`, `tests/test_live_draft.py`, `tests/test_cli.py`, dan `tests/test_live_recovery.py`.
+     - Seluruh test suite offline (**188 tests**) lulus 100% (`OK, skipped=2`).
+  6. Rilis PyPI 0.1.5:
+     - Versi dinaikkan ke `0.1.5` di `toolost_uploader/__init__.py` dan badge `README.md`.
+     - `uv build`: Memproduksi `toolost_uploader-0.1.5-py3-none-any.whl` (60.9 kB) dan `toolost_uploader-0.1.5.tar.gz` (89.2 kB).
+     - `twine check dist/*`: Lolos `PASSED` 100%.
+     - `twine upload`: Berhasil dipublikasikan ke https://pypi.org/project/toolost-uploader/0.1.5/.
+     - Verifikasi instalasi live dari PyPI berhasil (`toolost 0.1.5`).
+- **Evidence:**
+  - URL publikasi: `https://pypi.org/project/toolost-uploader/0.1.5/`
+  - `twine check dist/*`: PASSED.
+  - 188 unit tests offline lulus (2 skipped).
+  - `git diff --check`: bersih (exit 0).
+- **Batas bukti:**
+  - Mode eksekusi tetap aman dalam batas **draft-only** (tombol Publish dilarang ditekan).
+- **Next priority:** INT-01 (Implementasi adapter integrasi `TooLostClient` di repo `yt-to-flowmusic` mengacu pada `docs/INTEGRATION-PLAN.md`).
+
 ## CP-021 — Selesai CDP-02 & Rilis 0.1.3: Dukungan Unggah Berkas Audio Besar (>50MB) via is_local di CDP
 
 - **Waktu/owner:** 2026-10-26 22:12 WIB, sesi-cdp-02 / assistant.
@@ -809,4 +1103,46 @@ Append-only sejak adopsi governance. Ini **bukan checkpoint executor/runtime**, 
   - `git diff --check`: bersih (exit 0).
 - **Batas bukti:**
   - Seluruh verifikasi draft readback dan penutupan UI portal selesai; mode eksekusi tetap aman dalam batas **draft-only** (tombol Publish tidak ditekan).
+- **Next priority:** INT-01 (Implementasi adapter integrasi `TooLostClient` di repo `yt-to-flowmusic` mengacu pada `docs/INTEGRATION-PLAN.md`).
+
+## CP-023 — Selesai UPD-01 & Rilis 0.1.5: Fitur Update Komprehensif (Judul, Tanggal Rilis, Artwork, Metadata Track, & Append Lagu Susulan)
+
+- **Waktu/owner:** 2026-10-26 23:58 WIB, sesi-upd-01 / assistant.
+- **Baseline:** 2637b36 + dirty files (`toolost_uploader/storage.py`, `toolost_uploader/live_journal.py`, `toolost_uploader/live_draft.py`, `toolost_uploader/cli.py`, `tests/*`, `toolost_uploader/__init__.py`, `README.md`, `docs/*`).
+- **Status:** UPD-01 `in_progress` → `done`. Claim mandiri dilepas.
+- **Hasil/eksekusi:**
+  1. Storage Checkpoint Update (`toolost_uploader/storage.py`):
+     - Memperluas `update_checkpoint` untuk mendukung pembaruan seluruh elemen rilis yang berubah di manifest (`title`, `release_date`, `artwork`, dan metadata track `title`/`ai_assisted`/`lyrics`), serta penambahan lagu susulan (`new_tracks > old_tracks`).
+     - Mempertahankan integritas immutable: audio lagu lama tidak boleh tertukar dan track tidak boleh dihapus.
+     - Menaikkan nomor revisi atomik (`revision + 1`) dan memperbarui SHA-256 digest record.
+  2. Live Journal Lifecycle (`toolost_uploader/live_journal.py`):
+     - Menambahkan method `update_for_append` untuk menyelaraskan hash binding checkpoint baru.
+     - Memperluas sequence validator agar mendukung operasi-operasi pembaruan: `update_title`, `update_date`, `update_artwork`, `append_audio`, `update_metadata`, `append_metadata`, `save`, dan `readback`.
+  3. Playwright Automation Update & Date Picker (`toolost_uploader/live_draft.py`):
+     - Menambahkan method `update_title` untuk mengupdate `Album name` / `Single name` di tab Basic Information.
+     - Menambahkan method `update_date` untuk mengupdate tanggal rilis di tab Release Information via Vuetify datepicker navigation (bulan, tahun, dan hari).
+     - Mendukung `update_artwork` (Replace cover artwork).
+     - Menambahkan `append_tracks` untuk mengunggah file audio track susulan via tombol `Upload` di tab Manage Tracks.
+     - Menambahkan `metadata_update_and_append` untuk memperbarui metadata track lama dan mengisi metadata track baru.
+     - Alur `update_run_steps`: mengeksekusi semua perubahan secara berurutan, lalu `save()`, `readback()`, dan navigasi kembali ke portal releases.
+     - Otomatis melaporkan `draft_up_to_date` jika manifest identik tanpa operasi upload redundan.
+  4. CLI & Interface (`toolost_uploader/cli.py`):
+     - Menambahkan argumen `--update` dan `--append` pada subcommand `upload`.
+     - Output informatif untuk `draft_up_to_date`, `draft_updated_subset`, dan `draft_appended_subset`.
+  5. Pengujian & Verifikasi:
+     - Menambahkan unit test baru di `tests/test_storage.py`, `tests/test_live_draft.py`, `tests/test_cli.py`, dan `tests/test_live_recovery.py`.
+     - Seluruh test suite offline (**188 tests**) lulus 100% (`OK, skipped=2`).
+  6. Rilis PyPI 0.1.5:
+     - Versi dinaikkan ke `0.1.5` di `toolost_uploader/__init__.py` dan badge `README.md`.
+     - `uv build`: Memproduksi `toolost_uploader-0.1.5-py3-none-any.whl` (60.9 kB) dan `toolost_uploader-0.1.5.tar.gz` (89.2 kB).
+     - `twine check dist/*`: Lolos `PASSED` 100%.
+     - `twine upload`: Berhasil dipublikasikan ke https://pypi.org/project/toolost-uploader/0.1.5/.
+     - Verifikasi instalasi live dari PyPI berhasil (`toolost 0.1.5`).
+- **Evidence:**
+  - URL publikasi: `https://pypi.org/project/toolost-uploader/0.1.5/`
+  - `twine check dist/*`: PASSED.
+  - 188 unit tests offline lulus (2 skipped).
+  - `git diff --check`: bersih (exit 0).
+- **Batas bukti:**
+  - Mode eksekusi tetap aman dalam batas **draft-only** (tombol Publish dilarang ditekan).
 - **Next priority:** INT-01 (Implementasi adapter integrasi `TooLostClient` di repo `yt-to-flowmusic` mengacu pada `docs/INTEGRATION-PLAN.md`).

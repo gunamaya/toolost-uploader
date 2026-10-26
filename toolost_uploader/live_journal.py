@@ -11,6 +11,7 @@ class DraftError(Exception):
 
 
 STAGES = ('create', 'artwork', 'audio', 'metadata', 'save')
+APPEND_STAGES = ('append_audio', 'append_metadata', 'save')
 KEYS = {'journal_version', 'run_id', 'checkpoint_sha256', 'profile', 'release_id',
         'expected_account', 'endpoint', 'remote_draft_id', 'amendment', 'events', 'record_sha256'}
 
@@ -59,8 +60,24 @@ class LiveJournal:
             raise DraftError('invalid_live_events')
         expected = [(stage, outcome) for stage in STAGES for outcome in ('unknown', 'observed')]
         expected.append(('readback', 'verified_subset'))
-        if len(events) == 10 and isinstance(events[-1], dict) and events[-1].get('operation') == 'readback':
-            expected.pop(9)  # Save unknown direkonsiliasi lewat reopen, bukan respons observed palsu.
+        if len(events) >= 10 and events[9].get('operation') == 'readback' and expected[9] == ('save', 'observed'):
+            expected.pop(9)
+
+        idx = len(expected)
+        while idx < len(events):
+            op = events[idx].get('operation')
+            if op in ('update_title', 'update_date', 'update_artwork', 'append_audio', 'update_metadata', 'append_metadata', 'save'):
+                expected.extend([(op, 'unknown'), (op, 'observed')])
+            elif op == 'readback':
+                if (idx > 0 and events[idx - 1].get('operation') == 'save'
+                        and events[idx - 1].get('outcome') == 'unknown'
+                        and expected and expected[-1] == ('save', 'observed')):
+                    expected.pop()
+                expected.append(('readback', 'verified_subset'))
+            else:
+                break
+            idx = len(expected)
+
         if len(events) > len(expected):
             raise DraftError('invalid_live_events')
         remote = value['remote_draft_id']
@@ -127,3 +144,21 @@ class LiveJournal:
         remote = self.require_reconciliation()
         if self.value['events'][-1]['operation'] != 'readback':
             self.record('readback', 'verified_subset', remote)
+
+    def update_for_append(self, new_checkpoint):
+        if self.checkpoint['release_id'] != new_checkpoint['release_id']:
+            raise DraftError('release_id_mismatch')
+        checkpoint = self.session.read_checkpoint(new_checkpoint['release_id'])
+        if checkpoint != new_checkpoint or checkpoint['state'] != 'validated':
+            raise DraftError('journal_checkpoint_mismatch')
+        value = _read(self.session.directory, self.name)
+        if not isinstance(value, dict) or not value.get('events') or value['events'][-1]['operation'] not in ('save', 'readback'):
+            raise DraftError('manual_reconciliation_required')
+        self.checkpoint = deepcopy(new_checkpoint)
+        self.binding['checkpoint_sha256'] = new_checkpoint['record_sha256']
+        candidate = deepcopy(value)
+        candidate['checkpoint_sha256'] = new_checkpoint['record_sha256']
+        candidate['record_sha256'] = _digest({k: v for k, v in candidate.items() if k != 'record_sha256'})
+        self._validate(candidate)
+        _atomic_write(self.session.directory, self.name, candidate)
+        self.value = candidate

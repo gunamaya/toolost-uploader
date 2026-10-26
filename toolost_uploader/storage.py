@@ -280,3 +280,43 @@ class Profile:
         record["record_sha256"] = _digest({key: value for key, value in record.items() if key != "record_sha256"})
         _atomic_write(self.directory, self._check(release_id), record)
         return record
+
+    def update_checkpoint(self, manifest, manifest_dir, *, expected_revision):
+        """Update snapshot manifest untuk update metadata atau append track ke draft existing; menaikkan revision."""
+        _require(not self.closed, "profile_closed")
+        try:
+            manifest = json.loads(_encode(manifest))
+            base = Path(manifest_dir)
+            _require(base.is_absolute() and ".." not in base.parts, "invalid_manifest_directory")
+            validate_manifest(manifest, base)
+        except (InvalidInput, OSError, ValueError):
+            raise StorageError("invalid_manifest") from None
+        name = self._check(manifest["release_id"])
+        record = self.read_checkpoint(manifest["release_id"])
+        _require(type(expected_revision) is int and record["revision"] == expected_revision, "revision_conflict")
+        _require(record["state"] == "validated", "invalid_transition")
+
+        old_manifest = record["manifest"]
+        _require(old_manifest.get("release_type") == "album" and manifest.get("release_type") == "album", "update_requires_album")
+        old_tracks = old_manifest.get("tracks", [])
+        new_tracks = manifest.get("tracks", [])
+        _require(len(new_tracks) >= len(old_tracks), "update_cannot_remove_tracks")
+
+        # Track lama harus mempertahankan track_id dan audio reference
+        for i, old_track in enumerate(old_tracks):
+            new_track = new_tracks[i]
+            _require(new_track.get("track_id") == old_track.get("track_id"), "update_track_id_mismatch")
+            _require(new_track.get("audio") == old_track.get("audio"), "update_audio_cannot_change")
+
+        # Harus ada perubahan metadata atau track baru
+        _require(manifest != old_manifest, "checkpoint_already_up_to_date")
+
+        record.update(
+            revision=record["revision"] + 1,
+            manifest=manifest,
+            manifest_dir=str(base),
+            manifest_sha256=_digest(manifest),
+        )
+        record["record_sha256"] = _digest({key: value for key, value in record.items() if key != "record_sha256"})
+        _atomic_write(self.directory, name, record)
+        return record

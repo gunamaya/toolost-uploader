@@ -2,10 +2,10 @@
 
 CLI & Playwright Automation Tool untuk manajemen dan upload draft rilis [Too Lost](https://toolost.com) berbasis manifest JSON.
 
-[![PyPI version](https://img.shields.io/badge/version-0.1.4-blue.svg)](https://pypi.org/project/toolost-uploader/)
+[![PyPI version](https://img.shields.io/badge/version-0.1.5-blue.svg)](https://pypi.org/project/toolost-uploader/)
 [![Python versions](https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12-blue.svg)](https://www.python.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://github.com/gunamaya/toolost-uploader/blob/main/LICENSE)
-[![Tests](https://img.shields.io/badge/tests-171%20passed-brightgreen.svg)](#pengujian--pengembangan)
+[![Tests](https://img.shields.io/badge/tests-188%20passed-brightgreen.svg)](#pengujian--pengembangan)
 
 ---
 
@@ -119,6 +119,32 @@ Contoh keluaran JSON sukses:
   ]
 }
 ```
+
+### 5. Sinkronisasi & Update Draft Existing (`--update` / `--append`)
+
+Jika Anda telah mengunggah draft rilis di Too Lost dan ingin memperbarui data rilis berdasarkan perubahan manifest terbaru:
+
+- **Judul Rilis**: Diperbarui jika `title` di manifest berubah.
+- **Tanggal Rilis**: Diperbarui di datepicker Too Lost jika `release_date` di manifest berubah.
+- **Cover Artwork**: Diperbarui via tombol *Replace* jika `artwork` di manifest berubah.
+- **Metadata Lagu Lama**: Memperbarui judul track, status AI-assisted content, dan lirik jika ada revisi.
+- **Tambah Lagu Susulan**: Otomatis mengunggah file audio baru via tombol *Upload* di tab *Manage Tracks* dan mengisi metadatanya jika ada track baru di urutan akhir manifest.
+
+Cukup jalankan perintah `upload` dengan menyertakan flag `--update` (atau `--append`):
+
+```sh
+toolost upload path/to/manifest.json \
+  --draft-only \
+  --update \
+  --profile production \
+  --expected-account 422512 \
+  --approve-draft \
+  --accept-ui-date \
+  --verbose \
+  --json
+```
+
+*Catatan: Jika manifest yang dikirimkan identik dengan draft yang tersimpan (tidak ada perubahan), CLI akan langsung melaporkan status `draft_up_to_date` tanpa mengulang proses upload.*
 
 ---
 

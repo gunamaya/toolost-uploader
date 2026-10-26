@@ -70,7 +70,22 @@ class CLITests(unittest.TestCase):
         self.assertIn('--draft-only', out)
         self.assertIn('--profile', out)
         self.assertIn('--expected-account', out)
+        self.assertIn('--append', out)
         self.assertEqual(err, '')
+
+    def test_upload_with_append_flag(self):
+        mock_res = {'status': 'draft_appended_subset', 'run_id': 'abc', 'draft_id': '2009483', 'warnings': []}
+        with patch('toolost_uploader.live_draft.execute', return_value=mock_res) as mock_exec, \
+             patch('toolost_uploader.browser.is_cdp_available', return_value=True):
+            code, out, err = self.invoke([
+                'upload', 'manifest.json', '--draft-only', '--append',
+                '--profile', 'my-prof', '--expected-account', '123',
+                '--approve-draft', '--accept-ui-date'
+            ])
+            self.assertEqual(code, 0)
+            self.assertIn('Draft berhasil diperbarui (append): draft_id=2009483', out)
+            mock_exec.assert_called_once()
+            self.assertTrue(mock_exec.call_args.kwargs['allow_append'])
 
     def test_upload_without_draft_only_rejected(self):
         # Human output

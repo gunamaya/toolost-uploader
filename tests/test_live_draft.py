@@ -391,6 +391,214 @@ class LiveDraftTests(unittest.TestCase):
             with self.assertRaisesRegex(DraftError, 'lyrics_readback_mismatch'):
                 ui.readback()
 
+    def test_append_tracks_and_metadata(self):
+        album_manifest = copy.deepcopy(self.manifest)
+        album_manifest['release_type'] = 'album'
+        track2 = copy.deepcopy(album_manifest['tracks'][0])
+        track2['track_id'] = 'track-2'
+        track2['title'] = 'Second Susulan'
+        album_manifest['tracks'].append(track2)
+
+        page = Mock()
+        page.url = 'https://toolost.com/uploader/edit/123'
+        page.is_closed.return_value = False
+
+        # Locator mock
+        track_items = Mock()
+        track_items.count.side_effect = [1, 2, 2, 2] # 1 lama -> 2 total
+        track_items.first = Mock()
+
+        def locator_se(selector):
+            if selector == '.track-item:visible':
+                return track_items
+            if selector == '.tl-upload-dialog:visible':
+                return Mock(count=Mock(return_value=0))
+            if '[role=dialog]' in selector:
+                dlg = Mock()
+                dlg.wait_for = Mock()
+                dlg.get_by_text.return_value = Mock()
+                dlg.get_by_role.return_value = Mock()
+                return dlg
+            return Mock(count=Mock(return_value=0))
+
+        page.locator.side_effect = locator_se
+        from unittest.mock import MagicMock
+        chooser_mock = Mock()
+        cm = MagicMock()
+        cm.__enter__.return_value = chooser_mock
+        page.expect_file_chooser.return_value = cm
+
+        record = Mock()
+        ui = DraftUI(page, album_manifest, self.base, '123', record)
+        ui.remote_id = '123'
+        ui.identity_verified = True
+
+        ui.append_tracks([track2], expected_old_count=1)
+        chooser_mock.value.set_files.assert_called_once()
+
+        # Metadata append
+        with patch.object(ui, 'editor') as mock_editor, patch.object(ui, 'metadata_open') as mock_meta_open:
+            ui.metadata_append([track2], start_index=1)
+            mock_editor.assert_called_once_with(1)
+            mock_meta_open.assert_called_once_with(track2)
+
+    def test_append_guard_validations(self):
+        path = self.manifest_file()
+        kwargs = dict(alias='test', expected_account='123', endpoint='http://127.0.0.1:9437',
+                      approve_draft=True, accept_ui_date=True, root=self.root, allow_append=True)
+        # 1. Single manifest ditolak saat allow_append=True
+        with self.assertRaisesRegex(DraftError, 'append_requires_album'):
+            execute(path, **kwargs)
+
+        # 2. Album manifest tanpa existing checkpoint ditolak
+        album_path = self.base / 'album.json'
+        album_data = copy.deepcopy(self.manifest)
+        album_data['release_type'] = 'album'
+        album_path.write_text(json.dumps(album_data))
+        with self.assertRaisesRegex(DraftError, 'append_requires_existing_checkpoint'):
+            execute(album_path, **kwargs)
+
+    def test_execute_append_full_flow(self):
+        import hashlib
+        album1 = copy.deepcopy(self.manifest)
+        album1['release_type'] = 'album'
+        manifest1_path = self.base / 'album1.json'
+        manifest1_path.write_text(json.dumps(album1))
+
+        # Checkpoint dan journal awal
+        with test_storage.storage.profile('test', root=self.root) as session:
+            chk1 = session.create_checkpoint(album1, self.base)
+            from toolost_uploader.live_journal import LiveJournal, STAGES
+            j = LiveJournal(session, chk1, '123', 'http://127.0.0.1:9437')
+            for stage in STAGES:
+                j.record(stage, 'unknown', None if stage == 'create' else '2009483')
+                j.record(stage, 'observed', '2009483')
+            j.record('readback', 'verified_subset', '2009483')
+
+        # Siapkan manifest album dengan track ke-2
+        track2_asset = self.base / 'track2.bin'
+        track2_asset.write_bytes(b'track 2 sound')
+        album2 = copy.deepcopy(album1)
+        album2['tracks'].append({
+            'track_id': 'track-2',
+            'title': 'Track Dua Susulan',
+            'audio': {'path': track2_asset.name, 'sha256': hashlib.sha256(b'track 2 sound').hexdigest()},
+            'ai_assisted': False
+        })
+        manifest2_path = self.base / 'album2.json'
+        manifest2_path.write_text(json.dumps(album2))
+
+        # Mock browser Playwright
+        import sys
+        import types
+        from unittest.mock import MagicMock
+        factory = MagicMock()
+        p1 = Mock()
+        p1.url = 'https://toolost.com/user-portal/releases/manage/1'
+        p1.is_closed.return_value = False
+        p1.locator.return_value.count.return_value = 0
+        factory.return_value.__enter__.return_value.chromium.connect_over_cdp.return_value.contexts = [
+            types.SimpleNamespace(pages=[p1])
+        ]
+        module = types.ModuleType('playwright.sync_api')
+        module.sync_playwright = factory
+        env = patch.dict(sys.modules, {'playwright': types.ModuleType('playwright'), 'playwright.sync_api': module})
+
+        with env, patch('toolost_uploader.live_draft.update_run_steps') as mock_update_steps:
+            res = execute(manifest2_path, alias='test', expected_account='123', endpoint='http://127.0.0.1:9437',
+                          approve_draft=True, accept_ui_date=True, root=self.root, allow_append=True)
+            self.assertEqual(res['status'], 'draft_appended_subset')
+            self.assertEqual(res['draft_id'], '2009483')
+            mock_update_steps.assert_called_once()
+            args, kwargs = mock_update_steps.call_args
+            # ui, title_changed, date_changed, artwork_changed, tracks_to_append, tracks_to_update, old_count
+            self.assertFalse(args[1]) # title_changed
+            self.assertFalse(args[2]) # date_changed
+            self.assertFalse(args[3]) # artwork_changed
+            self.assertEqual(len(args[4]), 1) # tracks_to_append
+            self.assertEqual(args[4][0]['title'], 'Track Dua Susulan')
+            self.assertEqual(len(args[5]), 0) # tracks_to_update
+            self.assertEqual(args[6], 1) # old_count
+
+        # Verifikasi checkpoint di disk sudah ter-update ke revisi 2
+        with test_storage.storage.profile('test', root=self.root) as session:
+            chk_after = session.read_checkpoint('release-1')
+            self.assertEqual(chk_after['revision'], 2)
+            self.assertEqual(len(chk_after['manifest']['tracks']), 2)
+
+    def test_update_title_date_artwork_full_flow(self):
+        import hashlib
+        album1 = copy.deepcopy(self.manifest)
+        album1['release_type'] = 'album'
+        with test_storage.storage.profile('test', root=self.root) as session:
+            chk1 = session.create_checkpoint(album1, self.base)
+            from toolost_uploader.live_journal import LiveJournal, STAGES
+            j = LiveJournal(session, chk1, '123', 'http://127.0.0.1:9437')
+            for stage in STAGES:
+                j.record(stage, 'unknown', None if stage == 'create' else '2009483')
+                j.record(stage, 'observed', '2009483')
+            j.record('readback', 'verified_subset', '2009483')
+
+        # Siapkan artwork baru
+        art2 = self.base / 'art2.bin'
+        art2.write_bytes(b'new artwork bytes')
+        album_updated = copy.deepcopy(album1)
+        album_updated['title'] = 'Judul Album Baru Terupdate'
+        album_updated['release_date'] = '2027-05-20'
+        album_updated['artwork'] = {'path': art2.name, 'sha256': hashlib.sha256(b'new artwork bytes').hexdigest()}
+        album_updated['tracks'][0]['title'] = 'Judul Lagu Satu Diperbaiki'
+        album_updated_path = self.base / 'album_updated.json'
+        album_updated_path.write_text(json.dumps(album_updated))
+
+        import sys, types
+        from unittest.mock import MagicMock
+        factory = MagicMock()
+        p1 = Mock()
+        p1.url = 'https://toolost.com/user-portal/releases/manage/1'
+        p1.is_closed.return_value = False
+        p1.locator.return_value.count.return_value = 0
+        factory.return_value.__enter__.return_value.chromium.connect_over_cdp.return_value.contexts = [
+            types.SimpleNamespace(pages=[p1])
+        ]
+        module = types.ModuleType('playwright.sync_api')
+        module.sync_playwright = factory
+        env = patch.dict(sys.modules, {'playwright': types.ModuleType('playwright'), 'playwright.sync_api': module})
+
+        with env, patch('toolost_uploader.live_draft.update_run_steps') as mock_update_steps:
+            res = execute(album_updated_path, alias='test', expected_account='123', endpoint='http://127.0.0.1:9437',
+                          approve_draft=True, accept_ui_date=True, root=self.root, allow_update=True)
+            self.assertEqual(res['status'], 'draft_updated_subset')
+            self.assertEqual(res['draft_id'], '2009483')
+            mock_update_steps.assert_called_once()
+            args, _ = mock_update_steps.call_args
+            # ui, title_changed, date_changed, artwork_changed, tracks_to_append, tracks_to_update, old_count
+            self.assertTrue(args[1]) # title_changed
+            self.assertTrue(args[2]) # date_changed
+            self.assertTrue(args[3]) # artwork_changed
+            self.assertEqual(len(args[4]), 0) # tracks_to_append
+            self.assertEqual(len(args[5]), 1) # tracks_to_update
+            self.assertEqual(args[5][0][1]['title'], 'Judul Lagu Satu Diperbaiki')
+
+    def test_update_draft_already_up_to_date(self):
+        album1 = copy.deepcopy(self.manifest)
+        album1['release_type'] = 'album'
+        manifest_path = self.base / 'album_same.json'
+        manifest_path.write_text(json.dumps(album1))
+
+        with test_storage.storage.profile('test', root=self.root) as session:
+            chk1 = session.create_checkpoint(album1, self.base)
+            from toolost_uploader.live_journal import LiveJournal, STAGES
+            j = LiveJournal(session, chk1, '123', 'http://127.0.0.1:9437')
+            for stage in STAGES:
+                j.record(stage, 'unknown', None if stage == 'create' else '2009483')
+                j.record(stage, 'observed', '2009483')
+            j.record('readback', 'verified_subset', '2009483')
+
+        res = execute(manifest_path, alias='test', expected_account='123', endpoint='http://127.0.0.1:9437',
+                      approve_draft=True, accept_ui_date=True, root=self.root, allow_update=True)
+        self.assertEqual(res['status'], 'draft_up_to_date')
+        self.assertEqual(res['draft_id'], '2009483')
+
 
 if __name__ == '__main__':
     unittest.main()

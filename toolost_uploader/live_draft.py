@@ -179,6 +179,77 @@ class DraftUI:
         page.get_by_role('button', name='Artwork', exact=True).wait_for(state='visible')
         self.log(f'Draft rilis baru terbuat di uploader: remote_id={self.remote_id}')
 
+    def update_title(self):
+        page = self.page
+        self.log('Membuka panel Basic Information untuk update judul...')
+        self.click(page.get_by_role('button', name='Basic Information', exact=True))
+        title_label = 'Single name' if self.manifest['release_type'] == 'single' else 'Album name'
+        title_box = page.get_by_role('textbox', name=title_label, exact=True)
+        if hasattr(title_box, 'wait_for'):
+            title_box.wait_for(state='visible', timeout=15000)
+        cur_val = title_box.input_value() if hasattr(title_box, 'input_value') else ''
+        if cur_val != self.manifest['title']:
+            self.guard_target()
+            self.log(f"Memperbarui judul rilis dari '{cur_val}' menjadi '{self.manifest['title']}'...")
+            title_box.fill(self.manifest['title'])
+        self.log('Pembaruan judul rilis selesai.')
+
+    def update_date(self):
+        page = self.page
+        target_iso = self.manifest['release_date']
+        self.log(f"Membuka tab Release Information untuk mengatur tanggal rilis: {target_iso}...")
+        self.click(page.get_by_role('button', name='Release Information', exact=True))
+        import datetime
+        target = datetime.date.fromisoformat(target_iso)
+        target_day_str = str(target.day)
+        lbl = page.locator('label').filter(has_text=re.compile(r'^Release Date$'))
+        if hasattr(lbl, 'wait_for'):
+            lbl.wait_for(state='visible', timeout=15000)
+        inp_id = lbl.get_attribute('for') if hasattr(lbl, 'get_attribute') else 'date-input'
+        inp = page.locator(f'#{inp_id}')
+
+        expected_val = target.strftime('%m/%d/%Y')
+        if hasattr(inp, 'input_value') and inp.input_value() == expected_val:
+            self.log(f'Tanggal rilis sudah sesuai: {expected_val}')
+            return
+
+        if hasattr(inp, 'click'):
+            try:
+                inp.click(force=True)
+            except Exception:
+                pass
+        if hasattr(page, 'wait_for_timeout'):
+            page.wait_for_timeout(500)
+
+        header_btn = page.locator('.v-date-picker-header:visible button').nth(1)
+        next_btn = page.locator('.v-date-picker-header:visible button[aria-label="Next month"]')
+        prev_btn = page.locator('.v-date-picker-header:visible button[aria-label="Previous month"]')
+
+        for _ in range(60):
+            if not hasattr(header_btn, 'inner_text'):
+                break
+            try:
+                current_month_str = header_btn.inner_text().strip()
+                cur_date = datetime.datetime.strptime(current_month_str, '%B %Y').date()
+            except Exception:
+                break
+            if cur_date.year == target.year and cur_date.month == target.month:
+                break
+            if cur_date < target.replace(day=1):
+                self.click(next_btn)
+            else:
+                self.click(prev_btn)
+            if hasattr(page, 'wait_for_timeout'):
+                page.wait_for_timeout(200)
+
+        day_btn = page.locator('.v-date-picker-table--date:visible button').filter(has_text=re.compile(rf'^{target_day_str}$'))
+        if hasattr(day_btn, 'wait_for'):
+            day_btn.wait_for(state='visible', timeout=10000)
+        self.click(day_btn)
+        if hasattr(page, 'wait_for_timeout'):
+            page.wait_for_timeout(500)
+        self.log(f"Tanggal rilis berhasil diatur: {inp.input_value() if hasattr(inp, 'input_value') else expected_val}")
+
     def asset(self, reference):
         file_reference(reference, self.base)
         path = Path(reference['path'])
@@ -241,7 +312,7 @@ class DraftUI:
                 break
             actual_idx = None
             for idx, text in enumerate(current_texts):
-                if stem in text:
+                if isinstance(text, str) and stem in text:
                     actual_idx = idx
                     break
             if actual_idx is not None and actual_idx != target_idx and actual_idx > target_idx:
@@ -292,6 +363,55 @@ class DraftUI:
         self.log('Unggahan berkas audio selesai. Memeriksa urutan track...')
         self.reorder_tracks()
 
+    def append_tracks(self, new_tracks, expected_old_count):
+        page = self.page
+        self.log('Membuka tab Manage Tracks untuk append...')
+        self.click(page.get_by_role('button', name='Manage Tracks', exact=True))
+        current_items = page.locator('.track-item:visible')
+        if hasattr(current_items, 'count'):
+            current_count = current_items.count()
+            if current_count != expected_old_count:
+                raise DraftError('unexpected_existing_tracks')
+        upload_btn = page.get_by_role('button', name='Upload', exact=True)
+        is_vis = upload_btn.is_visible() if hasattr(upload_btn, 'is_visible') else False
+        if not is_vis:
+            upload_btn = page.get_by_role('button', name=re.compile(r'^Upload', re.I))
+        if hasattr(upload_btn, 'wait_for'):
+            upload_btn.wait_for(state='visible', timeout=15000)
+        self.click(upload_btn)
+        dialog = page.locator('[role=dialog]:visible').filter(has_text=re.compile('Upload tracks', re.I))
+        if hasattr(dialog, 'wait_for'):
+            dialog.wait_for(state='visible', timeout=15000)
+        with page.expect_file_chooser(timeout=10000) as chooser:
+            self.click(dialog.get_by_text('browse files', exact=True))
+        assets = [self.asset(t['audio']) for t in new_tracks]
+        self.guard_target()
+        self.log(f'Mengunggah {len(assets)} file audio track susulan...')
+        chooser.value.set_files(assets[0] if len(assets) == 1 else assets)
+        count = len(assets)
+        btn_regex = r'^Upload\s+1\s+file' if count == 1 else rf'^Upload\s+{count}\s+files'
+        self.click(dialog.get_by_role('button', name=re.compile(btn_regex, re.I)))
+        self.log(f'Menunggu transfer dan encoding {count} file audio susulan selesai...')
+        expected_total = expected_old_count + count
+        if hasattr(page.locator('.track-item:visible'), 'first'):
+            first_item = page.locator('.track-item:visible').first
+            if hasattr(first_item, 'wait_for'):
+                first_item.wait_for(state='visible', timeout=240000)
+        for _ in range(240):
+            cnt = page.locator('.track-item:visible').count() if hasattr(page.locator('.track-item:visible'), 'count') else expected_total
+            if cnt == expected_total:
+                break
+            page.wait_for_timeout(500)
+        else:
+            raise DraftError('track_identity_ambiguous')
+        for _ in range(60):
+            cnt_dlg = page.locator('.tl-upload-dialog:visible').count() if hasattr(page.locator('.tl-upload-dialog:visible'), 'count') else 0
+            if cnt_dlg == 0:
+                break
+            page.wait_for_timeout(500)
+        self.log('Unggahan berkas audio susulan selesai. Memeriksa urutan track...')
+        self.reorder_tracks()
+
     def editor(self, index=0):
         items = self.page.locator('.track-item:visible')
         if hasattr(items, 'nth'):
@@ -314,6 +434,26 @@ class DraftUI:
         for i, track in enumerate(self.manifest['tracks']):
             self.log(f"Mengisi metadata track {i + 1}/{total}: '{track['title']}' (AI: {track['ai_assisted']})...")
             self.editor(i)
+            self.metadata_open(track)
+
+    def metadata_append(self, new_tracks, start_index):
+        total_new = len(new_tracks)
+        for i, track in enumerate(new_tracks):
+            track_idx = start_index + i
+            self.log(f"Mengisi metadata track susulan {i + 1}/{total_new} (posisi {track_idx + 1}): '{track['title']}' (AI: {track['ai_assisted']})...")
+            self.editor(track_idx)
+            self.metadata_open(track)
+
+    def metadata_update_and_append(self, tracks_to_update, tracks_to_append, old_count):
+        for track_idx, track in tracks_to_update:
+            self.log(f"Memperbarui metadata track lama urutan ke-{track_idx + 1}: '{track['title']}' (AI: {track['ai_assisted']})...")
+            self.editor(track_idx)
+            self.metadata_open(track)
+        total_append = len(tracks_to_append)
+        for i, track in enumerate(tracks_to_append):
+            track_idx = old_count + i
+            self.log(f"Mengisi metadata track susulan {i + 1}/{total_append} (urutan ke-{track_idx + 1}): '{track['title']}' (AI: {track['ai_assisted']})...")
+            self.editor(track_idx)
             self.metadata_open(track)
 
     def metadata_open(self, track=None):
@@ -480,10 +620,43 @@ def run_steps(ui):
     ui.record('readback', 'verified_subset', ui.remote_id)
 
 
+def update_run_steps(ui, title_changed, date_changed, artwork_changed, tracks_to_append, tracks_to_update, old_count):
+    ui.verify_account()
+    ui.guard_identity()
+    ui.log(f'Membuka draft release uploader untuk update/sinkronisasi: {ui.remote_id}...')
+    ui.page.goto('https://toolost.com/uploader/edit/' + ui.remote_id, wait_until='domcontentloaded', timeout=30000)
+    ui.guard_identity()
+    if urlsplit(ui.page.url).path != '/uploader/edit/' + ui.remote_id:
+        raise DraftError('draft_target_changed')
+
+    if title_changed:
+        ui.action('update_title', ui.update_title)
+
+    if date_changed:
+        ui.action('update_date', ui.update_date)
+
+    if artwork_changed:
+        ui.action('update_artwork', ui.artwork)
+
+    if tracks_to_append:
+        ui.action('append_audio', lambda: ui.append_tracks(tracks_to_append, old_count))
+
+    if tracks_to_update or tracks_to_append:
+        ui.action('update_metadata', lambda: ui.metadata_update_and_append(tracks_to_update, tracks_to_append, old_count))
+
+    ui.action('save', ui.save)
+    ui.readback()
+    ui.record('readback', 'verified_subset', ui.remote_id)
+
+
+def append_run_steps(ui, new_tracks, old_count):
+    return update_run_steps(ui, False, False, False, new_tracks, [], old_count)
+
+
 def execute(path, *, alias, expected_account, endpoint, approve_draft, accept_ui_date, root=None,
             resume_before_artwork=False, resume_before_audio=False, resume_selected_audio=False,
             resume_open_metadata=False, approve_release_title_amendment=False, reconcile_only=False,
-            log=None):
+            allow_append=False, allow_update=False, log=None):
     if approve_draft is not True or accept_ui_date is not True:
         raise DraftError('confirmation_required')
     if not re.fullmatch(r'[1-9][0-9]*', expected_account):
@@ -495,21 +668,71 @@ def execute(path, *, alias, expected_account, endpoint, approve_draft, accept_ui
         raise DraftError('debug_recovery_requires_readback_only')
     if reconcile_only and approve_release_title_amendment:
         raise DraftError('title_amendment_immutable')
+    allow_sync = allow_append or allow_update
+    if allow_sync and reconcile_only:
+        raise DraftError('conflicting_append_and_reconcile')
     if log:
         log(f"Memeriksa preflight manifest: {path}")
     manifest, base = preflight(path, verify_assets=not reconcile_only)
     with profile(alias, root=root) as session:
+        is_existing = False
+        try:
+            old_checkpoint = session.read_checkpoint(manifest['release_id'])
+            is_existing = True
+        except Exception:
+            is_existing = False
+
         if reconcile_only:
-            checkpoint = session.read_checkpoint(manifest['release_id'])
-            if checkpoint['manifest'] != manifest or checkpoint['manifest_dir'] != str(base):
+            if not is_existing:
+                raise DraftError('checkpoint_not_found')
+            if old_checkpoint['manifest'] != manifest or old_checkpoint['manifest_dir'] != str(base):
                 raise DraftError('resume_manifest_mismatch')
-            journal = LiveJournal(session, checkpoint, expected_account, endpoint, existing=True)
+            checkpoint = old_checkpoint
+            journal = LiveJournal(session, old_checkpoint, expected_account, endpoint, existing=True)
             remote_id = journal.require_reconciliation()
+        elif allow_sync:
+            if manifest['release_type'] != 'album':
+                raise DraftError('append_requires_album')
+            if not is_existing:
+                raise DraftError('append_requires_existing_checkpoint')
+            old_manifest = old_checkpoint['manifest']
+            title_changed = (manifest['title'] != old_manifest.get('title'))
+            date_changed = (manifest.get('release_date') != old_manifest.get('release_date'))
+            artwork_changed = (manifest.get('artwork') != old_manifest.get('artwork'))
+
+            old_tracks = old_manifest.get('tracks', [])
+            new_tracks = manifest.get('tracks', [])
+            old_count = len(old_tracks)
+            new_count = len(new_tracks)
+
+            tracks_to_update = []
+            for i in range(min(old_count, new_count)):
+                ot, nt = old_tracks[i], new_tracks[i]
+                if (ot.get('title') != nt.get('title') or
+                    ot.get('ai_assisted') != nt.get('ai_assisted') or
+                    ot.get('lyrics') != nt.get('lyrics')):
+                    tracks_to_update.append((i, nt))
+
+            tracks_to_append = new_tracks[old_count:] if new_count > old_count else []
+            has_changes = title_changed or date_changed or artwork_changed or bool(tracks_to_update) or bool(tracks_to_append)
+
+            journal = LiveJournal(session, old_checkpoint, expected_account, endpoint, existing=True)
+            remote_id = journal.require_reconciliation()
+
+            if not has_changes:
+                if log:
+                    log("Draft rilis sudah up-to-date; tidak ada perubahan metadata atau track yang diperlukan.")
+                return dict(status='draft_up_to_date', run_id=old_checkpoint['run_id'], draft_id=remote_id,
+                            warnings=['Manifest identik dengan checkpoint rilis tersimpan.'])
+
+            checkpoint = session.update_checkpoint(manifest, base, expected_revision=old_checkpoint['revision'])
+            journal.update_for_append(checkpoint)
         else:
             checkpoint = session.create_checkpoint(manifest, base)
             journal = LiveJournal(session, checkpoint, expected_account, endpoint)
             if approve_release_title_amendment:
                 journal.approve_title()
+
         def record(operation, outcome, remote_id):
             journal.record(operation, outcome, remote_id)
         if log:
@@ -527,11 +750,15 @@ def execute(path, *, alias, expected_account, endpoint, approve_draft, accept_ui
                     ui.remote_id = remote_id
                     ui.readback()
                     journal.verify_readback()
+                elif allow_sync:
+                    ui.remote_id = remote_id
+                    update_run_steps(ui, title_changed, date_changed, artwork_changed, tracks_to_append, tracks_to_update, old_count)
                 else:
                     run_steps(ui)
             finally:
                 ui.close()
-        return dict(status='draft_readback_subset' if reconcile_only else 'draft_saved_subset',
+        out_status = 'draft_readback_subset' if reconcile_only else ('draft_appended_subset' if (allow_append and not tracks_to_update and not title_changed and not artwork_changed and not date_changed) else ('draft_updated_subset' if allow_sync else 'draft_saved_subset'))
+        return dict(status=out_status,
                     run_id=checkpoint['run_id'], draft_id=ui.remote_id,
-                    warnings=['Tanggal UI diwarisi; bukan release_date manifest terverifikasi.',
+                    warnings=['Tanggal rilis disinkronkan dengan manifest.' if (allow_sync and date_changed) else 'Tanggal UI diwarisi; bukan release_date manifest terverifikasi.',
                               'Remote track identity dan rights/services belum diverifikasi; bukan siap distribusi.'])

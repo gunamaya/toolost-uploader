@@ -74,6 +74,10 @@ Catatan Keamanan:
                             help="Persetujuan amendment judul rilis jika terkunci di UI.")
     upload_cmd.add_argument("--reconcile-readback-only", action="store_true",
                             help="Reopen dan readback draft yang sudah attempt Save.")
+    upload_cmd.add_argument("--append", action="store_true",
+                            help="Unggah lagu susulan ke draft release album yang sudah ada di Too Lost.")
+    upload_cmd.add_argument("--update", action="store_true",
+                            help="Sinkronkan pembaruan judul, tanggal, artwork, metadata track, atau lagu susulan ke draft existing.")
     upload_cmd.add_argument("-v", "--verbose", action="store_true",
                             help="Tampilkan progres verbose secara real-time ke stderr.")
     upload_cmd.add_argument("--json", action="store_true", help="Tulis satu objek JSON hasil ke stdout.")
@@ -170,6 +174,8 @@ Catatan Keamanan:
                 accept_ui_date=args.accept_ui_date,
                 approve_release_title_amendment=args.approve_release_title_equals_track,
                 reconcile_only=args.reconcile_readback_only,
+                allow_append=args.append,
+                allow_update=getattr(args, "update", False),
                 log=progress_log,
             )
             code = 0
@@ -196,7 +202,15 @@ Catatan Keamanan:
                 print(json.dumps(result, ensure_ascii=True, allow_nan=False))
             else:
                 if code == 0:
-                    print(f"Draft berhasil disimpan: draft_id={result.get('draft_id')}")
+                    status = result.get("status")
+                    if status == "draft_up_to_date":
+                        print(f"Draft sudah up-to-date (tidak ada perubahan): draft_id={result.get('draft_id')}")
+                    elif status == "draft_appended_subset":
+                        print(f"Draft berhasil diperbarui (append): draft_id={result.get('draft_id')}")
+                    elif status == "draft_updated_subset":
+                        print(f"Draft berhasil diperbarui: draft_id={result.get('draft_id')}")
+                    else:
+                        print(f"Draft berhasil disimpan: draft_id={result.get('draft_id')}")
                     for warning in result.get("warnings", []):
                         print(warning, file=sys.stderr)
                 elif code == 2:

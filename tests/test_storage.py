@@ -306,6 +306,63 @@ with storage.profile('test', root=sys.argv[1]) as session:
         # Orphan temp dari crash sebelum rename tidak dipakai sebagai checkpoint.
         self.assertEqual(len(list(self.checkpoint.parent.glob('.pending-*'))), 1)
 
+    def test_update_checkpoint_for_append(self):
+        album = copy.deepcopy(self.manifest)
+        album['release_type'] = 'album'
+        track2_asset = self.base / 'track2.bin'
+        track2_asset.write_bytes(b'Track 2 content\n')
+        ref2 = {'path': track2_asset.name, 'sha256': hashlib.sha256(track2_asset.read_bytes()).hexdigest()}
+
+        with self.profile() as session:
+            init = session.create_checkpoint(album, self.base)
+            self.assertEqual(init['revision'], 1)
+            self.assertEqual(len(init['manifest']['tracks']), 1)
+
+            # 1. Update dengan track kedua
+            album_appended = copy.deepcopy(album)
+            album_appended['tracks'].append({
+                'track_id': 'track-2', 'title': 'Track 2',
+                'audio': ref2, 'ai_assisted': False
+            })
+            updated = session.update_checkpoint(album_appended, self.base, expected_revision=1)
+            self.assertEqual(updated['revision'], 2)
+            self.assertEqual(len(updated['manifest']['tracks']), 2)
+            self.assertEqual(updated['run_id'], init['run_id'])
+
+            # Baca ulang membuktikan konsistensi hash
+            read_back = session.read_checkpoint(album['release_id'])
+            self.assertEqual(read_back, updated)
+
+            # 2. Update metadata track lama (ubah judul track 1)
+            album_meta_updated = copy.deepcopy(album_appended)
+            album_meta_updated['tracks'][0]['title'] = 'Judul Baru Track Satu'
+            updated_meta = session.update_checkpoint(album_meta_updated, self.base, expected_revision=2)
+            self.assertEqual(updated_meta['revision'], 3)
+            self.assertEqual(updated_meta['manifest']['tracks'][0]['title'], 'Judul Baru Track Satu')
+
+            # 3. Up to date (tidak ada perubahan)
+            self.error('checkpoint_already_up_to_date', session.update_checkpoint, album_meta_updated, self.base, expected_revision=3)
+
+            # 4. Konflik revisi
+            album_third = copy.deepcopy(album_meta_updated)
+            track3_asset = self.base / 'track3.bin'
+            track3_asset.write_bytes(b'Track 3 content\n')
+            album_third['tracks'].append({
+                'track_id': 'track-3', 'title': 'Track 3',
+                'audio': {'path': track3_asset.name, 'sha256': hashlib.sha256(track3_asset.read_bytes()).hexdigest()},
+                'ai_assisted': True
+            })
+            self.error('revision_conflict', session.update_checkpoint, album_third, self.base, expected_revision=1)
+
+            # 5. Mengubah audio track lama dilarang
+            bad_audio = copy.deepcopy(album_third)
+            bad_audio['tracks'][0]['audio'] = bad_audio['tracks'][2]['audio']
+            self.error('update_audio_cannot_change', session.update_checkpoint, bad_audio, self.base, expected_revision=3)
+
+            # 6. Menghapus track dilarang
+            reduced = copy.deepcopy(album)
+            self.error('update_cannot_remove_tracks', session.update_checkpoint, reduced, self.base, expected_revision=3)
+
     def test_default_paths_and_unsupported(self):
         with patch('toolost_uploader.storage.sys.platform', 'darwin'), patch('pathlib.Path.home', return_value=self.base):
             self.assertEqual(storage.default_root(), self.base / 'Library/Application Support/toolost-uploader')
