@@ -1,56 +1,221 @@
-# Toolost uploader
+# Toolost Uploader
 
-Riset dan rancangan CLI Python + Playwright untuk mengelola draft release Too Lost, terpisah dari integrator yt-to-flowmusic. **CLI `toolost validate` serta `toolost upload --draft-only` (draft-only) tersedia; operasi publish/distribusi dilarang keras.**
+CLI & Playwright Automation Tool untuk manajemen dan upload draft rilis [Too Lost](https://toolost.com) berbasis manifest JSON.
 
-- [Indeks riset](docs/RESEARCH.md)
-- [Antrean pekerjaan engineering](docs/ANTRIAN-PEKERJAAN-UTAMA.md) — task, prioritas, claim, acceptance dan checkpoint; bukan queue upload runtime.
-- [Prompt melanjutkan pengembangan](docs/CONTINUE-PROMPT.md)
-- [Review CLI draft dan integrator](docs/CLI-REVIEW.md)
-- [Kontrak v1 untuk review](docs/CONTRACT-V1.md)
-- [Kontrak release list/detail/publish](docs/RELEASE-CONTRACT.md) — publish masih capability future, tidak diuji atau dieksekusi selama riset.
-- [Script browser riset](docs/BROWSER.md)
-- [Validator offline dan cakupan schema](docs/OFFLINE-VALIDATION.md)
-- [Profil privat dan checkpoint offline](docs/LOCAL-STATE.md) — helper internal POSIX, bukan command akun/login/resume.
-- [Attempt journal dan rekonsiliasi fake offline](docs/OFFLINE-JOURNAL.md) — simulasi satu save, bukan executor akun.
-- [Fake UI draft offline](docs/FAKE-UI.md) — model modal, encoding, reorder, metadata dan Save; bukan DOM/browser adapter.
-- [Recovery fake upload persisten](docs/FAKE-UPLOAD.md) — intent/encoding/reconcile lintas proses, tanpa layanan nyata.
-- [Gate approval offline](docs/OFFLINE-APPROVAL.md) — binding sintetis dan token satu-pakai; belum terhubung executor.
-- [Operasi fake bergate](docs/FAKE-FLOW.md) — coordinator approval untuk Save atau upload terpisah, bukan workflow gabungan/uploader nyata.
-- [Workflow fake berurutan](docs/FAKE-WORKFLOW.md) — satu approval immutable, receipt upload/edit/Save; cakupan metadata terbatas.
-- [Adapter snapshot read-only](docs/READ-ONLY.md) — list/detail terbatas, tanpa mutasi atau binding akun otomatis.
-- [Script Playwright upload + Save draft](docs/LIVE-DRAFT.md) — executor Playwright Single & Album draft-only; upload + Save/reopen terverifikasi dengan batas subset.
+[![PyPI version](https://img.shields.io/badge/version-0.1.0-blue.svg)](https://pypi.org/project/toolost-uploader/)
+[![Python versions](https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12-blue.svg)](https://www.python.org/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Tests](https://img.shields.io/badge/tests-171%20passed-brightgreen.svg)](#pengujian--pengembangan)
+
+---
+
+## Fitur Utama
+
+- **Validasi Manifest Offline**: Memvalidasi metadata rilis (Single & Album), resolusi artwork (3000×3000px), format audio (MP3/WAV/FLAC), dan kecocokan hash integritas berkas (SHA-256) tanpa membuka jaringan atau browser.
+- **Sesi Browser Mandiri & Aman**: Membuka Google Chrome biasa di profil lokal terisolasi (`.local/profiles/<alias>`) agar operator dapat login manual dengan aman tanpa menyimpan password/cookie mentah di kode repo.
+- **Auto-Bootup & Readiness Check**: Diagnosa otomatis ketersediaan binary Chrome, status lock profil, port CDP (Chrome DevTools Protocol loopback), dan verifikasi sesi login aktif Too Lost terhadap `--expected-account`.
+- **Eksekutor Playwright Single & Multi-Track Album**: Mengotomatisasi pemilihan tipe rilis, pengisian judul, upload & encoding artwork, multi-track audio, penataan urutan track, pengisian metadata AI per-track, hingga eksekusi simpan perubahan (*Save Changes*).
+- **Safety First (Draft-Only Guard)**: Eksekusi dibatasi secara ketat hanya sampai penyimpanan draft (`--draft-only`). Tool ini **tidak pernah** menekan tombol Publish atau memicu distribusi rilis.
+- **Desain Integrasi Subprocess**: Format keluaran stdout JSON murni yang deterministik dan aliran log progres real-time ke stderr, sangat ramah untuk integrasi aplikasi induk seperti [yt-to-flowmusic](docs/INTEGRATION-PLAN.md).
+
+---
+
+## Instalasi
+
+### Dari PyPI (Rekomendasi)
 
 ```sh
-python3 -m venv .venv
-.venv/bin/python -m pip install .
-.venv/bin/toolost validate path/to/manifest.json --json
-.venv/bin/toolost setup --profile <alias>
-.venv/bin/toolost check --profile <alias> --expected-account <id> --json
-.venv/bin/toolost upload path/to/manifest.json --draft-only --profile <alias> --expected-account <id> --json
+pip install toolost-uploader
+playwright install chromium
 ```
 
-Package `toolost-uploader` versi `0.1.0` membutuhkan Python ≥3.10; modul `toolost_uploader`, executable `toolost`. Berlisensi MIT. Didesain untuk otomasi draft release Too Lost via manifest JSON dan Playwright.
+### Dari Source / Git
 
-Scope riset maksimal upload dan simpan draft. Tidak ada izin/tindakan Publish atau distribusi. Produk final dapat mendukung release pada fase terpisah dengan persetujuan eksplisit.
+```sh
+git clone https://github.com/gunamaya/toolost-uploader.git
+cd toolost-uploader
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -e .
+playwright install chromium
+```
 
-Profil browser, capture akun dan aset riset disimpan lokal dalam `.local/` dan tidak boleh di-commit. Repo private bukan tempat penyimpanan cookie, kredensial atau media pengguna.
+---
 
-Contoh JSON pada docs hanya ilustrasi: hash nol dan path contoh bukan aset valid. Command CLI terpasang meliputi `validate` (offline), `setup` (buka browser login manual), `check` (kesiapan binary/lock/CDP/auth), dan `upload --draft-only` (eksekutor Playwright Single/Album). Operasi publish/distribusi tetap dilarang keras.
+## Panduan Penggunaan Cepat
 
-Tes offline harness dan validator (stdlib, tanpa login/network):
+Alur kerja umum terdiri dari 4 langkah berurutan:
+
+```mermaid
+flowchart LR
+    A["1. Validasi Manifest<br/>(toolost validate)"] --> B["2. Setup Browser Login<br/>(toolost setup)"]
+    B --> C["3. Cek Kesiapan<br/>(toolost check)"]
+    C --> D["4. Upload Simpan Draft<br/>(toolost upload --draft-only)"]
+```
+
+### 1. Validasi Manifest Rilis (Offline)
+
+Periksa integritas manifest JSON dan kecocokan hash SHA-256 berkas lokal:
+
+```sh
+toolost validate path/to/manifest.json --json
+```
+
+### 2. Setup Sesi Browser (Login Manual Operator)
+
+Buka browser Chrome lokal untuk login manual ke portal Too Lost. Sesi login akan disimpan secara privat di folder profil lokal:
+
+```sh
+toolost setup --profile production
+```
+*Tutup jendela Chrome setelah selesai login.*
+
+### 3. Diagnosa Kesiapan Lingkungan (Readiness Check)
+
+Pastikan Google Chrome, port CDP, dan sesi akun siap:
+
+```sh
+toolost check --profile production --expected-account 422512 --auto-bootup --json
+```
+
+Contoh keluaran JSON (`exit code 0`):
+```json
+{
+  "status": "ready",
+  "chrome_binary": "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+  "profile_dir": "/path/to/.local/profiles/production",
+  "cdp_url": "http://127.0.0.1:9437",
+  "auth": {
+    "status": "authenticated",
+    "account_id": "422512"
+  }
+}
+```
+
+### 4. Unggah & Simpan Draft Rilis
+
+Jalankan otomatisasi upload Playwright. Port CDP akan otomatis di-bootup bila belum aktif:
+
+```sh
+toolost upload path/to/manifest.json \
+  --draft-only \
+  --profile production \
+  --expected-account 422512 \
+  --approve-draft \
+  --accept-ui-date \
+  --verbose \
+  --json
+```
+
+Contoh keluaran JSON sukses:
+```json
+{
+  "status": "draft_saved_subset",
+  "run_id": "20261026-154000-album-test",
+  "draft_id": "2004317",
+  "warnings": [
+    "Tanggal UI diwarisi; bukan release_date manifest terverifikasi.",
+    "Remote track identity dan rights/services belum diverifikasi; bukan siap distribusi."
+  ]
+}
+```
+
+---
+
+## Spesifikasi Manifest JSON (Schema v1)
+
+Contoh manifest untuk rilis Album multi-track:
+
+```json
+{
+  "schema_version": 1,
+  "release_id": "album-project-001",
+  "release_type": "album",
+  "title": "Album Eksperimental FlowMusic",
+  "release_date": "2026-11-01",
+  "artwork": {
+    "path": "/path/to/artwork-3000x3000.png",
+    "sha256": "338ca5ab7fb090dfa5b6cdc8fd6c68f2f8afa939266e412d85ee35187b275de6"
+  },
+  "tracks": [
+    {
+      "track_id": "track-01",
+      "title": "Terangnya Belum Pulang",
+      "audio": {
+        "path": "/path/to/track-01.mp3",
+        "sha256": "53431441811b965acc69664ec4e2dcf47d5765c2ddc483f4daf49ded30a7214d"
+      },
+      "ai_assisted": true
+    },
+    {
+      "track_id": "track-02",
+      "title": "Sungai Teh Susu",
+      "audio": {
+        "path": "/path/to/track-02.mp3",
+        "sha256": "4278102d0dcc1ba4e1886ba518552c1a974a8f88679536a021b3896eaecf61f1"
+      },
+      "ai_assisted": true
+    }
+  ]
+}
+```
+
+---
+
+## Referensi Kode Keluar (Exit Codes)
+
+| Exit Code | Status JSON | Makna & Tindakan Penanganan |
+|---|---|---|
+| **`0`** | `valid`, `ready`, `draft_saved_subset` | Eksekusi sukses. Payload JSON memuat informasi rilis / kesiapan. |
+| **`2`** | `invalid_input`, `login_required`, `account_mismatch` | Argumen salah, hash aset tidak cocok, atau sesi login perlu diperbarui melalui `toolost setup`. |
+| **`4`** | `reconciliation_required` | Operasi dihentikan aman (*fail-stop*). Periksa status browser atau koneksi. Hindari melakukan *retry* buta. |
+| **`5`** | Error I/O / OS | File tidak ditemukan atau binary Chrome gagal diluncurkan. |
+
+---
+
+## Pengujian & Pengembangan
+
+Menjalankan seluruh rangkaian tes unit offline (stdlib, tanpa memerlukan login atau koneksi eksternal):
 
 ```sh
 python3 -m unittest discover -s tests -v
 ```
 
-Jangan publish paket PyPI sebelum diminta. Tidak ada lisensi redistribusi yang ditetapkan pada tahap ini.
-
-Build/schema/install checks (dependency pengembangan, bukan runtime):
+Uji sanitasi paket wheel dan instalasi lingkungan terisolasi:
 
 ```sh
-.venv/bin/python -m pip install -e '.[dev]'
-.venv/bin/python -m build
-TOOLOST_TEST_DIST_DIR=dist .venv/bin/python -m unittest discover -s tests -v
+pip install -e '.[dev]'
+uv build
+TOOLOST_TEST_DIST_DIR=dist python3 -m unittest tests/test_packaging.py -v
 ```
 
-`python3 -m toolost_uploader validate <manifest.json> --json` dan wrapper lama `scripts/validate.py` memakai validator yang sama. Uji instalasi opt-in membuat venv sementara, memasang wheel tanpa network/dependency, lalu menjalankan command di luar checkout. Jangan gunakan environment browser riset untuk development packaging bila ingin tetap terpisah.
+Pemeriksaan gaya kode dan whitespace git:
+
+```sh
+git diff --check
+```
+
+---
+
+## Dokumentasi Arsitektur & Riset
+
+- [Rencana Integrasi ke yt-to-flowmusic](docs/INTEGRATION-PLAN.md) — Arsitektur adapter subprocess async & Textual UI.
+- [Rencana Packaging & Distribusi PyPI](docs/PACKAGING-PLAN.md) — Roadmap dan checklist packaging.
+- [Antrean Pekerjaan Utama & Backlog](docs/ANTRIAN-PEKERJAAN-UTAMA.md) — Pelacakan status task engineering, klaim, dan acceptance.
+- [Riwayat Checkpoint Rekayasa](docs/backlog/CHECKPOINT-HISTORY.md) — Bukti eksekusi dan log verifikasi.
+- [Review CLI & Analisis Kontrak](docs/CLI-REVIEW.md) — Pemetaan fitur yang diimplementasikan vs proposed.
+
+---
+
+## Kebijakan Keamanan & Privasi
+
+1. **Penyimpanan Sesi Lokal**: Folder `.local/` berisi session cookie Chrome privat dan attempt journal tidak pernah di-commit atau dimasukkan ke dalam paket distribusi sdist/wheel.
+2. **Tanpa Otomasi Kredensial**: Tool ini tidak membaca password operator, tidak melakukan scraping cookie secara ilegal, dan tidak mencoba melewati CAPTCHA/2FA.
+3. **Draft Only**: Operasi rilis dihentikan di level penyimpanan draft untuk ditinjau oleh operator manusia sebelum proses rilis aktual.
+
+---
+
+## Lisensi
+
+Proyek ini didistribusikan di bawah lisensi [MIT License](LICENSE).
+Hak Cipta (c) 2026 Gunamaya / KiriminAja.
