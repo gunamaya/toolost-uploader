@@ -447,6 +447,31 @@ class LiveRecoveryTests(unittest.TestCase):
             ui.action('save', operation)
         ui.record.assert_called_once_with('save', 'unknown', None)
 
+    def test_execute_with_multiple_tabs_reuses_portal_and_closes_redundant(self):
+        p1 = Mock()
+        p1.url = 'https://toolost.com/user-portal/releases/manage/1'
+        p1.is_closed.return_value = False
+        p1.locator.return_value.count.return_value = 0
+
+        p2 = Mock()
+        p2.url = 'about:blank'
+        p2.is_closed.return_value = False
+
+        factory = MagicMock()
+        factory.return_value.__enter__.return_value.chromium.connect_over_cdp.return_value.contexts = [
+            types.SimpleNamespace(pages=[p1, p2])
+        ]
+        module = types.ModuleType('playwright.sync_api')
+        module.sync_playwright = factory
+        env = patch.dict(sys.modules, {'playwright': types.ModuleType('playwright'), 'playwright.sync_api': module})
+
+        with env:
+            with patch('toolost_uploader.live_draft.run_steps') as mock_run:
+                execute(self.manifest_file(), **self.kwargs())
+                mock_run.assert_called_once()
+                p2.close.assert_called_once()
+                p1.close.assert_not_called()
+
 
 if __name__ == '__main__':
     unittest.main()

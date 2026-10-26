@@ -51,9 +51,28 @@ def find_chrome_binary(custom_path: str | Path | None = None) -> Path | None:
 
 def resolve_profile_dir(alias: str | None = None, root: Path | None = None) -> Path:
     """Tentukan direktori profil browser terisolasi."""
+    if alias:
+        candidate = Path(alias).expanduser()
+        if candidate.is_absolute() or "/" in alias or "\\" in alias:
+            candidate.mkdir(parents=True, mode=0o700, exist_ok=True)
+            return candidate
+
     if root is not None:
         base = root
     else:
+        # Tentukan base direktori user standar
+        data_home = os.environ.get("XDG_DATA_HOME")
+        if data_home:
+            user_base = Path(data_home) / "toolost-uploader" / "chrome-profiles"
+        elif sys.platform == "darwin":
+            user_base = Path.home() / "Library" / "Application Support" / "toolost-uploader" / "chrome-profiles"
+        else:
+            user_base = Path.home() / ".local" / "share" / "toolost-uploader" / "chrome-profiles"
+
+        # Jika direktori profil dengan alias tersebut sudah ada di user_base, gunakan langsung
+        if alias and (user_base / alias).is_dir():
+            return user_base / alias
+
         # Cek jika berjalan di repository workspace lokal dengan direktori .local
         repo_local = Path(__file__).resolve().parents[1] / ".local"
         if repo_local.is_dir():
@@ -61,14 +80,7 @@ def resolve_profile_dir(alias: str | None = None, root: Path | None = None) -> P
                 return repo_local / "chrome-profile"
             return repo_local / "profiles" / alias
 
-        # Fallback ke direktori konfigurasi user standar
-        data_home = os.environ.get("XDG_DATA_HOME")
-        if data_home:
-            base = Path(data_home) / "toolost-uploader" / "chrome-profiles"
-        elif sys.platform == "darwin":
-            base = Path.home() / "Library" / "Application Support" / "toolost-uploader" / "chrome-profiles"
-        else:
-            base = Path.home() / ".local" / "share" / "toolost-uploader" / "chrome-profiles"
+        base = user_base
 
     target = base / (alias or "default")
     target.mkdir(parents=True, mode=0o700, exist_ok=True)
@@ -200,6 +212,77 @@ def ensure_cdp_ready(
     return False
 
 
+def acquire_active_page(
+    browser,
+    domain: str = "toolost.com",
+    default_url: str | None = None,
+    log=None,
+):
+    """Dapatkan satu tab aktif dari browser CDP untuk menghemat memori.
+
+    1. Periksa apakah sudah ada tab aktif di semua konteks browser.
+    2. Prioritaskan tab yang URL-nya mengandung domain target (misal toolost.com).
+    3. Jika ada beberapa tab aktif, pilih satu tab utama dan tutup tab lainnya.
+    4. Hanya buka tab baru (new_page) jika tidak ada tab aktif sama sekali.
+    """
+    def _is_closed(p) -> bool:
+        try:
+            fn = getattr(p, "is_closed", None)
+            return fn() if callable(fn) else bool(fn)
+        except Exception:
+            return False
+
+    context = browser.contexts[0] if getattr(browser, "contexts", None) else browser.new_context()
+    all_pages = [
+        p for ctx in getattr(browser, "contexts", [])
+        for p in getattr(ctx, "pages", [])
+        if not _is_closed(p)
+    ]
+
+    target_page = None
+    if all_pages:
+        matching = []
+        for p in all_pages:
+            p_url = getattr(p, "url", "") or ""
+            if domain in urlsplit(p_url).netloc or domain in p_url:
+                matching.append(p)
+
+        if matching:
+            # Prioritaskan tab yang sudah berada di portal/uploader rilis
+            portal_matches = [
+                p for p in matching
+                if any(k in (getattr(p, "url", "") or "") for k in ("/user-portal", "/uploader"))
+            ]
+            target_page = portal_matches[0] if portal_matches else matching[0]
+        else:
+            target_page = all_pages[0]
+
+        # Tutup tab lainnya yang tidak digunakan untuk menghemat konsumsi memori
+        for p in all_pages:
+            if p is not target_page:
+                try:
+                    p_url = getattr(p, "url", "") or ""
+                    if log:
+                        log(f"Menutup tab redundan ({p_url}) untuk menghemat memori...")
+                    p.close()
+                except Exception:
+                    pass
+    else:
+        if log:
+            log("Tidak ada tab aktif; membuka tab baru...")
+        target_page = context.new_page()
+
+    if default_url:
+        p_url = getattr(target_page, "url", "") or ""
+        if domain not in p_url:
+            try:
+                target_page.goto(default_url, wait_until="domcontentloaded")
+            except Exception:
+                pass
+
+    return target_page
+
+
 def check_auth_identity(endpoint: str = DEFAULT_CDP_ENDPOINT, timeout: float = 15.0) -> dict:
     """Periksa status autentikasi aktif pada browser CDP Too Lost dengan mengamati navigasi portal."""
     try:
@@ -207,9 +290,7 @@ def check_auth_identity(endpoint: str = DEFAULT_CDP_ENDPOINT, timeout: float = 1
         with sync_playwright() as p:
             browser = p.chromium.connect_over_cdp(endpoint)
             try:
-                context = browser.contexts[0] if browser.contexts else browser.new_context()
-                pages = [pg for pg in context.pages if not pg.is_closed() and "toolost.com" in pg.url]
-                page = pages[0] if pages else context.new_page()
+                page = acquire_active_page(browser, domain="toolost.com")
 
                 user_ids = []
                 http_statuses = []

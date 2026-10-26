@@ -94,7 +94,11 @@ Modul adapter di `yt-to-flowmusic` mengekspor file manifest sementara (`tmp_mani
         "path": "/Users/.../takes/song-1-final.mp3",
         "sha256": "53431441811b965acc69664ec4e2dcf47d5765c2ddc483f4daf49ded30a7214d"
       },
-      "ai_assisted": true
+      "ai_assisted": true,
+      "lyrics": {
+        "path": "/Users/.../takes/song-1-lyrics.txt",
+        "sha256": "8f481c0337b51d6c05df4d7c07b0ecfa5742416f4ad16e87c0e68e4a5fb151c8"
+      }
     },
     {
       "track_id": "track-2-<uuid>",

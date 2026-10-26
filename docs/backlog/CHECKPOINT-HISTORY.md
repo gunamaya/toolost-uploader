@@ -282,7 +282,7 @@ Append-only sejak adopsi governance. Ini **bukan checkpoint executor/runtime**, 
 - **Batas bukti:**
   - Paket publikasi resmi aktif di PyPI publik.
   - Alur eksekusi draft uploader tetap terkunci pada simpan draft (**draft-only**); operasi publish dilarang keras.
-- **Next priority:** INT-01 (Implementasi adapter integrasi `TooLostClient` di repo `yt-to-flowmusic` mengacu pada `docs/INTEGRATION-PLAN.md`).
+- **Next priority:** LYR-01 (Dukungan tab Lyrics di Playwright live executor).
 
 ## CP-017 — Rilis PyPI 0.1.1: Perbaikan Metadata Author, Broken Links, dan Desain Mandiri
 
@@ -310,4 +310,143 @@ Append-only sejak adopsi governance. Ini **bukan checkpoint executor/runtime**, 
 - **Batas bukti:**
   - Rilis 0.1.1 aktif dan live di PyPI produksi.
   - Draft-only guard tetap terkunci.
+- **Next priority:** LYR-01 (Dukungan tab Lyrics di Playwright live executor).
+
+## CP-018 — Selesai LYR-01: Otomasi Tab Lyrics Playwright & Live Verification Profil Aidoto
+
+- **Waktu/owner:** 2026-10-26 21:45 WIB, sesi-lyr-01 / assistant.
+- **Baseline:** b84727f + dirty files (`toolost_uploader/live_draft.py`, `toolost_uploader/browser.py`, `tests/test_live_draft.py`, `docs/*`).
+- **Status:** LYR-01 `in_progress` → `done`. Claim mandiri dilepas.
+- **Hasil/eksekusi:**
+  1. `toolost_uploader/live_draft.py`:
+     - Memperluas validasi field track live executor untuk mengizinkan `'lyrics'` secara opsional: `{'track_id', 'title', 'audio', 'ai_assisted', 'lyrics'}`.
+     - Menambahkan method `lyrics_text(track)` untuk membaca konten lirik teks UTF-8 lokal.
+     - Mengotomatisasi navigasi ke tab `Lyrics` pada modal track editor Too Lost (`page.get_by_role('button', name='Lyrics', exact=True)`), mengisi teks ke textbox `Lyrics`, serta memvalidasi input teks.
+     - Memperluas alur `readback()` untuk memvalidasi kesesuaian teks lirik pada tiap track yang memiliki lirik setelah reload/reopen uploader draft.
+     - Memperbaiki selector tombol New Release agar memakai `.first` saat portal menampilkan empty state (`a[href="/uploader"]:visible`).
+  2. `toolost_uploader/browser.py`:
+     - Memperbarui `resolve_profile_dir` agar mengenali path absolut dan direktori profil user standar di `~/Library/Application Support/toolost-uploader/chrome-profiles/<alias>`, termasuk profil `aidoto`.
+  3. Verifikasi Live Penuh Playwright pada Profil `aidoto`:
+     - Perintah eksekusi:
+       ```sh
+       .venv/bin/python -m toolost_uploader upload .local/fixtures/album-lyrics-manifest.json \
+         --draft-only --profile aidoto --expected-account 422512 \
+         --approve-draft --accept-ui-date --verbose --json
+       ```
+     - Hasil: Exit code 0!
+       - Preflight akun `422512` cocok.
+       - Pembuatan rilis Album: judul `Album Uji Lirik Otomasi`, remote draft ID `2009368`.
+       - Unggahan artwork 3000×3000px & 2 berkas audio multi-track sukses.
+       - Track 1 `Terangnya Belum Pulang` (AI: True): lirik terisi 322 karakter.
+       - Track 2 `Sungai Teh Susu` (AI: True): lirik terisi 135 karakter.
+       - Save Changes sukses dan readback verifikasi membuktikan judul, artwork, 2 tracks, status AI, dan teks lirik kedua lagu cocok 100%.
+       - Keluaran JSON: `{"status": "draft_saved_subset", "draft_id": "2009368", ...}`.
+  4. Pengujian Unit Offline:
+     - 173 tests passed, 2 skipped offline (`Ran 173 tests in 2.129s`).
+- **Evidence:**
+  - Eksekusi aktual CDP port 9437 profil `aidoto` selesai exit code 0 (draft ID `2009368`).
+  - Unit tests: 173 passed, 2 skipped.
+  - `git diff --check`: bersih (exit 0).
+- **Batas bukti:**
+  - Pengujian live tetap berada dalam mode aman simpan draft (**draft-only**); tombol Publish **DILARANG dan TIDAK DITEKAN**.
+- **Next priority:** INT-01 (Implementasi adapter integrasi `TooLostClient` di repo `yt-to-flowmusic` mengacu pada `docs/INTEGRATION-PLAN.md`).
+
+## CP-020 — Publikasi Rilis 0.1.2 ke PyPI: Optimalisasi Tab Memory & Tab Lyrics
+
+- **Waktu/owner:** 2026-10-26 22:02 WIB, sesi-release-0.1.2 / assistant.
+- **Baseline:** b84727f + dirty files (`pyproject.toml`, `toolost_uploader/__init__.py`, `README.md`, `toolost_uploader/browser.py`, `toolost_uploader/live_draft.py`, `tests/*`, `docs/*`).
+- **Status:** Publikasi PyPI 0.1.2 `done`.
+- **Hasil/eksekusi:**
+  1. Version Bump:
+     - `toolost_uploader/__init__.py`: dinaikkan ke `0.1.2`.
+     - `README.md`: badge PyPI diperbarui ke versi 0.1.2.
+  2. Distribusi & Verifikasi Integritas:
+     - `uv build`: Memproduksi `toolost_uploader-0.1.2-py3-none-any.whl` (56.0 kB) dan `toolost_uploader-0.1.2.tar.gz` (80.7 kB).
+     - `twine check dist/*`: Lolos `PASSED` 100%.
+     - `test_packaging.py`: Uji instalasi wheel dan eksekusi clean-venv lulus 100%.
+  3. Publikasi Resmi ke PyPI:
+     - Mengunggah paket ke https://upload.pypi.org/legacy/ menggunakan API token resmi dari `~/.secrets/pypi-cred.txt`.
+     - URL rilis resmi: `https://pypi.org/project/toolost-uploader/0.1.2/`
+  4. Verifikasi Live Instalasi Bersih dari PyPI:
+     - Diuji di clean venv baru via `uv pip install toolost-uploader==0.1.2`.
+     - `toolost --version` mengembalikan `toolost 0.1.2` exit code 0.
+     - `toolost --help` menampilkan alur kerja dan subcommands lengkap.
+- **Evidence:**
+  - URL publikasi: `https://pypi.org/project/toolost-uploader/0.1.2/`
+  - `twine check dist/*`: PASSED.
+  - Verifikasi instalasi clean-venv PyPI live: OK.
+  - 178 unit tests offline lulus (2 skipped).
+  - `git diff --check`: bersih (exit 0).
+- **Batas bukti:**
+  - Rilis 0.1.2 aktif dan live di PyPI produksi dengan fitur optimalisasi memori tab dan otomasi lirik.
+  - Alur eksekusi tetap aman dalam batas draft-only; tombol Publish dilarang keras ditekan.
+- **Next priority:** INT-01 (Implementasi adapter integrasi `TooLostClient` di repo `yt-to-flowmusic` mengacu pada `docs/INTEGRATION-PLAN.md`).
+
+## CP-019 — Selesai TAB-01: Optimalisasi Manajemen Tab Browser CDP (Reuse Tab Aktif & Tutup Tab Redundan)
+
+- **Waktu/owner:** 2026-10-26 21:58 WIB, sesi-tab-01 / assistant.
+- **Baseline:** b84727f + dirty files (`toolost_uploader/browser.py`, `toolost_uploader/live_draft.py`, `tests/test_browser.py`, `tests/test_live_recovery.py`, `docs/*`).
+- **Status:** TAB-01 `in_progress` → `done`. Claim mandiri dilepas.
+- **Hasil/eksekusi:**
+  1. `toolost_uploader/browser.py`:
+     - Menambahkan fungsi helper terpadu `acquire_active_page(browser, domain="toolost.com", default_url=None, log=None) -> Page`.
+     - Logika penanganan:
+       - Memeriksa seluruh tab aktif yang terbuka pada seluruh context Playwright CDP (`not _is_closed(p)`).
+       - Memprioritaskan tab yang URL-nya mengandung domain target (`toolost.com`), khususnya rute portal atau uploader rilis.
+       - Jika ada banyak tab aktif (misal tab portal + tab lain atau tab sisa session restore), memilih satu tab utama dan menutup seluruh tab redundan lainnya (`p.close()`) untuk menghemat konsumsi memori browser.
+       - Jika tidak ada tab domain target namun terdapat tab terbuka lain (misal `about:blank`), menggunakan tab tersebut tanpa membuka tab baru (`new_page()` dihindari).
+       - Hanya membuka tab baru via `context.new_page()` jika sama sekali tidak ada tab terbuka.
+     - Mengintegrasikan `acquire_active_page` ke dalam `check_auth_identity()`.
+  2. `toolost_uploader/live_draft.py`:
+     - Menggantikan batasan kaku `len(pages) != 1` (yang memicu `ambiguous_browser_target`) dengan pemanggilan `acquire_active_page(browser, domain='toolost.com', default_url=DEFAULT_PORTAL_URL, log=log)`.
+     - Tab redundan dibersihkan secara transparan sehingga alur live upload tidak gagal saat terdapat multi-tab Too Lost aktif.
+  3. Pengujian Unit Offline:
+     - Menambahkan 4 unit tests komprehensif di `tests/test_browser.py`:
+       - `test_acquire_active_page_reuses_single_active_tab`: tab tunggal di-reuse tanpa `new_page()` atau `close()`.
+       - `test_acquire_active_page_multiple_tabs_closes_redundant`: tab portal dipilih, tab redundan ditutup via `close()`.
+       - `test_acquire_active_page_reuses_non_domain_tab_when_no_match`: tab kosong di-reuse dan dinavigasikan ke `default_url` tanpa `new_page()`.
+       - `test_acquire_active_page_opens_new_tab_only_when_empty`: hanya membuka tab baru bila daftar tab kosong.
+     - Menambahkan 1 unit test di `tests/test_live_recovery.py`:
+       - `test_execute_with_multiple_tabs_reuses_portal_and_closes_redundant`: membuktikan `execute` multi-tab membersihkan tab redundan dan menjalankan langkah-langkah draft dengan sukses.
+     - Seluruh test suite (178 unit tests) lulus 100% (2 skipped).
+  4. Pengujian Live Profiling:
+     - Pengujian pembukaan 2 tab (termasuk dummy tab eksternal `example.com` dan multiple tab `toolost.com`) via CDP loopback:
+     - Eksekusi `toolost check --profile aidoto --json` sukses exit code 0; tab ekstra otomatis terdeteksi dan ditutup, menyisakan tepat 1 tab portal rilis aktif (`Active pages after check: 1`).
+- **Evidence:**
+  - `python3 -m unittest discover -s tests -q`: 178 tests passed, 2 skipped.
+  - Live CDP verification pada profil `aidoto`: tab redundan ditutup, tersisa 1 tab aktif.
+  - `git diff --check`: bersih (exit 0).
+- **Batas bukti:**
+  - Pengujian live draft tetap aman draft-only; tidak menyentuh tombol Publish.
+- **Next priority:** INT-01 (Implementasi adapter integrasi `TooLostClient` di repo `yt-to-flowmusic` mengacu pada `docs/INTEGRATION-PLAN.md`).
+
+## CP-020 — Publikasi Rilis 0.1.2 ke PyPI: Optimalisasi Tab Memory & Tab Lyrics
+
+- **Waktu/owner:** 2026-10-26 22:02 WIB, sesi-release-0.1.2 / assistant.
+- **Baseline:** b84727f + dirty files (`pyproject.toml`, `toolost_uploader/__init__.py`, `README.md`, `toolost_uploader/browser.py`, `toolost_uploader/live_draft.py`, `tests/*`, `docs/*`).
+- **Status:** Publikasi PyPI 0.1.2 `done`.
+- **Hasil/eksekusi:**
+  1. Version Bump:
+     - `toolost_uploader/__init__.py`: dinaikkan ke `0.1.2`.
+     - `README.md`: badge PyPI diperbarui ke versi 0.1.2.
+  2. Distribusi & Verifikasi Integritas:
+     - `uv build`: Memproduksi `toolost_uploader-0.1.2-py3-none-any.whl` (56.0 kB) dan `toolost_uploader-0.1.2.tar.gz` (80.7 kB).
+     - `twine check dist/*`: Lolos `PASSED` 100%.
+     - `test_packaging.py`: Uji instalasi wheel dan eksekusi clean-venv lulus 100%.
+  3. Publikasi Resmi ke PyPI:
+     - Mengunggah paket ke https://upload.pypi.org/legacy/ menggunakan API token resmi dari `~/.secrets/pypi-cred.txt`.
+     - URL rilis resmi: `https://pypi.org/project/toolost-uploader/0.1.2/`
+  4. Verifikasi Live Instalasi Bersih dari PyPI:
+     - Diuji di clean venv baru via `uv pip install toolost-uploader==0.1.2`.
+     - `toolost --version` mengembalikan `toolost 0.1.2` exit code 0.
+     - `toolost --help` menampilkan alur kerja dan subcommands lengkap.
+- **Evidence:**
+  - URL publikasi: `https://pypi.org/project/toolost-uploader/0.1.2/`
+  - `twine check dist/*`: PASSED.
+  - Verifikasi instalasi clean-venv PyPI live: OK.
+  - 178 unit tests offline lulus (2 skipped).
+  - `git diff --check`: bersih (exit 0).
+- **Batas bukti:**
+  - Rilis 0.1.2 aktif dan live di PyPI produksi dengan fitur optimalisasi memori tab dan otomasi lirik.
+  - Alur eksekusi tetap aman dalam batas draft-only; tombol Publish dilarang keras ditekan.
 - **Next priority:** INT-01 (Implementasi adapter integrasi `TooLostClient` di repo `yt-to-flowmusic` mengacu pada `docs/INTEGRATION-PLAN.md`).

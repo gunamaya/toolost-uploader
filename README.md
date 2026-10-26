@@ -2,7 +2,7 @@
 
 CLI & Playwright Automation Tool untuk manajemen dan upload draft rilis [Too Lost](https://toolost.com) berbasis manifest JSON.
 
-[![PyPI version](https://img.shields.io/badge/version-0.1.1-blue.svg)](https://pypi.org/project/toolost-uploader/)
+[![PyPI version](https://img.shields.io/badge/version-0.1.2-blue.svg)](https://pypi.org/project/toolost-uploader/)
 [![Python versions](https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12-blue.svg)](https://www.python.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://github.com/gunamaya/toolost-uploader/blob/main/LICENSE)
 [![Tests](https://img.shields.io/badge/tests-171%20passed-brightgreen.svg)](#pengujian--pengembangan)
@@ -145,7 +145,11 @@ Contoh manifest untuk rilis Album multi-track:
         "path": "/path/to/track-01.mp3",
         "sha256": "53431441811b965acc69664ec4e2dcf47d5765c2ddc483f4daf49ded30a7214d"
       },
-      "ai_assisted": true
+      "ai_assisted": true,
+      "lyrics": {
+        "path": "/path/to/lyrics-01.txt",
+        "sha256": "8f481c0337b51d6c05df4d7c07b0ecfa5742416f4ad16e87c0e68e4a5fb151c8"
+      }
     },
     {
       "track_id": "track-02",

@@ -24,9 +24,9 @@ Tujuan: memetakan realitas implementasi saat ini terhadap proposal [CONTRACT-V1]
 
 | Bagian Manifest | Dukungan di `validation.py` (Validator) | Dukungan di `live_draft.py` (Live Executor) | Gap & Dampak |
 |---|---|---|---|
-| **Release Type** | `album`, `ep`, `single`, `compilation` | **Hanya `single`** | Jika manifest bertipe `album` atau `ep`, validator meloloskan tetapi live draft melempar `unsupported_live_manifest`. |
-| **Jumlah Track** | Array nonempty (1 sampai N track) | **Tepat 1 track** (`len(tracks) == 1`) | Multi-track belum didukung di live draft. |
-| **Track Fields** | `track_id`, `title`, `audio`, `ai_assisted`, + optional fields (`version_line`, `language`, `instrumental`, `explicit`, `clean_version`, `isrc`, `iswc`, `lyrics`, `provenance_known_ai_generated`) | **Hanya 4 field wajib**: `{'track_id', 'title', 'audio', 'ai_assisted'}` | Field opsional apa pun pada track akan memicu `unsupported_live_track_fields`. |
+| **Release Type** | `album`, `ep`, `single`, `compilation` | **`single` dan `album`** | `ep` dan `compilation` belum didukung live; `single` dan `album` multi-track sudah teruji live (CLI-02/LIVE-02). |
+| **Jumlah Track** | Array nonempty (1 sampai N track) | **1 track (Single) atau N track (Album)** | Multi-track didukung penuh pada Album rilis. |
+| **Track Fields** | `track_id`, `title`, `audio`, `ai_assisted`, + optional fields (`lyrics`, `version_line`, `language`, `instrumental`, `explicit`, dll) | **4 field dasar + opsional `lyrics`** (`{'track_id', 'title', 'audio', 'ai_assisted', 'lyrics'}`) | Field opsional lirik (file teks UTF-8) diisikan otomatis ke tab Lyrics UI Too Lost. Field metadata lanjutan lainnya (ISRC/ISWC) belum dibuka. |
 | **Release Fields** | `schema_version`, `release_id`, `release_type`, `title`, `release_date`, `artwork`, `tracks`, + optional (`language`, `primary_genre`, `secondary_genre`, `label`, `copyright`, `upc`) | **Hanya 7 field dasar** | Field opsional release memicu `unsupported_live_manifest`. |
 | **Release Date** | Format `YYYY-MM-DD` wajib valid | **Belum diterapkan ke UI form** | Nilai `release_date` dari manifest belum diisikan ke picker tanggal Too Lost; UI mewarisi default tanggal kalender Too Lost dengan flag eksplisit `--accept-ui-date-for-smoke`. |
 | **Judul Track Single** | Diperbolehkan berbeda dari judul release | **Terkunci di UI Too Lost** | UI Too Lost mengunci judul track Single sama dengan judul release; live draft memerlukan judul sama persis atau flag `--approve-release-title-equals-track`. |

@@ -27,15 +27,13 @@ class LiveDraftTests(unittest.TestCase):
             preflight(path)
 
     def test_unsupported_scope_rejected(self):
-        for mutate in ('ep', 'compilation', 'lyrics', 'label', 'single_multi'):
+        for mutate in ('ep', 'compilation', 'label', 'single_multi'):
             with self.subTest(mutate=mutate):
                 data = copy.deepcopy(self.manifest)
                 if mutate == 'ep':
                     data['release_type'] = 'ep'
                 elif mutate == 'compilation':
                     data['release_type'] = 'compilation'
-                elif mutate == 'lyrics':
-                    data['tracks'][0]['lyrics'] = copy.deepcopy(data['tracks'][0]['audio'])
                 elif mutate == 'label':
                     data['label'] = 'Synthetic label'
                 elif mutate == 'single_multi':
@@ -47,6 +45,21 @@ class LiveDraftTests(unittest.TestCase):
                 path.write_text(json.dumps(data))
                 with self.assertRaises(DraftError):
                     preflight(path)
+
+    def test_lyrics_preflight_supported(self):
+        lyrics_file = self.base / 'lyrics.txt'
+        lyrics_file.write_text('Bait satu\nBait dua\n', encoding='utf-8')
+        import hashlib
+        data = copy.deepcopy(self.manifest)
+        data['tracks'][0]['lyrics'] = {
+            'path': 'lyrics.txt',
+            'sha256': hashlib.sha256(lyrics_file.read_bytes()).hexdigest()
+        }
+        path = self.base / 'with_lyrics.json'
+        path.write_text(json.dumps(data))
+        manifest, base = preflight(path)
+        self.assertIn('lyrics', manifest['tracks'][0])
+        self.assertEqual(manifest['tracks'][0]['lyrics']['path'], 'lyrics.txt')
 
     def test_album_and_multi_track_preflight_supported(self):
         data = copy.deepcopy(self.manifest)
@@ -283,6 +296,54 @@ class LiveDraftTests(unittest.TestCase):
             self.assertEqual(ui.events[-1], fail)
             self.assertEqual(ui.events.count(fail), 1)
             self.assertNotIn('reopen', ui.events)
+
+    def test_lyrics_fill_and_readback(self):
+        lyrics_file = self.base / 'test_lyrics.txt'
+        expected_text = 'Lirik baris satu\nLirik baris dua\n'
+        lyrics_file.write_text(expected_text, encoding='utf-8')
+        import hashlib
+        data = copy.deepcopy(self.manifest)
+        data['tracks'][0]['lyrics'] = {
+            'path': 'test_lyrics.txt',
+            'sha256': hashlib.sha256(lyrics_file.read_bytes()).hexdigest()
+        }
+
+        ui, page, _ = self.make_ui()
+        ui.manifest = data
+
+        title = Mock(is_editable=Mock(return_value=True), input_value=Mock(return_value=data['tracks'][0]['title']))
+        lyrics_box = Mock(input_value=Mock(return_value=expected_text))
+        lyrics_button = Mock()
+        done_button = Mock()
+
+        def role_se(role, name=None, exact=False):
+            if role == 'textbox' and name == 'Track name':
+                return title
+            if role == 'textbox' and name == 'Lyrics':
+                return lyrics_box
+            if role == 'button' and name == 'Lyrics':
+                return lyrics_button
+            if role == 'button' and name == 'Done':
+                return done_button
+            if role == 'textbox' and name in ('Single name', 'Album name'):
+                return Mock(input_value=Mock(return_value=data['title']))
+            return Mock()
+
+        page.get_by_role.side_effect = role_se
+
+        switch = Mock()
+        switch.get_attribute.return_value = 'true'
+        with patch.object(ui, 'ai_switch', return_value=switch):
+            ui.metadata_open(data['tracks'][0])
+
+        lyrics_box.fill.assert_called_once_with(expected_text)
+
+        # Test readback mismatch raises lyrics_readback_mismatch
+        lyrics_box.input_value.return_value = 'Different text'
+        page.locator.side_effect = lambda selector: Mock(count=Mock(return_value=0 if 'password' in selector else 1), first=Mock())
+        with patch.object(ui, 'editor'), patch.object(ui, 'ai_switch', return_value=switch):
+            with self.assertRaisesRegex(DraftError, 'lyrics_readback_mismatch'):
+                ui.readback()
 
 
 if __name__ == '__main__':

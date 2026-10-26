@@ -8,6 +8,7 @@ import unittest
 from unittest.mock import Mock, patch
 
 from toolost_uploader.browser import (
+    acquire_active_page,
     check_and_clean_stale_lock,
     check_auth_identity,
     ensure_cdp_ready,
@@ -108,6 +109,84 @@ class BrowserModuleTests(unittest.TestCase):
             res = check_auth_identity()
             self.assertEqual(res["status"], "authenticated")
             self.assertEqual(res["account_id"], "422512")
+
+    def test_acquire_active_page_reuses_single_active_tab(self):
+        mock_page = Mock()
+        mock_page.url = "https://toolost.com/user-portal/releases/manage/1"
+        mock_page.is_closed.return_value = False
+
+        mock_context = Mock()
+        mock_context.pages = [mock_page]
+        mock_browser = Mock()
+        mock_browser.contexts = [mock_context]
+
+        page = acquire_active_page(mock_browser, domain="toolost.com")
+        self.assertIs(page, mock_page)
+        mock_context.new_page.assert_not_called()
+        mock_page.close.assert_not_called()
+
+    def test_acquire_active_page_multiple_tabs_closes_redundant(self):
+        p1 = Mock()
+        p1.url = "https://toolost.com/user-portal/releases/manage/1"
+        p1.is_closed.return_value = False
+
+        p2 = Mock()
+        p2.url = "https://toolost.com/uploader/edit/12345"
+        p2.is_closed.return_value = False
+
+        p3 = Mock()
+        p3.url = "about:blank"
+        p3.is_closed.return_value = False
+
+        mock_context = Mock()
+        mock_context.pages = [p1, p2, p3]
+        mock_browser = Mock()
+        mock_browser.contexts = [mock_context]
+
+        selected = acquire_active_page(mock_browser, domain="toolost.com")
+        self.assertIs(selected, p1)
+        # Tab lain harus ditutup untuk menghemat memori
+        p2.close.assert_called_once()
+        p3.close.assert_called_once()
+        p1.close.assert_not_called()
+        mock_context.new_page.assert_not_called()
+
+    def test_acquire_active_page_reuses_non_domain_tab_when_no_match(self):
+        p1 = Mock()
+        p1.url = "about:blank"
+        p1.is_closed.return_value = False
+
+        p2 = Mock()
+        p2.url = "https://google.com"
+        p2.is_closed.return_value = False
+
+        mock_context = Mock()
+        mock_context.pages = [p1, p2]
+        mock_browser = Mock()
+        mock_browser.contexts = [mock_context]
+
+        selected = acquire_active_page(mock_browser, domain="toolost.com", default_url="https://toolost.com/portal")
+        self.assertIs(selected, p1)
+        # Tab kedua ditutup
+        p2.close.assert_called_once()
+        p1.close.assert_not_called()
+        # Tab pertama diarahkan ke default_url
+        p1.goto.assert_called_once_with("https://toolost.com/portal", wait_until="domcontentloaded")
+        mock_context.new_page.assert_not_called()
+
+    def test_acquire_active_page_opens_new_tab_only_when_empty(self):
+        new_tab = Mock()
+        new_tab.url = ""
+        mock_context = Mock()
+        mock_context.pages = []
+        mock_context.new_page.return_value = new_tab
+        mock_browser = Mock()
+        mock_browser.contexts = [mock_context]
+
+        selected = acquire_active_page(mock_browser, domain="toolost.com", default_url="https://toolost.com/portal")
+        self.assertIs(selected, new_tab)
+        mock_context.new_page.assert_called_once()
+        new_tab.goto.assert_called_once_with("https://toolost.com/portal", wait_until="domcontentloaded")
 
 
 if __name__ == "__main__":

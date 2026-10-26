@@ -25,7 +25,8 @@ def preflight(path, *, verify_assets=True):
     if manifest['release_type'] == 'single' and len(manifest['tracks']) != 1:
         raise DraftError('unsupported_live_manifest')
     for track in manifest['tracks']:
-        if set(track) != {'track_id', 'title', 'audio', 'ai_assisted'}:
+        if set(track) not in ({'track_id', 'title', 'audio', 'ai_assisted'},
+                              {'track_id', 'title', 'audio', 'ai_assisted', 'lyrics'}):
             raise DraftError('unsupported_live_track_fields')
     # Tanggal wajib manifest belum diterapkan: hanya smoke draft dengan opt-in terpisah.
     return manifest, path.parent
@@ -158,7 +159,7 @@ class DraftUI:
     def create(self):
         page = self.page
         self.log(f"Membuka portal uploader dan memilih tipe rilis '{self.manifest['release_type']}'...")
-        self.click(page.locator('a[href="/uploader"]:visible'))
+        self.click(page.locator('a[href="/uploader"]:visible').first)
         dialog = page.get_by_role('dialog').filter(has=page.get_by_role('heading', name='Select release type', exact=True))
         dialog.wait_for(state='visible', timeout=30000)
         if self.manifest['release_type'] == 'single':
@@ -333,7 +334,26 @@ class DraftUI:
             self.click(switch.locator('..'))
         if switch.get_attribute('aria-checked') != str(track['ai_assisted']).lower():
             raise DraftError('ai_readback_mismatch')
+        if 'lyrics' in track:
+            self.lyrics_fill(track)
         self.click(self.page.get_by_role('button', name='Done', exact=True))
+
+    def lyrics_text(self, track):
+        lpath = Path(track['lyrics']['path'])
+        if not lpath.is_absolute():
+            lpath = self.base / lpath
+        return lpath.read_text(encoding='utf-8')
+
+    def lyrics_fill(self, track):
+        text = self.lyrics_text(track)
+        self.log(f"Mengisi lirik track '{track['title']}' ({len(text)} karakter)...")
+        self.click(self.page.get_by_role('button', name='Lyrics', exact=True))
+        box = self.page.get_by_role('textbox', name='Lyrics', exact=True)
+        box.wait_for(state='visible')
+        self.guard_target()
+        box.fill(text)
+        if box.input_value() != text:
+            raise DraftError('lyrics_readback_mismatch')
 
     def save(self):
         page = self.page
@@ -393,6 +413,12 @@ class DraftUI:
                 raise DraftError('title_readback_mismatch')
             if self.ai_switch().get_attribute('aria-checked') != str(track['ai_assisted']).lower():
                 raise DraftError('ai_readback_mismatch')
+            if 'lyrics' in track:
+                self.click(page.get_by_role('button', name='Lyrics', exact=True))
+                box = page.get_by_role('textbox', name='Lyrics', exact=True)
+                box.wait_for(state='visible')
+                if box.input_value() != self.lyrics_text(track):
+                    raise DraftError('lyrics_readback_mismatch')
             done_btn = page.get_by_role('button', name='Done', exact=True)
             if i < track_count - 1 and type(done_btn.count()) is int and done_btn.count() > 0:
                 self.click(done_btn)
@@ -445,12 +471,9 @@ def execute(path, *, alias, expected_account, endpoint, approve_draft, accept_ui
         from playwright.sync_api import sync_playwright
         with sync_playwright() as p:
             browser = p.chromium.connect_over_cdp(endpoint)
-            pages = [page for context in browser.contexts for page in context.pages
-                     if not page.is_closed() and urlsplit(page.url).scheme == 'https'
-                     and urlsplit(page.url).netloc == 'toolost.com']
-            if len(pages) != 1:
-                raise DraftError('ambiguous_browser_target')
-            ui = DraftUI(pages[0], journal.effective_manifest(), base, expected_account, record, log=log)
+            from toolost_uploader.browser import DEFAULT_PORTAL_URL, acquire_active_page
+            page = acquire_active_page(browser, domain='toolost.com', default_url=DEFAULT_PORTAL_URL, log=log)
+            ui = DraftUI(page, journal.effective_manifest(), base, expected_account, record, log=log)
             ui.read_only = reconcile_only
             try:
                 if reconcile_only:

@@ -122,6 +122,45 @@ Status/prioritas/dependency/klaim terkini mengikuti [current index](../ANTRIAN-P
 - **Verifier:** `python3 -m unittest discover -s tests -q`, `git diff --check`, build sanitasi offline.
 - **Hasil:** Selesai (`done`, [CP-014](CHECKPOINT-HISTORY.md#cp-014--selesai-pkg-01-metadata-lisensi-mit-sanitasi-manifest-build--twine-verification)). Berkas `LICENSE` dibuat, `MANIFEST.in` dan `pyproject.toml` diperbarui ke versi 0.1.0 berlisensi MIT. Wheel & sdist berhasil di-build tanpa warning deprecation, lolos `twine check` 100%, serta lulus uji instalasi & eksekusi clean-venv di `test_packaging.py`.
 
+## LYR-01 — Dukungan tab Lyrics di Playwright live executor (done)
+
+- **Sumber:** permintaan pengguna 2026-10-26: "ya implementasikan LYR-01".
+- **Masuk:**
+  1. Mengizinkan field opsional `lyrics` pada track di `toolost_uploader/live_draft.py`.
+  2. Penanganan pembacaan berkas lirik teks UTF-8 lokal berdasarkan referensi `track['lyrics']['path']`.
+  3. Navigasi ke tab `Lyrics` pada modal track editor Too Lost (`page.get_by_role('button', name='Lyrics', exact=True)`).
+  4. Pengisian konten teks lirik ke textbox `Lyrics` (`page.get_by_role('textbox', name='Lyrics', exact=True)`).
+  5. Readback verifikasi teks lirik pada pembukaan kembali track editor pasca-Save atau reopen draft.
+  6. Unit testing mock Playwright di `tests/test_live_draft.py` untuk alur sukses dan penanganan mismatch.
+- **Keluar:** otomatisasi pembersihan section markers (ditangani oleh penyedia lirik), manipulasi switch explicit/clean tanpa deklarasi.
+- **Acceptance:** Manifest dengan field `lyrics` diterima dan dijalankan di live executor; teks lirik terisi ke UI Too Lost; verifikasi readback mencocokkan teks lirik; seluruh test suite offline 100% lulus; `git diff --check` bersih.
+- **Verifier:** `python3 -m unittest discover -s tests -q`, `git diff --check`.
+- **Hasil:** Selesai (`done`, [CP-018](CHECKPOINT-HISTORY.md#cp-018--selesai-lyr-01-otomasi-tab-lyrics-playwright--live-verification-profil-aidoto)). Otomasi tab Lyrics terimplementasi dan teruji live dengan profil `aidoto` (draft ID `2009368`), mengisi lirik 2 lagu dan lulus verifikasi readback 100%. 173 unit tests offline lulus.
+
+## TAB-01 — Optimalisasi tab browser CDP: reuse tab aktif & tutup tab redundan (done)
+
+- **Sumber:** Permintaan pengguna 2026-10-26: "untuk boot up jangan selalu open new tab, periksa dulu ada tab yang aktif gak, kalau ada pakai tab yang aktif, jika ada banyak tab pilih salah satu lalu tutup tab lainnya, ini menghemat memory".
+- **Masuk:**
+  1. Helper `acquire_active_page(browser, domain="toolost.com", default_url=None, log=None) -> Page` di `toolost_uploader/browser.py`:
+     - Memeriksa seluruh tab yang masih terbuka di semua context browser.
+     - Jika ada tab yang sudah terbuka:
+       - Memprioritaskan tab yang URL-nya mengandung domain target (`toolost.com`).
+       - Memilih salah satu tab tersebut sebagai tab target aktif.
+       - Menutup seluruh tab terbuka lainnya (`page.close()`) untuk menghemat konsumsi memori.
+     - Jika tidak ada tab terbuka sama sekali:
+       - Membuka tab baru (`context.new_page()`) dan menavigasikan ke `default_url` bila diberikan.
+  2. Penerapan di `toolost_uploader/browser.py` (`check_auth_identity`): menggunakan `acquire_active_page` agar tab aktif di-reuse dan tab lain ditutup.
+  3. Penerapan di `toolost_uploader/live_draft.py` (`execute`): mengganti batasan kaku `len(pages) != 1` (yang memicu error `ambiguous_browser_target`) dengan `acquire_active_page`, sehingga jika ada banyak tab Too Lost atau tab lain yang aktif, satu tab dipilih dan tab redundan ditutup secara otomatis untuk efisiensi memori.
+  4. Pengujian unit offline di `tests/test_browser.py` dan `tests/test_live_recovery.py`.
+- **Keluar:** Memodifikasi proses launch OS Chrome di luar parameter CDP standar.
+- **Acceptance:**
+  - Browser CDP tidak membuka tab baru jika tab aktif sudah tersedia.
+  - Tab berlebih ditutup (`page.close()`) dan menyisakan satu tab aktif.
+  - Menghindari kegagalan `ambiguous_browser_target` saat terdapat lebih dari 1 tab Too Lost aktif.
+  - Seluruh test suite offline lulus regresi; `git diff --check` bersih.
+- **Verifier:** `python3 -m unittest discover -s tests -q`, `git diff --check`.
+- **Hasil:** Selesai (`done`, [CP-019](CHECKPOINT-HISTORY.md#cp-019--selesai-tab-01-optimalisasi-manajemen-tab-browser-cdp-reuse-tab-aktif--tutup-tab-redundan)). Helper `acquire_active_page` terpasang di `browser.py` dan `live_draft.py`, 5 unit test baru memvalidasi skenario tab tunggal, multi-tab redundan, non-domain tab reuse, dan fallback new_page. Verifikasi live pada profil `aidoto` membuktikan pembersihan otomatis tab ekstra menjadi 1 tab aktif. 178 unit tests offline lulus.
+
 ## PUB-01 — Publish/distribusi (deferred)
 
 - **Sumber:** arah produk final, bukan izin implementasi/eksekusi; [RELEASE-CONTRACT](../RELEASE-CONTRACT.md) masih proposal.
