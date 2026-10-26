@@ -227,3 +227,29 @@ Append-only sejak adopsi governance. Ini **bukan checkpoint executor/runtime**, 
 - **Next priority:**
   - Melakukan upload ke TestPyPI / PyPI (bila token diberikan), ATAU:
   - Melanjutkan ke INT-01 (implementasi adapter `TooLostClient` di repo `yt-to-flowmusic`).
+
+## CP-015 — Publikasi Paket ke TestPyPI dan Verifikasi Instalasi Live Clean-Venv
+
+- **Waktu/owner:** 2026-10-26 16:08 WIB, sesi-pypi / assistant.
+- **Baseline:** a9ce71b + clean.
+- **Status:** PKG-01 tahap publikasi TestPyPI `done`.
+- **Hasil/eksekusi:**
+  1. Eksekusi pengunggahan paket ke TestPyPI via `twine upload`:
+     - Endpoint: `https://test.pypi.org/legacy/`
+     - Kredensial: API token dari `~/.secrets/test-pypi-cred.txt` (`__token__`).
+     - Berkas terunggah:
+       - `toolost_uploader-0.1.0-py3-none-any.whl` (54.4 kB)
+       - `toolost_uploader-0.1.0.tar.gz` (78.0 kB)
+     - URL rilis resmi: `https://test.pypi.org/project/toolost-uploader/0.1.0/`
+  2. Verifikasi instalasi live dari TestPyPI di environment baru `/tmp/test-pypi-verify`:
+     - Perintah: `pip install --index-url https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple/ toolost-uploader`
+     - Hasil: Paket `toolost-uploader-0.1.0` terpasang bersama core dependencies (`playwright 1.64.1`, `greenlet`, `pyee`, `typing-extensions`).
+     - Verifikasi CLI: `toolost --version` mengembalikan `toolost 0.1.0` (exit code 0); `toolost --help` menampilkan alur kerja dan subcommands dengan lengkap dan rapi.
+- **Evidence:**
+  - URL publikasi: `https://test.pypi.org/project/toolost-uploader/0.1.0/`
+  - Output instalasi clean-venv exit code 0 (`Successfully installed toolost-uploader-0.1.0 ...`).
+  - Unit tests offline: 171 passed, 2 skipped.
+- **Batas bukti:**
+  - Publikasi saat ini berada di TestPyPI (`test.pypi.org`).
+  - Rilis ke PyPI produksi (`pypi.org`) membutuhkan token terpisah untuk produksi.
+- **Next priority:** INT-01 (Implementasi adapter integrasi `TooLostClient` di repo `yt-to-flowmusic` mengacu pada `docs/INTEGRATION-PLAN.md`).
