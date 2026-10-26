@@ -1,12 +1,19 @@
 # Executor Playwright smoke draft-only
 
-Koreksi arah setelah pengguna meminta implementasi, bukan pengulangan riset manual. Kini tersedia `scripts/upload_draft.py` dan `toolost_uploader/live_draft.py`: kode nyata Playwright, bukan FakeUI. **Smoke live selesai sampai Save/reopen dengan perbaikan locator; belum dianggap uploader produksi.** Tidak ada aksi Publish/delete/rights/artist/services. CLI terpasang `toolost` masih validate.
+Koreksi arah setelah pengguna meminta implementasi, bukan pengulangan riset manual. Kini tersedia `scripts/upload_draft.py` dan `toolost_uploader/live_draft.py`: kode nyata Playwright, bukan FakeUI. **Smoke live selesai sampai Save/reopen dengan perbaikan locator; belum dianggap uploader produksi.** Tidak ada aksi Publish/delete/rights/artist/services. Subcommand CLI terpasang `toolost upload --draft-only` kini tersedia di samping `toolost validate`.
 
 ## Command
 
 ```sh
 # Environment browser terpisah; Playwright sudah tersedia pada .venv riset lokal.
 python -m pip install '.[browser]'
+
+# Melalui CLI resmi:
+toolost upload /path/to/manifest.json --draft-only \
+  --profile smoke-alias --expected-account ACCOUNT_ID \
+  --cdp http://127.0.0.1:9437 --approve-draft --accept-ui-date --verbose --json
+
+# Atau melalui script langsung:
 python scripts/upload_draft.py /path/to/manifest.json \
   --profile smoke-alias --expected-account ACCOUNT_ID \
   --cdp http://127.0.0.1:9437 --approve-draft --accept-ui-date-for-smoke
@@ -16,7 +23,7 @@ Tidak meluncurkan/mematikan Chrome atau melakukan login; attach ke CDP loopback 
 
 ## Scope
 
-Manifest divalidasi dengan hash/aturan yang sama. Hanya Single dengan satu track, field minimal release dan track_id/title/audio/ai_assisted. Optional field lain ditolak. Artwork dan audio di-hash ulang sebelum chooser; ini bukan snapshot immutable/TOCTOU protection lengkap. release_date manifest **belum diterapkan**, hanya UI baseline diwarisi dengan flag eksplisit smoke; hasil selalu subset, bukan seluruh manifest diterapkan. Tidak untuk penjadwalan/distribusi produksi.
+Manifest divalidasi dengan hash/aturan yang sama. Mendukung Single (1 track) dan Album (multi-track), dengan field wajib minimal release dan track_id/title/audio/ai_assisted. Optional field lain ditolak. Artwork dan audio di-hash ulang sebelum chooser; ini bukan snapshot immutable/TOCTOU protection lengkap. release_date manifest **belum diterapkan**, hanya UI baseline diwarisi dengan flag eksplisit smoke/draft; hasil selalu subset, bukan seluruh manifest diterapkan. Tidak untuk penjadwalan/distribusi produksi.
 
 Urutan: observasi respons asli `/api/auth/me` saat membuka release list → akun cocok → New Release sekali → modal tipe Single → modal judul → Create Release sekali → ID editor dari URL → artwork chooser → tunggu Artwork selected → audio dialog/chooser → Upload 1 file sekali → satu row + dialog selesai → title track dan AI berdasarkan ARIA scoped label → Done → Save Changes sekali dan konfirmasi Save bila muncul → reopen exact draft → read-back title/Single/artwork/satu row/title track/AI.
 

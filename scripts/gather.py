@@ -107,7 +107,11 @@ def observe(process, port):
                 if capture_request.exists():
                     capture_request.unlink()
                     capture(pages[-1])
-                pages[-1].wait_for_timeout(500)
+                try:
+                    pages[-1].wait_for_timeout(500)
+                except Error:
+                    if not browser.is_connected() or process.poll() is not None:
+                        break
         except Error:
             if browser.is_connected() and process.poll() is None:
                 raise

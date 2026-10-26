@@ -1,6 +1,8 @@
 # Prompt untuk melanjutkan pengembangan toolost-uploader
 
-**Prioritas terbaru: baca CONTINUE-IMPLEMENTATION.md dan LIVE-DRAFT.md terlebih dahulu. Pengguna meminta implementasi script nyata, bukan pengulangan riset/fake. Executor Playwright draft-only kini ditulis, belum dijalankan end-to-end live.**
+**Mulai dari AGENTS.md, RESEARCH.md dan [antrean utama](ANTRIAN-PEKERJAAN-UTAMA.md): current table, klaim, maksimal lima checkpoint terbaru, lalu detail task terkait.** Status/prioritas/dependency mengikuti antrean, bukan narasi historis di bawah. Smoke draft sudah sukses sampai Save/reopen pada `74a24b2`, hardening offline sudah di-commit/push pada `684acd6`. Jangan mengulang smoke atau menambah hardening/resume/publish otomatis. `CONTINUE-IMPLEMENTATION.md` dan `LIVE-DRAFT.md` menjelaskan batas implementasi.
+
+Pola sesi berikutnya: daftarkan/review task → claim sebelum edit → implementasi bounded sesuai izin → tes → checkpoint hasil/batas dan lepas claim. Rekam bukti engineering tanpa data akun/aset privat. Jangan menganggap izin commit/push sebelumnya berlaku lagi. Bagian update lama berikut dipertahankan sebagai riwayat, bukan state atau instruksi aktif yang mengalahkan indeks.
 
 Salin bagian berikut sebagai prompt sesi pengembangan selanjutnya. Status handoff: 25 Oktober 2026. Dokumen riset menyimpan sejarah; verifikasi state aktual sebelum tindakan akun.
 

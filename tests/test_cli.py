@@ -64,6 +64,91 @@ class CLITests(unittest.TestCase):
             output.write.side_effect = OSError('closed output')
             self.assertEqual(main(['validate', 'missing', '--json']), 5)
 
+    def test_upload_help(self):
+        code, out, err = self.invoke(['upload', '--help'])
+        self.assertEqual(code, 0)
+        self.assertIn('--draft-only', out)
+        self.assertIn('--profile', out)
+        self.assertIn('--expected-account', out)
+        self.assertEqual(err, '')
+
+    def test_upload_without_draft_only_rejected(self):
+        # Human output
+        code, out, err = self.invoke(['upload', 'manifest.json', '--profile', 'test', '--expected-account', '123'])
+        self.assertEqual(code, 2)
+        self.assertIn('--draft-only', err)
+
+        # JSON output
+        code, out, err = self.invoke(['upload', 'manifest.json', '--profile', 'test', '--expected-account', '123', '--json'])
+        self.assertEqual(code, 2)
+        payload = json.loads(out)
+        self.assertEqual(payload['status'], 'invalid_input')
+        self.assertEqual(payload['error']['code'], 'draft_only_required')
+
+    def test_upload_success_json_and_human(self):
+        mock_result = {
+            'status': 'draft_saved_subset',
+            'run_id': 'run123',
+            'draft_id': 'draft456',
+            'warnings': ['Peringatan offline']
+        }
+        with patch('toolost_uploader.live_draft.execute', return_value=mock_result):
+            # JSON
+            code, out, err = self.invoke(['upload', 'manifest.json', '--draft-only', '--profile', 'test',
+                                          '--expected-account', '123', '--json'])
+            self.assertEqual(code, 0)
+            payload = json.loads(out)
+            self.assertEqual(payload['status'], 'draft_saved_subset')
+            self.assertEqual(payload['draft_id'], 'draft456')
+
+            # Human
+            code, out, err = self.invoke(['upload', 'manifest.json', '--draft-only', '--profile', 'test',
+                                          '--expected-account', '123'])
+            self.assertEqual(code, 0)
+            self.assertIn('draft_id=draft456', out)
+            self.assertIn('Peringatan offline', err)
+
+    def test_upload_invalid_input_and_draft_error(self):
+        from toolost_uploader.validation import InvalidInput
+        from toolost_uploader.live_draft import DraftError
+
+        with patch('toolost_uploader.live_draft.execute', side_effect=InvalidInput('bad_code', 'detail')):
+            code, out, err = self.invoke(['upload', 'manifest.json', '--draft-only', '--profile', 'test',
+                                          '--expected-account', '123', '--json'])
+            self.assertEqual(code, 2)
+            self.assertEqual(json.loads(out)['status'], 'invalid_input')
+
+        with patch('toolost_uploader.live_draft.execute', side_effect=DraftError('account_mismatch')):
+            code, out, err = self.invoke(['upload', 'manifest.json', '--draft-only', '--profile', 'test',
+                                          '--expected-account', '123', '--json'])
+            self.assertEqual(code, 4)
+            payload = json.loads(out)
+            self.assertEqual(payload['status'], 'reconciliation_required')
+            self.assertEqual(payload['code'], 'account_mismatch')
+
+    def test_upload_verbose_flag(self):
+        code, out, err = self.invoke(['upload', '--help'])
+        self.assertIn('--verbose', out)
+        self.assertIn('-v', out)
+
+        def fake_execute(*args, **kwargs):
+            log = kwargs.get('log')
+            if log:
+                log('Langkah 1 dimulai')
+                log('Langkah 2 selesai')
+            return {'status': 'draft_saved_subset', 'draft_id': 'd123'}
+
+        with patch('toolost_uploader.live_draft.execute', side_effect=fake_execute):
+            code, out, err = self.invoke(['upload', 'manifest.json', '--draft-only', '--profile', 'test',
+                                          '--expected-account', '123', '--verbose', '--json'])
+            self.assertEqual(code, 0)
+            self.assertIn('[toolost] Langkah 1 dimulai', err)
+            self.assertIn('[toolost] Langkah 2 selesai', err)
+            # Pastikan stdout tetap valid JSON murni
+            payload = json.loads(out)
+            self.assertEqual(payload['status'], 'draft_saved_subset')
+
+
 
 if __name__ == '__main__':
     unittest.main()

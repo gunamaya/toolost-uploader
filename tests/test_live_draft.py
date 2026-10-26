@@ -27,23 +27,122 @@ class LiveDraftTests(unittest.TestCase):
             preflight(path)
 
     def test_unsupported_scope_rejected(self):
-        for mutate in ('album', 'multi', 'lyrics', 'label'):
+        for mutate in ('ep', 'compilation', 'lyrics', 'label', 'single_multi'):
             with self.subTest(mutate=mutate):
                 data = copy.deepcopy(self.manifest)
-                if mutate == 'album':
-                    data['release_type'] = 'album'
-                elif mutate == 'multi':
+                if mutate == 'ep':
+                    data['release_type'] = 'ep'
+                elif mutate == 'compilation':
+                    data['release_type'] = 'compilation'
+                elif mutate == 'lyrics':
+                    data['tracks'][0]['lyrics'] = copy.deepcopy(data['tracks'][0]['audio'])
+                elif mutate == 'label':
+                    data['label'] = 'Synthetic label'
+                elif mutate == 'single_multi':
+                    data['release_type'] = 'single'
                     second = copy.deepcopy(data['tracks'][0])
                     second['track_id'] = 'second'
                     data['tracks'].append(second)
-                elif mutate == 'lyrics':
-                    data['tracks'][0]['lyrics'] = copy.deepcopy(data['tracks'][0]['audio'])
-                else:
-                    data['label'] = 'Synthetic label'
                 path = self.base / 'other.json'
                 path.write_text(json.dumps(data))
                 with self.assertRaises(DraftError):
                     preflight(path)
+
+    def test_album_and_multi_track_preflight_supported(self):
+        data = copy.deepcopy(self.manifest)
+        data['release_type'] = 'album'
+        second = copy.deepcopy(data['tracks'][0])
+        second['track_id'] = 'track_2'
+        second['title'] = 'Second Track'
+        data['tracks'].append(second)
+        path = self.base / 'album.json'
+        path.write_text(json.dumps(data))
+        manifest, base = preflight(path)
+        self.assertEqual(manifest['release_type'], 'album')
+        self.assertEqual(len(manifest['tracks']), 2)
+        self.assertEqual(base, self.base)
+
+    def test_album_create_and_audio_multi_files(self):
+        album_manifest = copy.deepcopy(self.manifest)
+        album_manifest['release_type'] = 'album'
+        track2 = copy.deepcopy(album_manifest['tracks'][0])
+        track2['track_id'] = 't2'
+        track2['title'] = 'Track Two'
+        album_manifest['tracks'].append(track2)
+
+        page = Mock()
+        page.url = 'https://toolost.com/uploader/edit/123'
+        page.is_closed.return_value = False
+        page.locator.return_value.count.return_value = 0
+        record = Mock()
+        ui = DraftUI(page, album_manifest, self.base, '123', record)
+        ui.remote_id = '123'
+        ui.identity_verified = True
+
+        # Test create() memilih Album button
+        page.locator.return_value.get_by_role.return_value = Mock()
+        dialog = Mock()
+        page.get_by_role.return_value.filter.return_value = dialog
+        ui.create()
+        album_button_calls = [call for call in dialog.get_by_role.call_args_list if call.kwargs.get('name')]
+        self.assertTrue(any(hasattr(c.kwargs['name'], 'search') and c.kwargs['name'].search('Album / 6+ tracks') for c in album_button_calls))
+
+        # Test audio() set_files list 2 asset dan klik 'Upload 2 files'
+        track_items = Mock()
+        track_items.count.side_effect = [0, 2] # 0 existing before upload, 2 visible after upload
+        def locator_se(selector):
+            if 'track-item' in selector:
+                return track_items
+            return Mock(count=Mock(return_value=0))
+        page.locator.side_effect = locator_se
+        from unittest.mock import MagicMock
+        chooser_mock = Mock()
+        cm = MagicMock()
+        cm.__enter__.return_value = chooser_mock
+        page.expect_file_chooser.return_value = cm
+        ui.audio()
+        chooser_mock.value.set_files.assert_called_once()
+        files_arg = chooser_mock.value.set_files.call_args[0][0]
+        self.assertEqual(len(files_arg), 2)
+
+    def test_album_metadata_and_readback_multi_tracks(self):
+        album_manifest = copy.deepcopy(self.manifest)
+        album_manifest['release_type'] = 'album'
+        track2 = copy.deepcopy(album_manifest['tracks'][0])
+        track2['track_id'] = 't2'
+        track2['title'] = 'Track Two'
+        track2['ai_assisted'] = False
+        album_manifest['tracks'].append(track2)
+
+        page = Mock()
+        page.url = 'https://toolost.com/uploader/edit/123'
+        page.is_closed.return_value = False
+        page.locator.side_effect = lambda selector: Mock(count=Mock(return_value=0 if 'password' in selector else 2))
+        record = Mock()
+        ui = DraftUI(page, album_manifest, self.base, '123', record)
+        ui.remote_id = '123'
+        ui.identity_verified = True
+
+        # Test metadata() mengisi semua track
+        with patch.object(ui, 'editor') as mock_editor, patch.object(ui, 'metadata_open') as mock_open:
+            ui.metadata()
+            self.assertEqual(mock_editor.call_count, 2)
+            self.assertEqual(mock_open.call_count, 2)
+
+        # Test readback() membaca Album name dan kedua track
+        page.get_by_role.return_value.input_value.side_effect = [
+            album_manifest['title'],
+            album_manifest['tracks'][0]['title'],
+            album_manifest['tracks'][1]['title']
+        ]
+        with patch.object(ui, 'editor'), patch.object(ui, 'ai_switch') as ai:
+            ai.return_value.get_attribute.side_effect = ['true', 'false']
+            ui.readback()
+
+        # Pastikan label textbox yang dicari adalah 'Album name', bukan 'Single name'
+        role_calls = [c.kwargs.get('name') for c in page.get_by_role.call_args_list if c.args and c.args[0] == 'textbox']
+        self.assertIn('Album name', role_calls)
+        self.assertNotIn('Single name', role_calls)
 
     def test_confirmation_and_endpoint_checked_before_disk_or_browser(self):
         kwargs = dict(alias='test', expected_account='123', endpoint='http://127.0.0.1:9437',

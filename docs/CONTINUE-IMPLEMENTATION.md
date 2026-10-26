@@ -1,5 +1,7 @@
 # Prioritas kelanjutan implementasi
 
+**Current task/status/prioritas/klaim mengikuti [antrean utama](ANTRIAN-PEKERJAAN-UTAMA.md).** Dokumen ini konteks implementasi, bukan antrean kedua. Baca detail task terkait sebelum mulai; jangan otomatis melanjutkan saran lama di bawah. Baseline hardening sudah di-commit/push sebagai `684acd6`; kalimat lama tentang belum commit adalah historis.
+
 Pengguna menegaskan agar membuat script nyata, bukan mengulang riset UI/fake framework. `scripts/upload_draft.py` + `live_draft.py` tersedia, lihat LIVE-DRAFT.md. Smoke subset sudah sukses sampai Save/reopen pada commit 74a24b2. Jangan mengulang smoke atau membuat draft/upload baru tanpa scope dan persetujuan eksplisit baru.
 
 State modal Name your release sebelum Create adalah historis, bukan state live saat ini. Draft smoke sudah dibuat, artwork/satu WAV diupload, amendment title disetujui, AI=true, Save sekali dan reopen terverifikasi. AI Documentation masih issue manual. Tidak ada izin Publish, distribusi, rights, artist, services atau AI Documentation otomatis.

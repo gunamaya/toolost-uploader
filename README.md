@@ -1,9 +1,11 @@
 # Toolost uploader
 
-Riset dan rancangan CLI Python + Playwright untuk mengelola draft release Too Lost, terpisah dari integrator yt-to-flowmusic. **CLI offline `toolost validate` tersedia; uploader/operasi akun belum tersedia.**
+Riset dan rancangan CLI Python + Playwright untuk mengelola draft release Too Lost, terpisah dari integrator yt-to-flowmusic. **CLI `toolost validate` serta `toolost upload --draft-only` (draft-only) tersedia; operasi publish/distribusi dilarang keras.**
 
 - [Indeks riset](docs/RESEARCH.md)
+- [Antrean pekerjaan engineering](docs/ANTRIAN-PEKERJAAN-UTAMA.md) — task, prioritas, claim, acceptance dan checkpoint; bukan queue upload runtime.
 - [Prompt melanjutkan pengembangan](docs/CONTINUE-PROMPT.md)
+- [Review CLI draft dan integrator](docs/CLI-REVIEW.md)
 - [Kontrak v1 untuk review](docs/CONTRACT-V1.md)
 - [Kontrak release list/detail/publish](docs/RELEASE-CONTRACT.md) — publish masih capability future, tidak diuji atau dieksekusi selama riset.
 - [Script browser riset](docs/BROWSER.md)
@@ -16,12 +18,13 @@ Riset dan rancangan CLI Python + Playwright untuk mengelola draft release Too Lo
 - [Operasi fake bergate](docs/FAKE-FLOW.md) — coordinator approval untuk Save atau upload terpisah, bukan workflow gabungan/uploader nyata.
 - [Workflow fake berurutan](docs/FAKE-WORKFLOW.md) — satu approval immutable, receipt upload/edit/Save; cakupan metadata terbatas.
 - [Adapter snapshot read-only](docs/READ-ONLY.md) — list/detail terbatas, tanpa mutasi atau binding akun otomatis.
-- [Script Playwright upload + Save draft](docs/LIVE-DRAFT.md) — executor smoke Single/satu track; upload + Save/reopen terverifikasi dengan batas subset.
+- [Script Playwright upload + Save draft](docs/LIVE-DRAFT.md) — executor Playwright Single & Album draft-only; upload + Save/reopen terverifikasi dengan batas subset.
 
 ```sh
 python3 -m venv .venv
 .venv/bin/python -m pip install .
 .venv/bin/toolost validate path/to/manifest.json --json
+.venv/bin/toolost upload path/to/manifest.json --draft-only --profile <alias> --expected-account <id> --json
 ```
 
 Schema v1 masih unreleased. Package lokal `toolost-uploader` versi `0.1.0a0` membutuhkan Python ≥3.10; modul `toolost_uploader`, executable `toolost`. Classifier `Private :: Do Not Upload` menahan publikasi PyPI. Validator hanya membaca manifest dan aset, tidak membuka browser atau menjalankan upload/publish.

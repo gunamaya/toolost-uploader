@@ -18,18 +18,24 @@ def preflight(path, *, verify_assets=True):
     else:
         validate_manifest_structure(manifest)
     required = {'schema_version', 'release_id', 'release_type', 'title', 'release_date', 'artwork', 'tracks'}
-    if set(manifest) != required or manifest['release_type'] != 'single' or len(manifest['tracks']) != 1:
+    if set(manifest) != required or manifest['release_type'] not in ('single', 'album'):
         raise DraftError('unsupported_live_manifest')
-    if set(manifest['tracks'][0]) != {'track_id', 'title', 'audio', 'ai_assisted'}:
-        raise DraftError('unsupported_live_track_fields')
+    if not manifest['tracks']:
+        raise DraftError('unsupported_live_manifest')
+    if manifest['release_type'] == 'single' and len(manifest['tracks']) != 1:
+        raise DraftError('unsupported_live_manifest')
+    for track in manifest['tracks']:
+        if set(track) != {'track_id', 'title', 'audio', 'ai_assisted'}:
+            raise DraftError('unsupported_live_track_fields')
     # Tanggal wajib manifest belum diterapkan: hanya smoke draft dengan opt-in terpisah.
     return manifest, path.parent
 
 
 class DraftUI:
-    def __init__(self, page, manifest, base, expected_account, record):
+    def __init__(self, page, manifest, base, expected_account, record, log=None):
         self.page, self.manifest, self.base = page, deepcopy(manifest), base
         self.expected_account, self.record = expected_account, record
+        self.log = log or (lambda msg: None)
         self.remote_id = None
         self.identity_verified = False
         self.identity_changed = False
@@ -41,6 +47,10 @@ class DraftUI:
     def guard_request(self, route):
         # Tidak membaca header/body. Guard ini juga berlaku selama auto-wait klik.
         if route.request.method not in ('GET', 'HEAD', 'OPTIONS'):
+            url_str = getattr(route.request, 'url', None)
+            if isinstance(url_str, str) and urlsplit(url_str).path == '/api/auth/refresh':
+                route.continue_()
+                return
             u = urlsplit(self.page.url)
             if (self.read_only or not self.identity_verified or self.identity_changed or self.page.is_closed() or
                     u.scheme != 'https' or u.netloc != 'toolost.com' or
@@ -64,8 +74,12 @@ class DraftUI:
     def close(self):
         try:
             self.page.context.unroute('https://toolost.com/**', self.guard_request)
-        finally:
+        except Exception:
+            pass
+        try:
             self.page.context.remove_listener('response', self.observe_account)
+        except Exception:
+            pass
 
     def guard_identity(self):
         self.guard()
@@ -107,7 +121,9 @@ class DraftUI:
 
     def verify_account(self):
         self.identity_verified = False
+        self.identity_changed = False
         self.guard()
+        self.log('Memeriksa target browser dan status autentikasi akun...')
         if not urlsplit(self.page.url).path.startswith('/user-portal'):
             raise DraftError('start_from_portal_required')
         if self.page.locator('[role=dialog]:visible,[aria-modal=true]:visible').count():
@@ -126,7 +142,7 @@ class DraftUI:
         try:
             self.page.goto('https://toolost.com/user-portal/releases/manage/1', wait_until='domcontentloaded', timeout=30000)
             self.page.get_by_role('button', name='Create New Release', exact=True).wait_for(state='visible', timeout=30000)
-            for _ in range(20):
+            for _ in range(40):
                 if ids:
                     break
                 self.page.wait_for_timeout(250)
@@ -134,24 +150,33 @@ class DraftUI:
             if not ids or any(value != self.expected_account for value in ids) or self.identity_changed:
                 raise DraftError('account_mismatch_or_unobserved')
             self.identity_verified = True
+            self.log(f'Identitas akun terverifikasi: id={self.expected_account}')
         finally:
             self.page.remove_listener('response', response)
             ids.clear()
 
     def create(self):
         page = self.page
+        self.log(f"Membuka portal uploader dan memilih tipe rilis '{self.manifest['release_type']}'...")
         self.click(page.locator('a[href="/uploader"]:visible'))
         dialog = page.get_by_role('dialog').filter(has=page.get_by_role('heading', name='Select release type', exact=True))
         dialog.wait_for(state='visible', timeout=30000)
-        self.click(dialog.get_by_role('button', name=re.compile(r'^Single\s+1–3 tracks$')))
+        if self.manifest['release_type'] == 'single':
+            self.click(dialog.get_by_role('button', name=re.compile(r'^Single\s+1–3 tracks$')))
+        elif self.manifest['release_type'] == 'album':
+            self.click(dialog.get_by_role('button', name=re.compile(r'^Album\s+', re.I)))
+        else:
+            raise DraftError('unsupported_live_manifest')
         self.click(dialog.get_by_role('button', name='Continue', exact=True))
         name_dialog = page.get_by_role('dialog').filter(has_text='Name your release')
         self.guard_identity()
+        self.log(f"Mengisi judul rilis: '{self.manifest['title']}'...")
         name_dialog.get_by_role('textbox').fill(self.manifest['title'])
         self.click(name_dialog.get_by_role('button', name='Create Release', exact=True))
         page.wait_for_url(re.compile(r'https://toolost\.com/uploader/edit/[0-9]+$'), timeout=30000)
         self.remote_id = urlsplit(page.url).path.rsplit('/', 1)[1]
         page.get_by_role('button', name='Artwork', exact=True).wait_for(state='visible')
+        self.log(f'Draft rilis baru terbuat di uploader: remote_id={self.remote_id}')
 
     def asset(self, reference):
         file_reference(reference, self.base)
@@ -160,36 +185,119 @@ class DraftUI:
 
     def artwork(self):
         page = self.page
+        self.log('Membuka panel Artwork...')
         self.click(page.get_by_role('button', name='Artwork', exact=True))
-        self.click(page.get_by_role('button', name=re.compile(r'^Upload Artwork(?:\s|$)')))
+        btn_upload = page.get_by_role('button', name=re.compile(r'^(?:Upload Artwork|Upload new file|Replace)', re.I))
+        if hasattr(btn_upload, 'first'):
+            btn_upload = btn_upload.first
+        if hasattr(btn_upload, 'wait_for'):
+            btn_upload.wait_for(state='visible', timeout=15000)
+        self.click(btn_upload)
         dialog = page.get_by_role('dialog').filter(has_text=re.compile('Upload artwork', re.I))
+        if hasattr(dialog, 'wait_for'):
+            dialog.wait_for(state='visible', timeout=15000)
         with page.expect_file_chooser(timeout=10000) as chooser:
-            self.click(dialog.get_by_text('browse files', exact=True))
+            browse_btn = dialog.get_by_text('browse files', exact=True)
+            self.click(browse_btn)
         asset = self.asset(self.manifest['artwork'])
         self.guard_target()
+        self.log(f'Mengunggah file artwork: {asset}...')
         chooser.value.set_files(asset)
-        page.get_by_text('Artwork selected', exact=True).wait_for(state='visible', timeout=180000)
+        self.log('Menunggu proses upload dan encoding artwork...')
+        replace_btn = page.get_by_role('button', name=re.compile('Replace', re.I))
+        txt = page.get_by_text(re.compile(r'Artwork selected|Uploaded', re.I))
+        art_container = page.locator('.artwork-selected')
+        page.wait_for_timeout(1000)
+        for _ in range(360):
+            is_container = art_container.count() > 0 if hasattr(art_container, 'count') else False
+            is_dialog_hidden = page.locator('.tl-upload-dialog:visible').count() == 0 if hasattr(page.locator('.tl-upload-dialog:visible'), 'count') else True
+            is_rep = replace_btn.first.is_visible() if hasattr(replace_btn, 'first') and hasattr(replace_btn.first, 'is_visible') else False
+            is_txt = txt.first.is_visible() if hasattr(txt, 'first') and hasattr(txt.first, 'is_visible') else False
+            if (is_container or is_rep or is_txt) and is_dialog_hidden:
+                break
+            if is_container:
+                break
+            page.wait_for_timeout(500)
+        else:
+            raise DraftError('artwork_upload_timeout')
+        self.log('Unggahan artwork selesai.')
+
+    def reorder_tracks(self):
+        items = self.page.locator('.track-item:visible')
+        if not hasattr(items, 'count'):
+            return
+        try:
+            count = items.count()
+        except Exception:
+            return
+        if type(count) is not int or count <= 1:
+            return
+        manifest_basenames = [Path(t['audio']['path']).stem.lower() for t in self.manifest['tracks']]
+        for target_idx, stem in enumerate(manifest_basenames):
+            try:
+                current_texts = [items.nth(i).text_content().lower() for i in range(count)]
+            except Exception:
+                break
+            actual_idx = None
+            for idx, text in enumerate(current_texts):
+                if stem in text:
+                    actual_idx = idx
+                    break
+            if actual_idx is not None and actual_idx != target_idx and actual_idx > target_idx:
+                try:
+                    self.log(f"Menyesuaikan urutan track '{stem}' ke posisi {target_idx + 1}...")
+                    box_target = items.nth(target_idx).bounding_box()
+                    handle_actual = items.nth(actual_idx).locator('.track-item__drag').bounding_box()
+                    if box_target and handle_actual:
+                        self.page.mouse.move(handle_actual['x'] + handle_actual['width'] / 2,
+                                             handle_actual['y'] + handle_actual['height'] / 2)
+                        self.page.mouse.down()
+                        self.page.mouse.move(box_target['x'] + box_target['width'] / 2, box_target['y'] + 5, steps=10)
+                        self.page.mouse.up()
+                        self.page.wait_for_timeout(1000)
+                except Exception:
+                    pass
 
     def audio(self):
         page = self.page
+        self.log('Membuka tab Manage Tracks...')
         self.click(page.get_by_role('button', name='Manage Tracks', exact=True))
         if page.locator('.track-item:visible').count() != 0:
             raise DraftError('unexpected_existing_tracks')
-        self.click(page.get_by_role('button', name=re.compile(r'^Upload tracks(?:\s|$)')))
-        dialog = page.locator('[role=dialog]:visible').filter(has=page.get_by_role('button', name='Cancel', exact=True))
+        upload_btn = page.get_by_role('button', name=re.compile(r'^Upload tracks', re.I))
+        if hasattr(upload_btn, 'wait_for'):
+            upload_btn.wait_for(state='visible', timeout=15000)
+        self.click(upload_btn)
+        dialog = page.locator('[role=dialog]:visible').filter(has_text=re.compile('Upload tracks', re.I))
+        if hasattr(dialog, 'wait_for'):
+            dialog.wait_for(state='visible', timeout=15000)
         with page.expect_file_chooser(timeout=10000) as chooser:
             self.click(dialog.get_by_text('browse files', exact=True))
-        asset = self.asset(self.manifest['tracks'][0]['audio'])
+        assets = [self.asset(t['audio']) for t in self.manifest['tracks']]
         self.guard_target()
-        chooser.value.set_files(asset)
-        self.click(dialog.get_by_role('button', name=re.compile(r'^Upload\s+1\s+file$')))
+        self.log(f'Mengunggah {len(assets)} file audio track...')
+        chooser.value.set_files(assets[0] if len(assets) == 1 else assets)
+        count = len(assets)
+        btn_regex = r'^Upload\s+1\s+file' if count == 1 else rf'^Upload\s+{count}\s+files'
+        self.click(dialog.get_by_role('button', name=re.compile(btn_regex, re.I)))
+        self.log(f'Menunggu transfer dan encoding {count} file audio selesai...')
         page.locator('.track-item:visible').first.wait_for(state='visible', timeout=240000)
-        if page.locator('.track-item:visible').count() != 1:
+        if page.locator('.track-item:visible').count() != count:
             raise DraftError('track_identity_ambiguous')
-        dialog.wait_for(state='hidden', timeout=30000)
+        for _ in range(60):
+            if page.locator('.tl-upload-dialog:visible').count() == 0:
+                break
+            page.wait_for_timeout(500)
+        self.log('Unggahan berkas audio selesai. Memeriksa urutan track...')
+        self.reorder_tracks()
 
-    def editor(self):
-        self.click(self.page.locator('.track-item:visible').get_by_role('button', name='Edit', exact=True))
+    def editor(self, index=0):
+        items = self.page.locator('.track-item:visible')
+        if hasattr(items, 'nth'):
+            button = items.nth(index).get_by_role('button', name='Edit', exact=True)
+        else:
+            button = items.get_by_role('button', name='Edit', exact=True)
+        self.click(button)
         self.page.get_by_role('textbox', name='Track name', exact=True).wait_for(state='visible')
 
     def ai_switch(self):
@@ -201,11 +309,15 @@ class DraftUI:
         return switches
 
     def metadata(self):
-        self.editor()
-        self.metadata_open()
+        total = len(self.manifest['tracks'])
+        for i, track in enumerate(self.manifest['tracks']):
+            self.log(f"Mengisi metadata track {i + 1}/{total}: '{track['title']}' (AI: {track['ai_assisted']})...")
+            self.editor(i)
+            self.metadata_open(track)
 
-    def metadata_open(self):
-        track = self.manifest['tracks'][0]
+    def metadata_open(self, track=None):
+        if track is None:
+            track = self.manifest['tracks'][0]
         title = self.page.get_by_role('textbox', name='Track name', exact=True)
         if not title.is_editable():
             if title.input_value() != track['title']:
@@ -225,6 +337,7 @@ class DraftUI:
 
     def save(self):
         page = self.page
+        self.log('Menyimpan draft release (Save Changes)...')
         self.click(page.get_by_role('button', name='Save Changes', exact=True))
         dialog = page.get_by_role('dialog').filter(has=page.get_by_role('button', name='Save', exact=True))
         # Either confirmation or navigation; never retry Save Changes.
@@ -233,41 +346,58 @@ class DraftUI:
                 self.click(dialog.get_by_role('button', name='Save', exact=True))
                 break
             if '/releases/manage/' in page.url:
+                self.log('Draft berhasil disimpan (navigasi ke daftar rilis).')
                 return
             page.wait_for_timeout(250)
         else:
             raise DraftError('save_outcome_unknown')
+        self.log('Menunggu konfirmasi penyimpanan selesai...')
         page.get_by_text('Saving your release', exact=False).wait_for(state='hidden', timeout=60000)
         if page.get_by_text('Something went wrong while saving your release.', exact=False).is_visible():
             raise DraftError('save_outcome_unknown')
+        self.log('Penyimpanan draft di Too Lost berhasil.')
 
     def readback(self):
         page = self.page
         self.read_only = True
+        self.log(f'Membuka draft uploader untuk readback verifikasi: {self.remote_id}...')
         self.guard_identity()
         page.goto('https://toolost.com/uploader/edit/' + self.remote_id, wait_until='domcontentloaded', timeout=30000)
         self.guard_identity()
         if urlsplit(page.url).path != '/uploader/edit/' + self.remote_id:
             raise DraftError('draft_target_changed')
         page.get_by_role('button', name='Basic Information', exact=True).wait_for(state='visible', timeout=30000)
-        title = page.get_by_role('textbox', name='Single name', exact=True)
         self.click(page.get_by_role('button', name='Basic Information', exact=True))
+        title_label = 'Single name' if self.manifest['release_type'] == 'single' else 'Album name'
+        title = page.get_by_role('textbox', name=title_label, exact=True)
         title.wait_for(state='visible')
         if title.input_value() != self.manifest['title']:
             raise DraftError('release_title_or_type_mismatch')
+        self.log(f"Verifikasi judul rilis '{self.manifest['title']}' cocok.")
         self.click(page.get_by_role('button', name='Artwork', exact=True))
-        page.get_by_text('Artwork selected', exact=True).wait_for(state='visible', timeout=30000)
+        for _ in range(40):
+            if hasattr(page.locator('.artwork-selected'), 'count') and page.locator('.artwork-selected').count() > 0:
+                break
+            page.wait_for_timeout(250)
+        else:
+            page.get_by_text(re.compile(r'Artwork selected|Uploaded', re.I)).first.wait_for(state='visible', timeout=15000)
+        self.log('Verifikasi artwork tersimpan cocok.')
         self.click(page.get_by_role('button', name='Manage Tracks', exact=True))
         page.locator('.track-item:visible').first.wait_for(state='visible')
-        if page.locator('.track-item:visible').count() != 1:
+        track_count = len(self.manifest['tracks'])
+        if page.locator('.track-item:visible').count() != track_count:
             raise DraftError('track_readback_mismatch')
-        self.editor()
-        track = self.manifest['tracks'][0]
-        if page.get_by_role('textbox', name='Track name', exact=True).input_value() != track['title']:
-            raise DraftError('title_readback_mismatch')
-        if self.ai_switch().get_attribute('aria-checked') != str(track['ai_assisted']).lower():
-            raise DraftError('ai_readback_mismatch')
+        for i, track in enumerate(self.manifest['tracks']):
+            self.editor(i)
+            if page.get_by_role('textbox', name='Track name', exact=True).input_value() != track['title']:
+                raise DraftError('title_readback_mismatch')
+            if self.ai_switch().get_attribute('aria-checked') != str(track['ai_assisted']).lower():
+                raise DraftError('ai_readback_mismatch')
+            done_btn = page.get_by_role('button', name='Done', exact=True)
+            if i < track_count - 1 and type(done_btn.count()) is int and done_btn.count() > 0:
+                self.click(done_btn)
         self.guard_target()
+        self.log(f'Readback verifikasi {track_count} tracks dan metadata sukses.')
 
 
 def run_steps(ui):
@@ -280,7 +410,8 @@ def run_steps(ui):
 
 def execute(path, *, alias, expected_account, endpoint, approve_draft, accept_ui_date, root=None,
             resume_before_artwork=False, resume_before_audio=False, resume_selected_audio=False,
-            resume_open_metadata=False, approve_release_title_amendment=False, reconcile_only=False):
+            resume_open_metadata=False, approve_release_title_amendment=False, reconcile_only=False,
+            log=None):
     if approve_draft is not True or accept_ui_date is not True:
         raise DraftError('confirmation_required')
     if not re.fullmatch(r'[1-9][0-9]*', expected_account):
@@ -292,6 +423,8 @@ def execute(path, *, alias, expected_account, endpoint, approve_draft, accept_ui
         raise DraftError('debug_recovery_requires_readback_only')
     if reconcile_only and approve_release_title_amendment:
         raise DraftError('title_amendment_immutable')
+    if log:
+        log(f"Memeriksa preflight manifest: {path}")
     manifest, base = preflight(path, verify_assets=not reconcile_only)
     with profile(alias, root=root) as session:
         if reconcile_only:
@@ -307,6 +440,8 @@ def execute(path, *, alias, expected_account, endpoint, approve_draft, accept_ui
                 journal.approve_title()
         def record(operation, outcome, remote_id):
             journal.record(operation, outcome, remote_id)
+        if log:
+            log(f"Menghubungkan ke browser CDP di {endpoint}...")
         from playwright.sync_api import sync_playwright
         with sync_playwright() as p:
             browser = p.chromium.connect_over_cdp(endpoint)
@@ -315,7 +450,7 @@ def execute(path, *, alias, expected_account, endpoint, approve_draft, accept_ui
                      and urlsplit(page.url).netloc == 'toolost.com']
             if len(pages) != 1:
                 raise DraftError('ambiguous_browser_target')
-            ui = DraftUI(pages[0], journal.effective_manifest(), base, expected_account, record)
+            ui = DraftUI(pages[0], journal.effective_manifest(), base, expected_account, record, log=log)
             ui.read_only = reconcile_only
             try:
                 if reconcile_only:
