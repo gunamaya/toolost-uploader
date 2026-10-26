@@ -300,15 +300,13 @@ class Profile:
         _require(old_manifest.get("release_type") == "album" and manifest.get("release_type") == "album", "update_requires_album")
         old_tracks = old_manifest.get("tracks", [])
         new_tracks = manifest.get("tracks", [])
-        _require(len(new_tracks) >= len(old_tracks), "update_cannot_remove_tracks")
 
-        # Track lama harus mempertahankan track_id dan audio reference
-        for i, old_track in enumerate(old_tracks):
-            new_track = new_tracks[i]
-            _require(new_track.get("track_id") == old_track.get("track_id"), "update_track_id_mismatch")
-            _require(new_track.get("audio") == old_track.get("audio"), "update_audio_cannot_change")
+        # Semua audio track lama harus tetap dipertahankan (tidak boleh menghapus lagu)
+        old_audio_hashes = {t.get("audio", {}).get("sha256") for t in old_tracks}
+        new_audio_hashes = {t.get("audio", {}).get("sha256") for t in new_tracks}
+        _require(old_audio_hashes.issubset(new_audio_hashes), "update_cannot_remove_tracks")
 
-        # Harus ada perubahan metadata atau track baru
+        # Harus ada perbedaan nyata (title, release_date, artwork, track metadata/urutan)
         _require(manifest != old_manifest, "checkpoint_already_up_to_date")
 
         record.update(

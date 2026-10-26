@@ -456,6 +456,14 @@ class DraftUI:
             self.editor(track_idx)
             self.metadata_open(track)
 
+    def sync_metadata_and_order(self):
+        self.reorder_tracks()
+        total = len(self.manifest['tracks'])
+        for i, track in enumerate(self.manifest['tracks']):
+            self.log(f"Menyinkronkan metadata track {i + 1}/{total}: '{track['title']}' (AI: {track['ai_assisted']})...")
+            self.editor(i)
+            self.metadata_open(track)
+
     def metadata_open(self, track=None):
         if track is None:
             track = self.manifest['tracks'][0]
@@ -620,7 +628,7 @@ def run_steps(ui):
     ui.record('readback', 'verified_subset', ui.remote_id)
 
 
-def update_run_steps(ui, title_changed, date_changed, artwork_changed, tracks_to_append, tracks_to_update, old_count):
+def update_run_steps(ui, title_changed, date_changed, artwork_changed, tracks_to_upload, old_count):
     ui.verify_account()
     ui.guard_identity()
     ui.log(f'Membuka draft release uploader untuk update/sinkronisasi: {ui.remote_id}...')
@@ -638,11 +646,10 @@ def update_run_steps(ui, title_changed, date_changed, artwork_changed, tracks_to
     if artwork_changed:
         ui.action('update_artwork', ui.artwork)
 
-    if tracks_to_append:
-        ui.action('append_audio', lambda: ui.append_tracks(tracks_to_append, old_count))
+    if tracks_to_upload:
+        ui.action('append_audio', lambda: ui.append_tracks(tracks_to_upload, old_count))
 
-    if tracks_to_update or tracks_to_append:
-        ui.action('update_metadata', lambda: ui.metadata_update_and_append(tracks_to_update, tracks_to_append, old_count))
+    ui.action('update_metadata', lambda: ui.sync_metadata_and_order())
 
     ui.action('save', ui.save)
     ui.readback()
@@ -650,7 +657,7 @@ def update_run_steps(ui, title_changed, date_changed, artwork_changed, tracks_to
 
 
 def append_run_steps(ui, new_tracks, old_count):
-    return update_run_steps(ui, False, False, False, new_tracks, [], old_count)
+    return update_run_steps(ui, False, False, False, new_tracks, old_count)
 
 
 def execute(path, *, alias, expected_account, endpoint, approve_draft, accept_ui_date, root=None,
@@ -705,16 +712,10 @@ def execute(path, *, alias, expected_account, endpoint, approve_draft, accept_ui
             old_count = len(old_tracks)
             new_count = len(new_tracks)
 
-            tracks_to_update = []
-            for i in range(min(old_count, new_count)):
-                ot, nt = old_tracks[i], new_tracks[i]
-                if (ot.get('title') != nt.get('title') or
-                    ot.get('ai_assisted') != nt.get('ai_assisted') or
-                    ot.get('lyrics') != nt.get('lyrics')):
-                    tracks_to_update.append((i, nt))
+            old_audio_hashes = {t['audio']['sha256'] for t in old_tracks}
+            tracks_to_upload = [t for t in new_tracks if t['audio']['sha256'] not in old_audio_hashes]
 
-            tracks_to_append = new_tracks[old_count:] if new_count > old_count else []
-            has_changes = title_changed or date_changed or artwork_changed or bool(tracks_to_update) or bool(tracks_to_append)
+            has_changes = (manifest != old_manifest)
 
             journal = LiveJournal(session, old_checkpoint, expected_account, endpoint, existing=True)
             remote_id = journal.require_reconciliation()
@@ -752,12 +753,12 @@ def execute(path, *, alias, expected_account, endpoint, approve_draft, accept_ui
                     journal.verify_readback()
                 elif allow_sync:
                     ui.remote_id = remote_id
-                    update_run_steps(ui, title_changed, date_changed, artwork_changed, tracks_to_append, tracks_to_update, old_count)
+                    update_run_steps(ui, title_changed, date_changed, artwork_changed, tracks_to_upload, old_count)
                 else:
                     run_steps(ui)
             finally:
                 ui.close()
-        out_status = 'draft_readback_subset' if reconcile_only else ('draft_appended_subset' if (allow_append and not tracks_to_update and not title_changed and not artwork_changed and not date_changed) else ('draft_updated_subset' if allow_sync else 'draft_saved_subset'))
+        out_status = 'draft_readback_subset' if reconcile_only else ('draft_appended_subset' if (allow_append and not title_changed and not artwork_changed and not date_changed) else ('draft_updated_subset' if allow_sync else 'draft_saved_subset'))
         return dict(status=out_status,
                     run_id=checkpoint['run_id'], draft_id=ui.remote_id,
                     warnings=['Tanggal rilis disinkronkan dengan manifest.' if (allow_sync and date_changed) else 'Tanggal UI diwarisi; bukan release_date manifest terverifikasi.',

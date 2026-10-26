@@ -30,6 +30,7 @@ Status: `ready`, `in_progress`, `blocked`, `needs_reconciliation`, `done`, `defe
 | CDP-02 | P2 | done | Dukungan unggah berkas audio besar (>50MB) via is_local di CDP | Sukses bypass limit 50MB; 179 tes; rilis 0.1.3; CP-021 |
 | FIN-01 | P2 | done | Finalisasi step pasca-readback: Done track terakhir, Save Changes, & kembali ke portal | Sukses Done, Save, & navigasi portal; 180 tes; rilis 0.1.4; CP-022 |
 | UPD-01 | P2 | done | Fitur update metadata & append track otomatis ke draft existing | Sukses update & append; 188 tes; rilis 0.1.5; CP-023 |
+| UPD-02 | P2 | done | Dukungan penyisipan lagu di posisi sembarang & reordering track | Sukses validasi audio subset & reorder; 188 tes; rilis 0.1.6; CP-024 |
 | PUB-01 | P3 | deferred | Implementasi publish/distribusi | Persetujuan eksplisit terpisah; tidak masuk executor saat ini |
 
 Alasan urutan: tata kerja dulu, kemudian review command/integrasi sesuai arah produk. Tidak menambah hardening/refactor otomatis. Smoke draft sukses tidak diulang. Resume dan publish belum diaktifkan; rights/artist/services/AI Documentation otomatis di luar scope.
@@ -40,10 +41,10 @@ Alasan urutan: tata kerja dulu, kemudian review command/integrasi sesuai arah pr
 
 ## Checkpoint terbaru
 
-- [CP-019](backlog/CHECKPOINT-HISTORY.md#cp-019--selesai-tab-01-optimalisasi-manajemen-tab-browser-cdp-reuse-tab-aktif--tutup-tab-redundan): TAB-01 done; helper acquire_active_page mencegah tab baru berlebih dan menutup tab redundan untuk menghemat memori.
 - [CP-020](backlog/CHECKPOINT-HISTORY.md#cp-020--publikasi-rilis-012-ke-pypi-optimalisasi-tab-memory--tab-lyrics): Rilis 0.1.2 ke PyPI produksi; menyertakan fitur optimalisasi memori tab dan otomasi lirik.
 - [CP-021](backlog/CHECKPOINT-HISTORY.md#cp-021--selesai-cdp-02--rilis-013-dukungan-unggah-berkas-audio-besar-50mb-via-is_local-di-cdp): CDP-02 done; dukungan is_local di connect_over_cdp mengangkat batas 50MB Playwright; rilis 0.1.3 live di PyPI.
 - [CP-022](backlog/CHECKPOINT-HISTORY.md#cp-022--selesai-fin-01--rilis-014-finalisasi-step-pasca-readback-done-track-terakhir-save-changes--kembali-ke-portal): FIN-01 done; tombol Done track terakhir selalu diklik, Save Changes pasca-verifikasi dijalankan, dan browser dinavigasikan kembali ke portal daftar rilis; rilis 0.1.4 live di PyPI.
 - [CP-023](backlog/CHECKPOINT-HISTORY.md#cp-023--selesai-upd-01--rilis-015-fitur-update-komprehensif-judul-tanggal-rilis-artwork-metadata-track--append-lagu-susulan): UPD-01 done; dukungan sinkronisasi update komprehensif (judul album, tanggal rilis, artwork, perbaikan lirik/AI/judul lagu, serta append lagu susulan); 188 tes; rilis 0.1.5 live di PyPI.
+- [CP-024](backlog/CHECKPOINT-HISTORY.md#cp-024--selesai-upd-02--rilis-016-dukungan-penyisipan-lagu-di-posisi-sembarang--reordering-track): UPD-02 done; kontinuitas update berbasis integritas audio hash (subset) mendukung penyisipan lagu di tengah urutan dan penataan posisi fisik track via drag & drop; rilis 0.1.6 live di PyPI.
 
 Maksimal lima ringkasan terbaru di sini; history lengkap append-only. Jangan memasukkan path privat, ID akun/draft, aset, token, capture atau isi checkpoint runtime ke backlog.

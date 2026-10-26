@@ -227,6 +227,24 @@ Status/prioritas/dependency/klaim terkini mengikuti [current index](../ANTRIAN-P
 - **Verifier:** `python3 -m unittest discover -s tests -q`, `git diff --check`.
 - **Hasil:** Selesai (`done`, [CP-023](CHECKPOINT-HISTORY.md#cp-023--selesai-upd-01--rilis-015-fitur-update-komprehensif-judul-tanggal-rilis-artwork-metadata-track--append-lagu-susulan)); seluruh acceptance terpenuhi dan versi `0.1.5` dipublikasikan ke PyPI.
 
+## UPD-02 — Dukungan penyisipan lagu di posisi sembarang & reordering track (done)
+
+- **Sumber:** Laporan error pengguna 2026-10-27: `StorageError (update_track_id_mismatch)` saat flowstudio menambahkan lagu baru di tengah urutan rilis (posisi 5 dan 11).
+- **Masuk:**
+  1. Storage: Mengganti pengecekan kaku indeks array per-track (`track_id` lama vs baru) di `toolost_uploader/storage.py` dengan validasi himpunan hash integritas audio (`old_audio_hashes.issubset(new_audio_hashes)`). Hal ini memastikan kontinuitas rekaman audio terlindungi tanpa terikat oleh pergeseran penomoran urutan `track_id` flowstudio (`trk_{posisi}_{hash}`).
+  2. Live Draft UI Reordering: Di `toolost_uploader/live_draft.py`:
+     - Menambahkan method `sync_metadata_and_order` untuk menata urutan fisik track via drag & drop (`reorder_tracks`) berdasarkan nama berkas audio, lalu mengisi metadata (nama lagu, switch AI, dan lirik) sesuai nomor urut manifest terbaru.
+     - Menyederhanakan argumen `update_run_steps` menjadi 6 argumen deterministik.
+  3. Pengujian: Memperbarui tes offline di `tests/test_storage.py` dan `tests/test_live_draft.py` (188 tests lolos 100%).
+  4. Version bump ke `0.1.6` dan publikasi rilis PyPI baru.
+- **Keluar:** Menghapus audio lagu lama yang sudah ada di draft remote.
+- **Acceptance:**
+  - Penambahan lagu di posisi tengah maupun awal tidak lagi memicu `update_track_id_mismatch`.
+  - Berkas audio yang belum ada diunggah, lalu seluruh daftar track diurutkan sesuai urutan manifest.
+  - Seluruh test suite offline 100% lulus; `git diff --check` bersih.
+- **Verifier:** `python3 -m unittest discover -s tests -q`, `git diff --check`.
+- **Hasil:** Selesai (`done`, [CP-024](CHECKPOINT-HISTORY.md#cp-024--selesai-upd-02--rilis-016-dukungan-penyisipan-lagu-di-posisi-sembarang--reordering-track)); kontinuitas berbasis audio hash terpasang, reorder track terintegrasi, 188 unit tests lolos, dan rilis `0.1.6` live di PyPI.
+
 ## PUB-01 — Publish/distribusi (deferred)
 
 - **Sumber:** arah produk final, bukan izin implementasi/eksekusi; [RELEASE-CONTRACT](../RELEASE-CONTRACT.md) masih proposal.

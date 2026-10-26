@@ -354,10 +354,10 @@ with storage.profile('test', root=sys.argv[1]) as session:
             })
             self.error('revision_conflict', session.update_checkpoint, album_third, self.base, expected_revision=1)
 
-            # 5. Mengubah audio track lama dilarang
+            # 5. Mengganti audio track lama sehingga audio lama hilang dilarang
             bad_audio = copy.deepcopy(album_third)
             bad_audio['tracks'][0]['audio'] = bad_audio['tracks'][2]['audio']
-            self.error('update_audio_cannot_change', session.update_checkpoint, bad_audio, self.base, expected_revision=3)
+            self.error('update_cannot_remove_tracks', session.update_checkpoint, bad_audio, self.base, expected_revision=3)
 
             # 6. Menghapus track dilarang
             reduced = copy.deepcopy(album)

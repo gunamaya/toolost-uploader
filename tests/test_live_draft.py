@@ -511,14 +511,13 @@ class LiveDraftTests(unittest.TestCase):
             self.assertEqual(res['draft_id'], '2009483')
             mock_update_steps.assert_called_once()
             args, kwargs = mock_update_steps.call_args
-            # ui, title_changed, date_changed, artwork_changed, tracks_to_append, tracks_to_update, old_count
+            # ui, title_changed, date_changed, artwork_changed, tracks_to_upload, old_count
             self.assertFalse(args[1]) # title_changed
             self.assertFalse(args[2]) # date_changed
             self.assertFalse(args[3]) # artwork_changed
-            self.assertEqual(len(args[4]), 1) # tracks_to_append
+            self.assertEqual(len(args[4]), 1) # tracks_to_upload
             self.assertEqual(args[4][0]['title'], 'Track Dua Susulan')
-            self.assertEqual(len(args[5]), 0) # tracks_to_update
-            self.assertEqual(args[6], 1) # old_count
+            self.assertEqual(args[5], 1) # old_count
 
         # Verifikasi checkpoint di disk sudah ter-update ke revisi 2
         with test_storage.storage.profile('test', root=self.root) as session:
@@ -571,13 +570,12 @@ class LiveDraftTests(unittest.TestCase):
             self.assertEqual(res['draft_id'], '2009483')
             mock_update_steps.assert_called_once()
             args, _ = mock_update_steps.call_args
-            # ui, title_changed, date_changed, artwork_changed, tracks_to_append, tracks_to_update, old_count
+            # ui, title_changed, date_changed, artwork_changed, tracks_to_upload, old_count
             self.assertTrue(args[1]) # title_changed
             self.assertTrue(args[2]) # date_changed
             self.assertTrue(args[3]) # artwork_changed
-            self.assertEqual(len(args[4]), 0) # tracks_to_append
-            self.assertEqual(len(args[5]), 1) # tracks_to_update
-            self.assertEqual(args[5][0][1]['title'], 'Judul Lagu Satu Diperbaiki')
+            self.assertEqual(len(args[4]), 0) # tracks_to_upload
+            self.assertEqual(args[5], 1) # old_count
 
     def test_update_draft_already_up_to_date(self):
         album1 = copy.deepcopy(self.manifest)
