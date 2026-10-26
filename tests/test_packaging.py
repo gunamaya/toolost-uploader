@@ -26,9 +26,9 @@ class PackagingTests(unittest.TestCase):
             self.assertIn('toolost_uploader/validation.py', wheel_names)
             metadata_name = next(name for name in wheel_names if name.endswith('.dist-info/METADATA'))
             metadata = archive.read(metadata_name).decode()
-            self.assertIn('Private :: Do Not Upload', metadata)
+            self.assertNotIn('Private :: Do Not Upload', metadata)
             self.assertIn('Requires-Python: >=3.10', metadata)
-            self.assertTrue(all('extra ==' in line for line in metadata.splitlines() if line.startswith('Requires-Dist:')))
+            self.assertIn('Requires-Dist: playwright', metadata)
             self.assertFalse(any(name.startswith(('tests/', 'scripts/', 'docs/')) for name in wheel_names))
         with tarfile.open(sdists[0]) as archive:
             sdist_names = archive.getnames()

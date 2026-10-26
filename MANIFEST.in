@@ -1,18 +1,11 @@
 include README.md
-include docs/contract-manifest.example.json
-include docs/OFFLINE-VALIDATION.md
-include docs/LOCAL-STATE.md
-include docs/OFFLINE-JOURNAL.md
-include docs/FAKE-UI.md
-include docs/FAKE-UPLOAD.md
-include docs/OFFLINE-APPROVAL.md
-include docs/FAKE-FLOW.md
-include docs/FAKE-WORKFLOW.md
-include docs/READ-ONLY.md
+include LICENSE
+include pyproject.toml
 include docs/schemas/*.json
-include scripts/validate.py
-include scripts/upload_draft.py
-include docs/LIVE-DRAFT.md
-include docs/CONTINUE-IMPLEMENTATION.md
-include scripts/gather.py
-include tests/test_*.py
+
+recursive-include toolost_uploader *.py
+
+prune .local
+prune .venv
+exclude .gitignore
+global-exclude *.py[cod] __pycache__ *.so

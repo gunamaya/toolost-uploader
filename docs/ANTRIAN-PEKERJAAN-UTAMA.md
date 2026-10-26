@@ -24,7 +24,7 @@ Status: `ready`, `in_progress`, `blocked`, `needs_reconciliation`, `done`, `defe
 | LIVE-02 | P2 | done | Verifikasi live Playwright Album multi-track sesudah implementasi CLI-02 | Sukses live draft Album exit 0; 162 tes; CP-011 |
 | ENV-01 | P2 | done | Subcommand setup, check (readiness), dan auto-bootup Chrome CDP | Sukses check readiness & 171 unit tests; CP-013 |
 | INT-01 | P2 | ready | Rencana & spesifikasi adapter integrasi subprocess yt-to-flowmusic | Selesainya CLI-02 & LIVE-02; integrasi manifest JSON & ProcessRunner |
-| PKG-01 | P2 | ready | Persiapan packaging, metadata, lisensi, sanitasi sdist/wheel, dan rilis PyPI | Rencana PACKAGING-PLAN.md; butuh izin user sebelum upload publik |
+| PKG-01 | P2 | done | Persiapan packaging, metadata, lisensi, sanitasi sdist/wheel, dan rilis PyPI | Build sdist/wheel bersih, lolos twine check & 171 tes; CP-014 |
 | PUB-01 | P3 | deferred | Implementasi publish/distribusi | Persetujuan eksplisit terpisah; tidak masuk executor saat ini |
 
 Alasan urutan: tata kerja dulu, kemudian review command/integrasi sesuai arah produk. Tidak menambah hardening/refactor otomatis. Smoke draft sukses tidak diulang. Resume dan publish belum diaktifkan; rights/artist/services/AI Documentation otomatis di luar scope.
@@ -35,10 +35,10 @@ Alasan urutan: tata kerja dulu, kemudian review command/integrasi sesuai arah pr
 
 ## Checkpoint terbaru
 
-- [CP-009](backlog/CHECKPOINT-HISTORY.md#cp-009--blocker-live-02-sesi-browser-401-unauthorized): blocker 401 Unauthorized pada preflight akun; ditahan.
 - [CP-010](backlog/CHECKPOINT-HISTORY.md#cp-010--implementasi-verbose-progress-logging-cli--draftui): penambahan flag --verbose CLI & logging progress DraftUI ke stderr; 162 tes.
 - [CP-011](backlog/CHECKPOINT-HISTORY.md#cp-011--selesai-live-02-verifikasi-live-playwright-draft-album-multi-track): LIVE-02 done; verifikasi live draft Album multi-track sukses exit 0 (draft ID 2004317); 162 tes.
 - [CP-012](backlog/CHECKPOINT-HISTORY.md#cp-012--penutupan-res-01-superseded-dan-inisiasi-int-01): RES-01 ditutup (superseded); inisiasi task rencana integrasi INT-01.
 - [CP-013](backlog/CHECKPOINT-HISTORY.md#cp-013--selesai-env-01-subcommand-setup-check-readiness-dan-auto-bootup-cdp): ENV-01 done; subcommand setup, check, auto-bootup CDP, dan 171 unit tests offline sukses.
+- [CP-014](backlog/CHECKPOINT-HISTORY.md#cp-014--selesai-pkg-01-metadata-lisensi-mit-sanitasi-manifest-build--twine-verification): PKG-01 done; lisensi MIT, metadata 0.1.0, sanitasi sdist/wheel, lolos twine check.
 
 Maksimal lima ringkasan terbaru di sini; history lengkap append-only. Jangan memasukkan path privat, ID akun/draft, aset, token, capture atau isi checkpoint runtime ke backlog.

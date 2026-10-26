@@ -107,7 +107,7 @@ Status/prioritas/dependency/klaim terkini mengikuti [current index](../ANTRIAN-P
 - **Acceptance:** dokumen rencana integrasi komprehensif tersedia di `docs/INTEGRATION-PLAN.md` mencakup arsitektur, pemetaan data, kontrak subprocess, error handling, dan tahapan implementasi bertahap.
 - **Verifier:** review offline dokumen rencana integrasi.
 
-## PKG-01 — Persiapan packaging, metadata, lisensi, sanitasi sdist/wheel, dan rilis PyPI (ready)
+## PKG-01 — Persiapan packaging, metadata, lisensi, sanitasi sdist/wheel, dan rilis PyPI (done)
 
 - **Sumber:** permintaan pengguna 2026-10-26: "susun cli --help dan buat rencana packaging buat di up ke PyPI".
 - **Masuk:**
@@ -120,6 +120,7 @@ Status/prioritas/dependency/klaim terkini mengikuti [current index](../ANTRIAN-P
 - **Keluar:** publish PyPI tanpa izin pengguna eksplisit; pengunggahan berkas kredensial/capture privat.
 - **Acceptance:** dokumen `docs/PACKAGING-PLAN.md` tersedia; `pyproject.toml` valid; build sdist & wheel terisolasi; verifikasi twine lolos; upload PyPI hanya dieksekusi dengan izin pengguna terpisah.
 - **Verifier:** `python3 -m unittest discover -s tests -q`, `git diff --check`, build sanitasi offline.
+- **Hasil:** Selesai (`done`, [CP-014](CHECKPOINT-HISTORY.md#cp-014--selesai-pkg-01-metadata-lisensi-mit-sanitasi-manifest-build--twine-verification)). Berkas `LICENSE` dibuat, `MANIFEST.in` dan `pyproject.toml` diperbarui ke versi 0.1.0 berlisensi MIT. Wheel & sdist berhasil di-build tanpa warning deprecation, lolos `twine check` 100%, serta lulus uji instalasi & eksekusi clean-venv di `test_packaging.py`.
 
 ## PUB-01 — Publish/distribusi (deferred)
 

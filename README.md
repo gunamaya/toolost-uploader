@@ -29,7 +29,7 @@ python3 -m venv .venv
 .venv/bin/toolost upload path/to/manifest.json --draft-only --profile <alias> --expected-account <id> --json
 ```
 
-Schema v1 masih unreleased. Package lokal `toolost-uploader` versi `0.1.0a0` membutuhkan Python ≥3.10; modul `toolost_uploader`, executable `toolost`. Classifier `Private :: Do Not Upload` menahan publikasi PyPI. Validator hanya membaca manifest dan aset, tidak membuka browser atau menjalankan upload/publish.
+Package `toolost-uploader` versi `0.1.0` membutuhkan Python ≥3.10; modul `toolost_uploader`, executable `toolost`. Berlisensi MIT. Didesain untuk otomasi draft release Too Lost via manifest JSON dan Playwright.
 
 Scope riset maksimal upload dan simpan draft. Tidak ada izin/tindakan Publish atau distribusi. Produk final dapat mendukung release pada fase terpisah dengan persetujuan eksplisit.
 

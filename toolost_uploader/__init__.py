@@ -1,3 +1,3 @@
-"""Toolost uploader: validasi offline; operasi akun belum tersedia."""
+"""Toolost uploader: manifest validation, browser setup, readiness check, and Playwright draft automation."""
 
-__version__ = "0.1.0a0"
+__version__ = "0.1.0"

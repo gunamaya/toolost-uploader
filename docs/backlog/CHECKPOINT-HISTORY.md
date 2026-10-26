@@ -194,3 +194,36 @@ Append-only sejak adopsi governance. Ini **bukan checkpoint executor/runtime**, 
   - Browser login tetap manual oleh pengguna; tidak ada pembacaan password/cookie langsung dari disk.
   - Upload tetap terkunci pada simpan draft (**draft-only**); operasi publish dilarang keras.
 - **Next priority:** INT-01 (Implementasi adapter integrasi `TooLostClient` di repo `yt-to-flowmusic` mengacu pada `docs/INTEGRATION-PLAN.md`).
+
+## CP-014 — Selesai PKG-01: Metadata, Lisensi MIT, Sanitasi Manifest, Build & Twine Verification
+
+- **Waktu/owner:** 2026-10-26 16:05 WIB, sesi-pkg-01 / assistant.
+- **Baseline:** 3fe36b2 + dirty files (`pyproject.toml`, `LICENSE`, `MANIFEST.in`, `toolost_uploader/__init__.py`, `tests/test_packaging.py`, `README.md`, `docs/*`).
+- **Status:** PKG-01 `in_progress` → `done`. Claim mandiri dilepas.
+- **Hasil/eksekusi:**
+  1. `LICENSE`: Lisensi MIT ditambahkan dengan copyright Gunamaya / KiriminAja 2026.
+  2. `pyproject.toml`:
+     - Versi resmi rilis dinaikkan ke `0.1.0`.
+     - Penghapusan classifier pembatas `"Private :: Do Not Upload"`.
+     - Penggunaan ekspresi SPDX `license = "MIT"` modern.
+     - Penambahan core dependency `"playwright>=1.40.0,<2"`.
+     - Penambahan metadata author, deskripsi, keywords, serta URLs (`Homepage`, `Repository`, `Issues`).
+  3. `MANIFEST.in`:
+     - Sanitasi sdist ketat: mengecualikan `.local/`, `.venv/`, `.gitignore`, dan cache.
+     - Menyertakan `README.md`, `LICENSE`, `pyproject.toml`, dan schema manifest `docs/schemas/*.json`.
+  4. `toolost_uploader/__init__.py`: Versi `__version__ = "0.1.0"`.
+  5. Pengujian & Verifikasi Packaging:
+     - `uv build`: Berhasil memproduksi `dist/toolost_uploader-0.1.0.tar.gz` dan `dist/toolost_uploader-0.1.0-py3-none-any.whl` tanpa peringatan/warning deprecation.
+     - `uv tool run twine check dist/*`: Lolos 100% (`PASSED` untuk wheel dan sdist).
+     - `TOOLOST_TEST_DIST_DIR=dist python -m unittest tests/test_packaging.py`: Berhasil menguji pembuatan virtual environment bersih, instalasi wheel tanpa ketergantungan luar, eksekusi CLI `toolost --help`, `toolost --version`, serta validasi manifest sintetis.
+- **Evidence:**
+  - `uv tool run twine check dist/*`: PASSED.
+  - `TOOLOST_TEST_DIST_DIR=dist .venv/bin/python -m unittest tests/test_packaging.py`: OK.
+  - `python3 -m unittest discover -s tests -q`: 171 passed, 2 skipped (offline).
+  - `git diff --check`: bersih (exit 0).
+- **Batas bukti:**
+  - Build dan verifikasi metadata archive terbukti bersih secara offline dan mandiri.
+  - Pengunggahan ke TestPyPI / PyPI publik belum dieksekusi (memerlukan token PyPI `__token__` atau GitHub Actions OIDC).
+- **Next priority:**
+  - Melakukan upload ke TestPyPI / PyPI (bila token diberikan), ATAU:
+  - Melanjutkan ke INT-01 (implementasi adapter `TooLostClient` di repo `yt-to-flowmusic`).

@@ -5,15 +5,34 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "toolost-uploader"
 dynamic = ["version"]
-description = "Offline release manifest validation for the Toolost uploader project"
+description = "CLI and Playwright automation tool for Too Lost music release manifests"
 readme = "README.md"
+license = "MIT"
 requires-python = ">=3.10"
-dependencies = []
-classifiers = ["Private :: Do Not Upload", "Development Status :: 3 - Alpha"]
+authors = [
+    { name = "Gunamaya", email = "developer@kiriminaja.com" }
+]
+keywords = ["too-lost", "music-distribution", "uploader", "playwright", "automation"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Multimedia :: Sound/Audio",
+]
+dependencies = [
+    "playwright>=1.40.0,<2",
+]
 
 [project.optional-dependencies]
-dev = ["build>=1.2.2,<2", "jsonschema>=4.26,<5"]
-browser = ["playwright>=1.64.1,<2"]
+dev = ["build>=1.2.2,<2", "twine>=5.0.0,<6", "jsonschema>=4.26,<5"]
+
+[project.urls]
+Homepage = "https://github.com/gunamaya/toolost-uploader"
+Repository = "https://github.com/gunamaya/toolost-uploader"
+Issues = "https://github.com/gunamaya/toolost-uploader/issues"
 
 [project.scripts]
 toolost = "toolost_uploader.cli:main"
