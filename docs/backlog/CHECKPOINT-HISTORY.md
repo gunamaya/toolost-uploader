@@ -252,7 +252,7 @@ Append-only sejak adopsi governance. Ini **bukan checkpoint executor/runtime**, 
 - **Batas bukti:**
   - Publikasi saat ini berada di TestPyPI (`test.pypi.org`).
   - Rilis ke PyPI produksi (`pypi.org`) membutuhkan token terpisah untuk produksi.
-- **Next priority:** INT-01 (Implementasi adapter integrasi `TooLostClient` di repo `yt-to-flowmusic` mengacu pada `docs/INTEGRATION-PLAN.md`).
+- **Next priority:** Publikasi ke PyPI produksi (pypi.org).
 
 ## CP-016 — Publikasi Resmi ke PyPI Produksi dan Integrasi Dependency
 
@@ -282,4 +282,32 @@ Append-only sejak adopsi governance. Ini **bukan checkpoint executor/runtime**, 
 - **Batas bukti:**
   - Paket publikasi resmi aktif di PyPI publik.
   - Alur eksekusi draft uploader tetap terkunci pada simpan draft (**draft-only**); operasi publish dilarang keras.
+- **Next priority:** INT-01 (Implementasi adapter integrasi `TooLostClient` di repo `yt-to-flowmusic` mengacu pada `docs/INTEGRATION-PLAN.md`).
+
+## CP-017 — Rilis PyPI 0.1.1: Perbaikan Metadata Author, Broken Links, dan Desain Mandiri
+
+- **Waktu/owner:** 2026-10-26 16:28 WIB, sesi-pypi / assistant.
+- **Baseline:** c0b492d + dirty files (`README.md`, `LICENSE`, `pyproject.toml`, `toolost_uploader/__init__.py`).
+- **Status:** Publikasi PyPI 0.1.1 `done`.
+- **Hasil/eksekusi:**
+  1. `pyproject.toml` & `LICENSE`:
+     - Metadata author dan lisensi diperbarui: nama `Anggi Gunamaya`, email `anggi@gunamanya.id`.
+     - Copyright resmi: `Copyright (c) 2026 Anggi Gunamaya`.
+     - Versi dinaikkan ke `0.1.1`.
+  2. `README.md`:
+     - Menghapus keterikatan dan penyebutan proyek integrator internal (`yt-to-flowmusic`), menegaskan posisi paket sebagai CLI & library mandiri untuk orkestrasi rilis Too Lost.
+     - Memperbaiki seluruh broken links di PyPI: tautan relatif ke `LICENSE` dan `docs/*` diubah menjadi tautan absolut GitHub (`https://github.com/gunamaya/toolost-uploader/blob/main/...`).
+  3. Publikasi & Verifikasi PyPI 0.1.1:
+     - `uv build`: Memproduksi `toolost_uploader-0.1.1-py3-none-any.whl` dan `toolost_uploader-0.1.1.tar.gz`.
+     - `twine check dist/*`: Lolos `PASSED` 100%.
+     - `twine upload`: Berhasil diunggah ke PyPI produksi.
+     - URL rilis resmi: `https://pypi.org/project/toolost-uploader/0.1.1/`
+- **Evidence:**
+  - URL publikasi: `https://pypi.org/project/toolost-uploader/0.1.1/`
+  - `twine check dist/*`: PASSED.
+  - Test suite offline: 171 passed, 2 skipped.
+  - `git diff --check`: bersih (exit 0).
+- **Batas bukti:**
+  - Rilis 0.1.1 aktif dan live di PyPI produksi.
+  - Draft-only guard tetap terkunci.
 - **Next priority:** INT-01 (Implementasi adapter integrasi `TooLostClient` di repo `yt-to-flowmusic` mengacu pada `docs/INTEGRATION-PLAN.md`).

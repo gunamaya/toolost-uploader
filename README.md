@@ -2,9 +2,9 @@
 
 CLI & Playwright Automation Tool untuk manajemen dan upload draft rilis [Too Lost](https://toolost.com) berbasis manifest JSON.
 
-[![PyPI version](https://img.shields.io/badge/version-0.1.0-blue.svg)](https://pypi.org/project/toolost-uploader/)
+[![PyPI version](https://img.shields.io/badge/version-0.1.1-blue.svg)](https://pypi.org/project/toolost-uploader/)
 [![Python versions](https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12-blue.svg)](https://www.python.org/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://github.com/gunamaya/toolost-uploader/blob/main/LICENSE)
 [![Tests](https://img.shields.io/badge/tests-171%20passed-brightgreen.svg)](#pengujian--pengembangan)
 
 ---
@@ -16,7 +16,7 @@ CLI & Playwright Automation Tool untuk manajemen dan upload draft rilis [Too Los
 - **Auto-Bootup & Readiness Check**: Diagnosa otomatis ketersediaan binary Chrome, status lock profil, port CDP (Chrome DevTools Protocol loopback), dan verifikasi sesi login aktif Too Lost terhadap `--expected-account`.
 - **Eksekutor Playwright Single & Multi-Track Album**: Mengotomatisasi pemilihan tipe rilis, pengisian judul, upload & encoding artwork, multi-track audio, penataan urutan track, pengisian metadata AI per-track, hingga eksekusi simpan perubahan (*Save Changes*).
 - **Safety First (Draft-Only Guard)**: Eksekusi dibatasi secara ketat hanya sampai penyimpanan draft (`--draft-only`). Tool ini **tidak pernah** menekan tombol Publish atau memicu distribusi rilis.
-- **Desain Integrasi Subprocess**: Format keluaran stdout JSON murni yang deterministik dan aliran log progres real-time ke stderr, sangat ramah untuk integrasi aplikasi induk seperti [yt-to-flowmusic](docs/INTEGRATION-PLAN.md).
+- **Desain Integrasi Subprocess**: Format keluaran stdout JSON murni yang deterministik dan aliran log progres real-time ke stderr, sangat ramah untuk diintegrasikan dengan aplikasi backend, Textual UI, atau orchestrator rilis musik otomatis.
 
 ---
 
@@ -197,13 +197,13 @@ git diff --check
 
 ---
 
-## Dokumentasi Arsitektur & Riset
+## Dokumentasi & Spesifikasi
 
-- [Rencana Integrasi ke yt-to-flowmusic](docs/INTEGRATION-PLAN.md) — Arsitektur adapter subprocess async & Textual UI.
-- [Rencana Packaging & Distribusi PyPI](docs/PACKAGING-PLAN.md) — Roadmap dan checklist packaging.
-- [Antrean Pekerjaan Utama & Backlog](docs/ANTRIAN-PEKERJAAN-UTAMA.md) — Pelacakan status task engineering, klaim, dan acceptance.
-- [Riwayat Checkpoint Rekayasa](docs/backlog/CHECKPOINT-HISTORY.md) — Bukti eksekusi dan log verifikasi.
-- [Review CLI & Analisis Kontrak](docs/CLI-REVIEW.md) — Pemetaan fitur yang diimplementasikan vs proposed.
+- [Dokumentasi Rencana Integrasi Subprocess](https://github.com/gunamaya/toolost-uploader/blob/main/docs/INTEGRATION-PLAN.md) — Arsitektur adapter subprocess async & Textual UI.
+- [Spesifikasi & Rencana Packaging PyPI](https://github.com/gunamaya/toolost-uploader/blob/main/docs/PACKAGING-PLAN.md) — Roadmap dan checklist sanitasi packaging.
+- [Antrean Pekerjaan Utama & Backlog](https://github.com/gunamaya/toolost-uploader/blob/main/docs/ANTRIAN-PEKERJAAN-UTAMA.md) — Pelacakan status task engineering, klaim, dan acceptance.
+- [Riwayat Checkpoint Rekayasa](https://github.com/gunamaya/toolost-uploader/blob/main/docs/backlog/CHECKPOINT-HISTORY.md) — Bukti eksekusi dan log verifikasi.
+- [Review CLI & Analisis Kontrak](https://github.com/gunamaya/toolost-uploader/blob/main/docs/CLI-REVIEW.md) — Pemetaan fitur yang diimplementasikan vs proposed.
 
 ---
 
@@ -217,5 +217,5 @@ git diff --check
 
 ## Lisensi
 
-Proyek ini didistribusikan di bawah lisensi [MIT License](LICENSE).
-Hak Cipta (c) 2026 Gunamaya / KiriminAja.
+Proyek ini didistribusikan di bawah lisensi [MIT License](https://github.com/gunamaya/toolost-uploader/blob/main/LICENSE).
+Hak Cipta (c) 2026 Anggi Gunamaya.

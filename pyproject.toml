@@ -10,7 +10,7 @@ readme = "README.md"
 license = "MIT"
 requires-python = ">=3.10"
 authors = [
-    { name = "Gunamaya", email = "developer@kiriminaja.com" }
+    { name = "Anggi Gunamaya", email = "anggi@gunamanya.id" }
 ]
 keywords = ["too-lost", "music-distribution", "uploader", "playwright", "automation"]
 classifiers = [
