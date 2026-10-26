@@ -351,6 +351,36 @@ Append-only sejak adopsi governance. Ini **bukan checkpoint executor/runtime**, 
   - Pengujian live tetap berada dalam mode aman simpan draft (**draft-only**); tombol Publish **DILARANG dan TIDAK DITEKAN**.
 - **Next priority:** INT-01 (Implementasi adapter integrasi `TooLostClient` di repo `yt-to-flowmusic` mengacu pada `docs/INTEGRATION-PLAN.md`).
 
+## CP-022 — Selesai FIN-01 & Rilis 0.1.4: Finalisasi Step Pasca-Readback (Done Track Terakhir, Save Changes, & Kembali ke Portal)
+
+- **Waktu/owner:** 2026-10-26 22:31 WIB, sesi-fin-01 / assistant.
+- **Baseline:** 585946c + dirty files (`toolost_uploader/live_draft.py`, `tests/test_live_draft.py`, `toolost_uploader/__init__.py`, `README.md`, `docs/*`).
+- **Status:** FIN-01 `in_progress` → `done`. Claim mandiri dilepas.
+- **Hasil/eksekusi:**
+  1. Penutupan Modal Track Terakhir:
+     - Di `toolost_uploader/live_draft.py` (`readback`), menghapus kondisi `if i < track_count - 1` yang sebelumnya melewatkan penutupan modal track terakhir. Sekarang tombol `Done` SELALU diklik untuk setiap track, memastikan seluruh modal track editor tertutup rapi.
+  2. Penyimpanan Perubahan Pasca-Verifikasi (Save Changes):
+     - Memeriksa ketersediaan tombol `Save Changes` pasca-readback. Jika terlihat dan aktif, sistem mengklik `Save Changes`, mengonfirmasi modal `Save`, dan menunggu proses saving selesai.
+  3. Navigasi Kembali ke Portal Rilis:
+     - Mengarahkan browser kembali ke `https://toolost.com/user-portal/releases/manage/1` dan menunggu hingga tombol `Create New Release` terlihat. Browser kini berada di halaman daftar rilis dalam keadaan bersih dan selesai, menampilkan rilis baru.
+  4. Pengujian & Verifikasi:
+     - Menambahkan unit test baru `test_readback_clicks_done_saves_and_returns_to_portal` di `tests/test_live_draft.py` yang memvalidasi klik `Done` track terakhir, eksekusi `Save Changes`, navigasi URL portal, dan penantian tombol `Create New Release`.
+     - Seluruh test suite offline (**180 tests**) lulus 100% (`OK, skipped=2`).
+  5. Rilis PyPI 0.1.4:
+     - Versi dinaikkan ke `0.1.4` di `toolost_uploader/__init__.py` dan badge `README.md`.
+     - `uv build`: Memproduksi `toolost_uploader-0.1.4-py3-none-any.whl` (56.6 kB) dan `toolost_uploader-0.1.4.tar.gz` (81.8 kB).
+     - `twine check dist/*`: Lolos `PASSED` 100%.
+     - `twine upload`: Berhasil dipublikasikan ke https://pypi.org/project/toolost-uploader/0.1.4/.
+     - Verifikasi instalasi live dari PyPI di clean-venv berhasil (`toolost 0.1.4`).
+- **Evidence:**
+  - URL publikasi: `https://pypi.org/project/toolost-uploader/0.1.4/`
+  - `twine check dist/*`: PASSED.
+  - 180 unit tests offline lulus (2 skipped).
+  - `git diff --check`: bersih (exit 0).
+- **Batas bukti:**
+  - Seluruh verifikasi draft readback dan penutupan UI portal selesai; mode eksekusi tetap aman dalam batas **draft-only** (tombol Publish tidak ditekan).
+- **Next priority:** INT-01 (Implementasi adapter integrasi `TooLostClient` di repo `yt-to-flowmusic` mengacu pada `docs/INTEGRATION-PLAN.md`).
+
 ## CP-021 — Selesai CDP-02 & Rilis 0.1.3: Dukungan Unggah Berkas Audio Besar (>50MB) via is_local di CDP
 
 - **Waktu/owner:** 2026-10-26 22:12 WIB, sesi-cdp-02 / assistant.
@@ -379,6 +409,36 @@ Append-only sejak adopsi governance. Ini **bukan checkpoint executor/runtime**, 
   - `git diff --check`: bersih (exit 0).
 - **Batas bukti:**
   - Perbaikan `is_local` berlaku saat endpoint adalah loopback host lokal. Rilis tetap terkunci aman pada batas **draft-only** (tombol Publish dilarang ditekan).
+- **Next priority:** INT-01 (Implementasi adapter integrasi `TooLostClient` di repo `yt-to-flowmusic` mengacu pada `docs/INTEGRATION-PLAN.md`).
+
+## CP-022 — Selesai FIN-01 & Rilis 0.1.4: Finalisasi Step Pasca-Readback (Done Track Terakhir, Save Changes, & Kembali ke Portal)
+
+- **Waktu/owner:** 2026-10-26 22:31 WIB, sesi-fin-01 / assistant.
+- **Baseline:** 585946c + dirty files (`toolost_uploader/live_draft.py`, `tests/test_live_draft.py`, `toolost_uploader/__init__.py`, `README.md`, `docs/*`).
+- **Status:** FIN-01 `in_progress` → `done`. Claim mandiri dilepas.
+- **Hasil/eksekusi:**
+  1. Penutupan Modal Track Terakhir:
+     - Di `toolost_uploader/live_draft.py` (`readback`), menghapus kondisi `if i < track_count - 1` yang sebelumnya melewatkan penutupan modal track terakhir. Sekarang tombol `Done` SELALU diklik untuk setiap track, memastikan seluruh modal track editor tertutup rapi.
+  2. Penyimpanan Perubahan Pasca-Verifikasi (Save Changes):
+     - Memeriksa ketersediaan tombol `Save Changes` pasca-readback. Jika terlihat dan aktif, sistem mengklik `Save Changes`, mengonfirmasi modal `Save`, dan menunggu proses saving selesai.
+  3. Navigasi Kembali ke Portal Rilis:
+     - Mengarahkan browser kembali ke `https://toolost.com/user-portal/releases/manage/1` dan menunggu hingga tombol `Create New Release` terlihat. Browser kini berada di halaman daftar rilis dalam keadaan bersih dan selesai, menampilkan rilis baru.
+  4. Pengujian & Verifikasi:
+     - Menambahkan unit test baru `test_readback_clicks_done_saves_and_returns_to_portal` di `tests/test_live_draft.py` yang memvalidasi klik `Done` track terakhir, eksekusi `Save Changes`, navigasi URL portal, dan penantian tombol `Create New Release`.
+     - Seluruh test suite offline (**180 tests**) lulus 100% (`OK, skipped=2`).
+  5. Rilis PyPI 0.1.4:
+     - Versi dinaikkan ke `0.1.4` di `toolost_uploader/__init__.py` dan badge `README.md`.
+     - `uv build`: Memproduksi `toolost_uploader-0.1.4-py3-none-any.whl` (56.6 kB) dan `toolost_uploader-0.1.4.tar.gz` (81.8 kB).
+     - `twine check dist/*`: Lolos `PASSED` 100%.
+     - `twine upload`: Berhasil dipublikasikan ke https://pypi.org/project/toolost-uploader/0.1.4/.
+     - Verifikasi instalasi live dari PyPI di clean-venv berhasil (`toolost 0.1.4`).
+- **Evidence:**
+  - URL publikasi: `https://pypi.org/project/toolost-uploader/0.1.4/`
+  - `twine check dist/*`: PASSED.
+  - 180 unit tests offline lulus (2 skipped).
+  - `git diff --check`: bersih (exit 0).
+- **Batas bukti:**
+  - Seluruh verifikasi draft readback dan penutupan UI portal selesai; mode eksekusi tetap aman dalam batas **draft-only** (tombol Publish tidak ditekan).
 - **Next priority:** INT-01 (Implementasi adapter integrasi `TooLostClient` di repo `yt-to-flowmusic` mengacu pada `docs/INTEGRATION-PLAN.md`).
 
 ## CP-020 — Publikasi Rilis 0.1.2 ke PyPI: Optimalisasi Tab Memory & Tab Lyrics
@@ -412,6 +472,36 @@ Append-only sejak adopsi governance. Ini **bukan checkpoint executor/runtime**, 
   - Alur eksekusi tetap aman dalam batas draft-only; tombol Publish dilarang keras ditekan.
 - **Next priority:** INT-01 (Implementasi adapter integrasi `TooLostClient` di repo `yt-to-flowmusic` mengacu pada `docs/INTEGRATION-PLAN.md`).
 
+## CP-022 — Selesai FIN-01 & Rilis 0.1.4: Finalisasi Step Pasca-Readback (Done Track Terakhir, Save Changes, & Kembali ke Portal)
+
+- **Waktu/owner:** 2026-10-26 22:31 WIB, sesi-fin-01 / assistant.
+- **Baseline:** 585946c + dirty files (`toolost_uploader/live_draft.py`, `tests/test_live_draft.py`, `toolost_uploader/__init__.py`, `README.md`, `docs/*`).
+- **Status:** FIN-01 `in_progress` → `done`. Claim mandiri dilepas.
+- **Hasil/eksekusi:**
+  1. Penutupan Modal Track Terakhir:
+     - Di `toolost_uploader/live_draft.py` (`readback`), menghapus kondisi `if i < track_count - 1` yang sebelumnya melewatkan penutupan modal track terakhir. Sekarang tombol `Done` SELALU diklik untuk setiap track, memastikan seluruh modal track editor tertutup rapi.
+  2. Penyimpanan Perubahan Pasca-Verifikasi (Save Changes):
+     - Memeriksa ketersediaan tombol `Save Changes` pasca-readback. Jika terlihat dan aktif, sistem mengklik `Save Changes`, mengonfirmasi modal `Save`, dan menunggu proses saving selesai.
+  3. Navigasi Kembali ke Portal Rilis:
+     - Mengarahkan browser kembali ke `https://toolost.com/user-portal/releases/manage/1` dan menunggu hingga tombol `Create New Release` terlihat. Browser kini berada di halaman daftar rilis dalam keadaan bersih dan selesai, menampilkan rilis baru.
+  4. Pengujian & Verifikasi:
+     - Menambahkan unit test baru `test_readback_clicks_done_saves_and_returns_to_portal` di `tests/test_live_draft.py` yang memvalidasi klik `Done` track terakhir, eksekusi `Save Changes`, navigasi URL portal, dan penantian tombol `Create New Release`.
+     - Seluruh test suite offline (**180 tests**) lulus 100% (`OK, skipped=2`).
+  5. Rilis PyPI 0.1.4:
+     - Versi dinaikkan ke `0.1.4` di `toolost_uploader/__init__.py` dan badge `README.md`.
+     - `uv build`: Memproduksi `toolost_uploader-0.1.4-py3-none-any.whl` (56.6 kB) dan `toolost_uploader-0.1.4.tar.gz` (81.8 kB).
+     - `twine check dist/*`: Lolos `PASSED` 100%.
+     - `twine upload`: Berhasil dipublikasikan ke https://pypi.org/project/toolost-uploader/0.1.4/.
+     - Verifikasi instalasi live dari PyPI di clean-venv berhasil (`toolost 0.1.4`).
+- **Evidence:**
+  - URL publikasi: `https://pypi.org/project/toolost-uploader/0.1.4/`
+  - `twine check dist/*`: PASSED.
+  - 180 unit tests offline lulus (2 skipped).
+  - `git diff --check`: bersih (exit 0).
+- **Batas bukti:**
+  - Seluruh verifikasi draft readback dan penutupan UI portal selesai; mode eksekusi tetap aman dalam batas **draft-only** (tombol Publish tidak ditekan).
+- **Next priority:** INT-01 (Implementasi adapter integrasi `TooLostClient` di repo `yt-to-flowmusic` mengacu pada `docs/INTEGRATION-PLAN.md`).
+
 ## CP-021 — Selesai CDP-02 & Rilis 0.1.3: Dukungan Unggah Berkas Audio Besar (>50MB) via is_local di CDP
 
 - **Waktu/owner:** 2026-10-26 22:12 WIB, sesi-cdp-02 / assistant.
@@ -440,6 +530,36 @@ Append-only sejak adopsi governance. Ini **bukan checkpoint executor/runtime**, 
   - `git diff --check`: bersih (exit 0).
 - **Batas bukti:**
   - Perbaikan `is_local` berlaku saat endpoint adalah loopback host lokal. Rilis tetap terkunci aman pada batas **draft-only** (tombol Publish dilarang ditekan).
+- **Next priority:** INT-01 (Implementasi adapter integrasi `TooLostClient` di repo `yt-to-flowmusic` mengacu pada `docs/INTEGRATION-PLAN.md`).
+
+## CP-022 — Selesai FIN-01 & Rilis 0.1.4: Finalisasi Step Pasca-Readback (Done Track Terakhir, Save Changes, & Kembali ke Portal)
+
+- **Waktu/owner:** 2026-10-26 22:31 WIB, sesi-fin-01 / assistant.
+- **Baseline:** 585946c + dirty files (`toolost_uploader/live_draft.py`, `tests/test_live_draft.py`, `toolost_uploader/__init__.py`, `README.md`, `docs/*`).
+- **Status:** FIN-01 `in_progress` → `done`. Claim mandiri dilepas.
+- **Hasil/eksekusi:**
+  1. Penutupan Modal Track Terakhir:
+     - Di `toolost_uploader/live_draft.py` (`readback`), menghapus kondisi `if i < track_count - 1` yang sebelumnya melewatkan penutupan modal track terakhir. Sekarang tombol `Done` SELALU diklik untuk setiap track, memastikan seluruh modal track editor tertutup rapi.
+  2. Penyimpanan Perubahan Pasca-Verifikasi (Save Changes):
+     - Memeriksa ketersediaan tombol `Save Changes` pasca-readback. Jika terlihat dan aktif, sistem mengklik `Save Changes`, mengonfirmasi modal `Save`, dan menunggu proses saving selesai.
+  3. Navigasi Kembali ke Portal Rilis:
+     - Mengarahkan browser kembali ke `https://toolost.com/user-portal/releases/manage/1` dan menunggu hingga tombol `Create New Release` terlihat. Browser kini berada di halaman daftar rilis dalam keadaan bersih dan selesai, menampilkan rilis baru.
+  4. Pengujian & Verifikasi:
+     - Menambahkan unit test baru `test_readback_clicks_done_saves_and_returns_to_portal` di `tests/test_live_draft.py` yang memvalidasi klik `Done` track terakhir, eksekusi `Save Changes`, navigasi URL portal, dan penantian tombol `Create New Release`.
+     - Seluruh test suite offline (**180 tests**) lulus 100% (`OK, skipped=2`).
+  5. Rilis PyPI 0.1.4:
+     - Versi dinaikkan ke `0.1.4` di `toolost_uploader/__init__.py` dan badge `README.md`.
+     - `uv build`: Memproduksi `toolost_uploader-0.1.4-py3-none-any.whl` (56.6 kB) dan `toolost_uploader-0.1.4.tar.gz` (81.8 kB).
+     - `twine check dist/*`: Lolos `PASSED` 100%.
+     - `twine upload`: Berhasil dipublikasikan ke https://pypi.org/project/toolost-uploader/0.1.4/.
+     - Verifikasi instalasi live dari PyPI di clean-venv berhasil (`toolost 0.1.4`).
+- **Evidence:**
+  - URL publikasi: `https://pypi.org/project/toolost-uploader/0.1.4/`
+  - `twine check dist/*`: PASSED.
+  - 180 unit tests offline lulus (2 skipped).
+  - `git diff --check`: bersih (exit 0).
+- **Batas bukti:**
+  - Seluruh verifikasi draft readback dan penutupan UI portal selesai; mode eksekusi tetap aman dalam batas **draft-only** (tombol Publish tidak ditekan).
 - **Next priority:** INT-01 (Implementasi adapter integrasi `TooLostClient` di repo `yt-to-flowmusic` mengacu pada `docs/INTEGRATION-PLAN.md`).
 
 ## CP-019 — Selesai TAB-01: Optimalisasi Manajemen Tab Browser CDP (Reuse Tab Aktif & Tutup Tab Redundan)
@@ -480,6 +600,36 @@ Append-only sejak adopsi governance. Ini **bukan checkpoint executor/runtime**, 
   - Pengujian live draft tetap aman draft-only; tidak menyentuh tombol Publish.
 - **Next priority:** INT-01 (Implementasi adapter integrasi `TooLostClient` di repo `yt-to-flowmusic` mengacu pada `docs/INTEGRATION-PLAN.md`).
 
+## CP-022 — Selesai FIN-01 & Rilis 0.1.4: Finalisasi Step Pasca-Readback (Done Track Terakhir, Save Changes, & Kembali ke Portal)
+
+- **Waktu/owner:** 2026-10-26 22:31 WIB, sesi-fin-01 / assistant.
+- **Baseline:** 585946c + dirty files (`toolost_uploader/live_draft.py`, `tests/test_live_draft.py`, `toolost_uploader/__init__.py`, `README.md`, `docs/*`).
+- **Status:** FIN-01 `in_progress` → `done`. Claim mandiri dilepas.
+- **Hasil/eksekusi:**
+  1. Penutupan Modal Track Terakhir:
+     - Di `toolost_uploader/live_draft.py` (`readback`), menghapus kondisi `if i < track_count - 1` yang sebelumnya melewatkan penutupan modal track terakhir. Sekarang tombol `Done` SELALU diklik untuk setiap track, memastikan seluruh modal track editor tertutup rapi.
+  2. Penyimpanan Perubahan Pasca-Verifikasi (Save Changes):
+     - Memeriksa ketersediaan tombol `Save Changes` pasca-readback. Jika terlihat dan aktif, sistem mengklik `Save Changes`, mengonfirmasi modal `Save`, dan menunggu proses saving selesai.
+  3. Navigasi Kembali ke Portal Rilis:
+     - Mengarahkan browser kembali ke `https://toolost.com/user-portal/releases/manage/1` dan menunggu hingga tombol `Create New Release` terlihat. Browser kini berada di halaman daftar rilis dalam keadaan bersih dan selesai, menampilkan rilis baru.
+  4. Pengujian & Verifikasi:
+     - Menambahkan unit test baru `test_readback_clicks_done_saves_and_returns_to_portal` di `tests/test_live_draft.py` yang memvalidasi klik `Done` track terakhir, eksekusi `Save Changes`, navigasi URL portal, dan penantian tombol `Create New Release`.
+     - Seluruh test suite offline (**180 tests**) lulus 100% (`OK, skipped=2`).
+  5. Rilis PyPI 0.1.4:
+     - Versi dinaikkan ke `0.1.4` di `toolost_uploader/__init__.py` dan badge `README.md`.
+     - `uv build`: Memproduksi `toolost_uploader-0.1.4-py3-none-any.whl` (56.6 kB) dan `toolost_uploader-0.1.4.tar.gz` (81.8 kB).
+     - `twine check dist/*`: Lolos `PASSED` 100%.
+     - `twine upload`: Berhasil dipublikasikan ke https://pypi.org/project/toolost-uploader/0.1.4/.
+     - Verifikasi instalasi live dari PyPI di clean-venv berhasil (`toolost 0.1.4`).
+- **Evidence:**
+  - URL publikasi: `https://pypi.org/project/toolost-uploader/0.1.4/`
+  - `twine check dist/*`: PASSED.
+  - 180 unit tests offline lulus (2 skipped).
+  - `git diff --check`: bersih (exit 0).
+- **Batas bukti:**
+  - Seluruh verifikasi draft readback dan penutupan UI portal selesai; mode eksekusi tetap aman dalam batas **draft-only** (tombol Publish tidak ditekan).
+- **Next priority:** INT-01 (Implementasi adapter integrasi `TooLostClient` di repo `yt-to-flowmusic` mengacu pada `docs/INTEGRATION-PLAN.md`).
+
 ## CP-021 — Selesai CDP-02 & Rilis 0.1.3: Dukungan Unggah Berkas Audio Besar (>50MB) via is_local di CDP
 
 - **Waktu/owner:** 2026-10-26 22:12 WIB, sesi-cdp-02 / assistant.
@@ -508,6 +658,36 @@ Append-only sejak adopsi governance. Ini **bukan checkpoint executor/runtime**, 
   - `git diff --check`: bersih (exit 0).
 - **Batas bukti:**
   - Perbaikan `is_local` berlaku saat endpoint adalah loopback host lokal. Rilis tetap terkunci aman pada batas **draft-only** (tombol Publish dilarang ditekan).
+- **Next priority:** INT-01 (Implementasi adapter integrasi `TooLostClient` di repo `yt-to-flowmusic` mengacu pada `docs/INTEGRATION-PLAN.md`).
+
+## CP-022 — Selesai FIN-01 & Rilis 0.1.4: Finalisasi Step Pasca-Readback (Done Track Terakhir, Save Changes, & Kembali ke Portal)
+
+- **Waktu/owner:** 2026-10-26 22:31 WIB, sesi-fin-01 / assistant.
+- **Baseline:** 585946c + dirty files (`toolost_uploader/live_draft.py`, `tests/test_live_draft.py`, `toolost_uploader/__init__.py`, `README.md`, `docs/*`).
+- **Status:** FIN-01 `in_progress` → `done`. Claim mandiri dilepas.
+- **Hasil/eksekusi:**
+  1. Penutupan Modal Track Terakhir:
+     - Di `toolost_uploader/live_draft.py` (`readback`), menghapus kondisi `if i < track_count - 1` yang sebelumnya melewatkan penutupan modal track terakhir. Sekarang tombol `Done` SELALU diklik untuk setiap track, memastikan seluruh modal track editor tertutup rapi.
+  2. Penyimpanan Perubahan Pasca-Verifikasi (Save Changes):
+     - Memeriksa ketersediaan tombol `Save Changes` pasca-readback. Jika terlihat dan aktif, sistem mengklik `Save Changes`, mengonfirmasi modal `Save`, dan menunggu proses saving selesai.
+  3. Navigasi Kembali ke Portal Rilis:
+     - Mengarahkan browser kembali ke `https://toolost.com/user-portal/releases/manage/1` dan menunggu hingga tombol `Create New Release` terlihat. Browser kini berada di halaman daftar rilis dalam keadaan bersih dan selesai, menampilkan rilis baru.
+  4. Pengujian & Verifikasi:
+     - Menambahkan unit test baru `test_readback_clicks_done_saves_and_returns_to_portal` di `tests/test_live_draft.py` yang memvalidasi klik `Done` track terakhir, eksekusi `Save Changes`, navigasi URL portal, dan penantian tombol `Create New Release`.
+     - Seluruh test suite offline (**180 tests**) lulus 100% (`OK, skipped=2`).
+  5. Rilis PyPI 0.1.4:
+     - Versi dinaikkan ke `0.1.4` di `toolost_uploader/__init__.py` dan badge `README.md`.
+     - `uv build`: Memproduksi `toolost_uploader-0.1.4-py3-none-any.whl` (56.6 kB) dan `toolost_uploader-0.1.4.tar.gz` (81.8 kB).
+     - `twine check dist/*`: Lolos `PASSED` 100%.
+     - `twine upload`: Berhasil dipublikasikan ke https://pypi.org/project/toolost-uploader/0.1.4/.
+     - Verifikasi instalasi live dari PyPI di clean-venv berhasil (`toolost 0.1.4`).
+- **Evidence:**
+  - URL publikasi: `https://pypi.org/project/toolost-uploader/0.1.4/`
+  - `twine check dist/*`: PASSED.
+  - 180 unit tests offline lulus (2 skipped).
+  - `git diff --check`: bersih (exit 0).
+- **Batas bukti:**
+  - Seluruh verifikasi draft readback dan penutupan UI portal selesai; mode eksekusi tetap aman dalam batas **draft-only** (tombol Publish tidak ditekan).
 - **Next priority:** INT-01 (Implementasi adapter integrasi `TooLostClient` di repo `yt-to-flowmusic` mengacu pada `docs/INTEGRATION-PLAN.md`).
 
 ## CP-020 — Publikasi Rilis 0.1.2 ke PyPI: Optimalisasi Tab Memory & Tab Lyrics
@@ -541,6 +721,36 @@ Append-only sejak adopsi governance. Ini **bukan checkpoint executor/runtime**, 
   - Alur eksekusi tetap aman dalam batas draft-only; tombol Publish dilarang keras ditekan.
 - **Next priority:** INT-01 (Implementasi adapter integrasi `TooLostClient` di repo `yt-to-flowmusic` mengacu pada `docs/INTEGRATION-PLAN.md`).
 
+## CP-022 — Selesai FIN-01 & Rilis 0.1.4: Finalisasi Step Pasca-Readback (Done Track Terakhir, Save Changes, & Kembali ke Portal)
+
+- **Waktu/owner:** 2026-10-26 22:31 WIB, sesi-fin-01 / assistant.
+- **Baseline:** 585946c + dirty files (`toolost_uploader/live_draft.py`, `tests/test_live_draft.py`, `toolost_uploader/__init__.py`, `README.md`, `docs/*`).
+- **Status:** FIN-01 `in_progress` → `done`. Claim mandiri dilepas.
+- **Hasil/eksekusi:**
+  1. Penutupan Modal Track Terakhir:
+     - Di `toolost_uploader/live_draft.py` (`readback`), menghapus kondisi `if i < track_count - 1` yang sebelumnya melewatkan penutupan modal track terakhir. Sekarang tombol `Done` SELALU diklik untuk setiap track, memastikan seluruh modal track editor tertutup rapi.
+  2. Penyimpanan Perubahan Pasca-Verifikasi (Save Changes):
+     - Memeriksa ketersediaan tombol `Save Changes` pasca-readback. Jika terlihat dan aktif, sistem mengklik `Save Changes`, mengonfirmasi modal `Save`, dan menunggu proses saving selesai.
+  3. Navigasi Kembali ke Portal Rilis:
+     - Mengarahkan browser kembali ke `https://toolost.com/user-portal/releases/manage/1` dan menunggu hingga tombol `Create New Release` terlihat. Browser kini berada di halaman daftar rilis dalam keadaan bersih dan selesai, menampilkan rilis baru.
+  4. Pengujian & Verifikasi:
+     - Menambahkan unit test baru `test_readback_clicks_done_saves_and_returns_to_portal` di `tests/test_live_draft.py` yang memvalidasi klik `Done` track terakhir, eksekusi `Save Changes`, navigasi URL portal, dan penantian tombol `Create New Release`.
+     - Seluruh test suite offline (**180 tests**) lulus 100% (`OK, skipped=2`).
+  5. Rilis PyPI 0.1.4:
+     - Versi dinaikkan ke `0.1.4` di `toolost_uploader/__init__.py` dan badge `README.md`.
+     - `uv build`: Memproduksi `toolost_uploader-0.1.4-py3-none-any.whl` (56.6 kB) dan `toolost_uploader-0.1.4.tar.gz` (81.8 kB).
+     - `twine check dist/*`: Lolos `PASSED` 100%.
+     - `twine upload`: Berhasil dipublikasikan ke https://pypi.org/project/toolost-uploader/0.1.4/.
+     - Verifikasi instalasi live dari PyPI di clean-venv berhasil (`toolost 0.1.4`).
+- **Evidence:**
+  - URL publikasi: `https://pypi.org/project/toolost-uploader/0.1.4/`
+  - `twine check dist/*`: PASSED.
+  - 180 unit tests offline lulus (2 skipped).
+  - `git diff --check`: bersih (exit 0).
+- **Batas bukti:**
+  - Seluruh verifikasi draft readback dan penutupan UI portal selesai; mode eksekusi tetap aman dalam batas **draft-only** (tombol Publish tidak ditekan).
+- **Next priority:** INT-01 (Implementasi adapter integrasi `TooLostClient` di repo `yt-to-flowmusic` mengacu pada `docs/INTEGRATION-PLAN.md`).
+
 ## CP-021 — Selesai CDP-02 & Rilis 0.1.3: Dukungan Unggah Berkas Audio Besar (>50MB) via is_local di CDP
 
 - **Waktu/owner:** 2026-10-26 22:12 WIB, sesi-cdp-02 / assistant.
@@ -569,4 +779,34 @@ Append-only sejak adopsi governance. Ini **bukan checkpoint executor/runtime**, 
   - `git diff --check`: bersih (exit 0).
 - **Batas bukti:**
   - Perbaikan `is_local` berlaku saat endpoint adalah loopback host lokal. Rilis tetap terkunci aman pada batas **draft-only** (tombol Publish dilarang ditekan).
+- **Next priority:** INT-01 (Implementasi adapter integrasi `TooLostClient` di repo `yt-to-flowmusic` mengacu pada `docs/INTEGRATION-PLAN.md`).
+
+## CP-022 — Selesai FIN-01 & Rilis 0.1.4: Finalisasi Step Pasca-Readback (Done Track Terakhir, Save Changes, & Kembali ke Portal)
+
+- **Waktu/owner:** 2026-10-26 22:31 WIB, sesi-fin-01 / assistant.
+- **Baseline:** 585946c + dirty files (`toolost_uploader/live_draft.py`, `tests/test_live_draft.py`, `toolost_uploader/__init__.py`, `README.md`, `docs/*`).
+- **Status:** FIN-01 `in_progress` → `done`. Claim mandiri dilepas.
+- **Hasil/eksekusi:**
+  1. Penutupan Modal Track Terakhir:
+     - Di `toolost_uploader/live_draft.py` (`readback`), menghapus kondisi `if i < track_count - 1` yang sebelumnya melewatkan penutupan modal track terakhir. Sekarang tombol `Done` SELALU diklik untuk setiap track, memastikan seluruh modal track editor tertutup rapi.
+  2. Penyimpanan Perubahan Pasca-Verifikasi (Save Changes):
+     - Memeriksa ketersediaan tombol `Save Changes` pasca-readback. Jika terlihat dan aktif, sistem mengklik `Save Changes`, mengonfirmasi modal `Save`, dan menunggu proses saving selesai.
+  3. Navigasi Kembali ke Portal Rilis:
+     - Mengarahkan browser kembali ke `https://toolost.com/user-portal/releases/manage/1` dan menunggu hingga tombol `Create New Release` terlihat. Browser kini berada di halaman daftar rilis dalam keadaan bersih dan selesai, menampilkan rilis baru.
+  4. Pengujian & Verifikasi:
+     - Menambahkan unit test baru `test_readback_clicks_done_saves_and_returns_to_portal` di `tests/test_live_draft.py` yang memvalidasi klik `Done` track terakhir, eksekusi `Save Changes`, navigasi URL portal, dan penantian tombol `Create New Release`.
+     - Seluruh test suite offline (**180 tests**) lulus 100% (`OK, skipped=2`).
+  5. Rilis PyPI 0.1.4:
+     - Versi dinaikkan ke `0.1.4` di `toolost_uploader/__init__.py` dan badge `README.md`.
+     - `uv build`: Memproduksi `toolost_uploader-0.1.4-py3-none-any.whl` (56.6 kB) dan `toolost_uploader-0.1.4.tar.gz` (81.8 kB).
+     - `twine check dist/*`: Lolos `PASSED` 100%.
+     - `twine upload`: Berhasil dipublikasikan ke https://pypi.org/project/toolost-uploader/0.1.4/.
+     - Verifikasi instalasi live dari PyPI di clean-venv berhasil (`toolost 0.1.4`).
+- **Evidence:**
+  - URL publikasi: `https://pypi.org/project/toolost-uploader/0.1.4/`
+  - `twine check dist/*`: PASSED.
+  - 180 unit tests offline lulus (2 skipped).
+  - `git diff --check`: bersih (exit 0).
+- **Batas bukti:**
+  - Seluruh verifikasi draft readback dan penutupan UI portal selesai; mode eksekusi tetap aman dalam batas **draft-only** (tombol Publish tidak ditekan).
 - **Next priority:** INT-01 (Implementasi adapter integrasi `TooLostClient` di repo `yt-to-flowmusic` mengacu pada `docs/INTEGRATION-PLAN.md`).

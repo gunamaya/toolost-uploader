@@ -238,6 +238,52 @@ class LiveDraftTests(unittest.TestCase):
             ui.readback()
         self.assertFalse(any(call.args and call.args[0] == 'heading' for call in page.get_by_role.call_args_list))
 
+    def test_readback_clicks_done_saves_and_returns_to_portal(self):
+        ui, page, _ = self.make_ui()
+        page.locator.side_effect = lambda selector: Mock(count=Mock(return_value=0 if 'password' in selector else 1), first=Mock())
+
+        done_button = Mock()
+        done_button.count.return_value = 1
+
+        save_button = Mock()
+        save_button.is_visible.return_value = True
+        save_button.is_enabled.return_value = True
+
+        create_button = Mock()
+
+        title_mock = Mock()
+        title_mock.input_value.return_value = self.manifest['title']
+        track_title_mock = Mock()
+        track_title_mock.input_value.return_value = self.manifest['tracks'][0]['title']
+
+        def get_role_mock(role, name=None, exact=None):
+            if role == 'button' and name == 'Done':
+                return done_button
+            if role == 'button' and name == 'Save Changes':
+                return save_button
+            if role == 'button' and name == 'Create New Release':
+                return create_button
+            if role == 'textbox' and name == 'Single name':
+                return title_mock
+            if role == 'textbox' and name == 'Track name':
+                return track_title_mock
+            return Mock()
+
+        page.get_by_role.side_effect = get_role_mock
+
+        with patch.object(ui, 'editor'), patch.object(ui, 'ai_switch') as ai:
+            ai.return_value.get_attribute.return_value = 'true'
+            ui.readback()
+
+        # 1. Pastikan Done diklik pada track terakhir
+        done_button.click.assert_called_once()
+        # 2. Pastikan Save Changes diklik
+        save_button.click.assert_called_once()
+        # 3. Pastikan kembali ke portal releases
+        goto_urls = [call.args[0] for call in page.goto.call_args_list if call.args]
+        self.assertIn('https://toolost.com/user-portal/releases/manage/1', goto_urls)
+        create_button.wait_for.assert_called_once_with(state='visible', timeout=30000)
+
     def test_asset_rehashed_before_chooser(self):
         ui, _, _ = self.make_ui()
         self.assertEqual(ui.asset(self.manifest['artwork']), str(self.asset))

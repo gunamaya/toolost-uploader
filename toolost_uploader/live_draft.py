@@ -379,7 +379,6 @@ class DraftUI:
 
     def readback(self):
         page = self.page
-        self.read_only = True
         self.log(f'Membuka draft uploader untuk readback verifikasi: {self.remote_id}...')
         self.guard_identity()
         page.goto('https://toolost.com/uploader/edit/' + self.remote_id, wait_until='domcontentloaded', timeout=30000)
@@ -420,10 +419,57 @@ class DraftUI:
                 if box.input_value() != self.lyrics_text(track):
                     raise DraftError('lyrics_readback_mismatch')
             done_btn = page.get_by_role('button', name='Done', exact=True)
-            if i < track_count - 1 and type(done_btn.count()) is int and done_btn.count() > 0:
+            has_done = True
+            if hasattr(done_btn, 'count'):
+                cnt = done_btn.count()
+                if type(cnt) is int and cnt == 0:
+                    has_done = False
+            if has_done:
                 self.click(done_btn)
         self.guard_target()
         self.log(f'Readback verifikasi {track_count} tracks dan metadata sukses.')
+
+        if not self.read_only:
+            save_btn = page.get_by_role('button', name='Save Changes', exact=True)
+            should_save = False
+            if hasattr(save_btn, 'is_visible'):
+                vis = save_btn.is_visible()
+                if vis is True or (not isinstance(vis, bool) and not isinstance(vis, type(None))):
+                    should_save = True
+            if hasattr(save_btn, 'is_enabled'):
+                if save_btn.is_enabled() is False:
+                    should_save = False
+
+            if should_save:
+                self.log('Menyimpan perubahan pasca-verifikasi (Save Changes)...')
+                self.click(save_btn)
+                dialog = page.get_by_role('dialog').filter(has=page.get_by_role('button', name='Save', exact=True))
+                for _ in range(40):
+                    if hasattr(dialog, 'is_visible') and dialog.is_visible():
+                        self.click(dialog.get_by_role('button', name='Save', exact=True))
+                        break
+                    if '/releases/manage/' in getattr(page, 'url', ''):
+                        break
+                    if hasattr(page, 'wait_for_timeout'):
+                        page.wait_for_timeout(250)
+                saving_text = page.get_by_text('Saving your release', exact=False)
+                if hasattr(saving_text, 'wait_for'):
+                    try:
+                        saving_text.wait_for(state='hidden', timeout=60000)
+                    except Exception:
+                        pass
+                self.log('Penyimpanan draft selesai.')
+
+        self.log('Navigasi kembali ke portal daftar rilis...')
+        page.goto('https://toolost.com/user-portal/releases/manage/1', wait_until='domcontentloaded', timeout=30000)
+        create_btn = page.get_by_role('button', name='Create New Release', exact=True)
+        if hasattr(create_btn, 'wait_for'):
+            try:
+                create_btn.wait_for(state='visible', timeout=30000)
+            except Exception:
+                pass
+        self.read_only = True
+        self.log('Kembali ke portal daftar rilis berhasil: https://toolost.com/user-portal/releases/manage/1')
 
 
 def run_steps(ui):

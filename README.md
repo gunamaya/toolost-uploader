@@ -2,7 +2,7 @@
 
 CLI & Playwright Automation Tool untuk manajemen dan upload draft rilis [Too Lost](https://toolost.com) berbasis manifest JSON.
 
-[![PyPI version](https://img.shields.io/badge/version-0.1.3-blue.svg)](https://pypi.org/project/toolost-uploader/)
+[![PyPI version](https://img.shields.io/badge/version-0.1.4-blue.svg)](https://pypi.org/project/toolost-uploader/)
 [![Python versions](https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12-blue.svg)](https://www.python.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://github.com/gunamaya/toolost-uploader/blob/main/LICENSE)
 [![Tests](https://img.shields.io/badge/tests-171%20passed-brightgreen.svg)](#pengujian--pengembangan)

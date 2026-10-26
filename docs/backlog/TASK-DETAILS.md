@@ -180,6 +180,24 @@ Status/prioritas/dependency/klaim terkini mengikuti [current index](../ANTRIAN-P
 - **Verifier:** `python3 -m unittest discover -s tests -q`, `git diff --check`.
 - **Hasil:** Selesai (`done`, [CP-021](CHECKPOINT-HISTORY.md#cp-021--selesai-cdp-02--rilis-013-dukungan-unggah-berkas-audio-besar-50mb-via-is_local-di-cdp)). `is_local_endpoint` diterapkan pada `connect_over_cdp`, lolos uji upload 60MB live CDP, 179 unit tests offline lulus, paket `toolost-uploader==0.1.3` terbit di PyPI dan diverifikasi di clean-venv.
 
+## FIN-01 — Finalisasi step pasca-readback: Done track terakhir, Save Changes, & kembali ke portal (done)
+
+- **Sumber:** Feedback pengguna 2026-10-26: "sudah sukses upload, sayangnya di step terakhir setelah verifikasi track tidak click done, save changes dan kembali ke https://toolost.com/user-portal/releases/manage/1. segera perbaiki".
+- **Masuk:**
+  1. Di `toolost_uploader/live_draft.py` (`readback`):
+     - Memastikan tombol `Done` SELALU diklik pada setiap track, termasuk track terakhir (`i == track_count - 1`), sehingga modal track editor tertutup secara rapi.
+     - Menyimpan perubahan (`Save Changes`) pasca-verifikasi readback jika tombol `Save Changes` terlihat dan aktif.
+     - Melakukan navigasi kembali ke `https://toolost.com/user-portal/releases/manage/1` dan menunggu hingga tombol `Create New Release` terlihat.
+  2. Pengujian unit offline di `tests/test_live_draft.py`.
+  3. Version bump ke `0.1.4` dan rilis baru ke PyPI.
+- **Keluar:** Membuka draft lain, menghapus draft, atau memicu publish distribusi.
+- **Acceptance:**
+  - Tombol `Done` selalu diklik untuk track terakhir dalam readback.
+  - Alur `Save Changes` dan navigasi kembali ke `https://toolost.com/user-portal/releases/manage/1` terpanggil setelah readback selesai.
+  - Seluruh test suite offline 100% lulus; `git diff --check` bersih.
+- **Verifier:** `python3 -m unittest discover -s tests -q`, `git diff --check`.
+- **Hasil:** Selesai (`done`, [CP-022](CHECKPOINT-HISTORY.md#cp-022--selesai-fin-01--rilis-014-finalisasi-step-pasca-readback-done-track-terakhir-save-changes--kembali-ke-portal)). Tombol Done track terakhir selalu diklik, Save Changes dipicu pasca-readback, navigasi kembali ke portal releases terpasang, unit test memvalidasi 100%, dan versi 0.1.4 live di PyPI.
+
 ## PUB-01 — Publish/distribusi (deferred)
 
 - **Sumber:** arah produk final, bukan izin implementasi/eksekusi; [RELEASE-CONTRACT](../RELEASE-CONTRACT.md) masih proposal.
