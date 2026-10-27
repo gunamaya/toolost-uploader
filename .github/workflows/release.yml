@@ -19,10 +19,6 @@ jobs:
             artifact_name: toolost-macos-arm64
             archive_name: toolost-macos-arm64.tar.gz
             binary_name: toolost
-          - os: macos-13
-            artifact_name: toolost-macos-x86_64
-            archive_name: toolost-macos-x86_64.tar.gz
-            binary_name: toolost
           - os: ubuntu-latest
             artifact_name: toolost-linux-x86_64
             archive_name: toolost-linux-x86_64.tar.gz
