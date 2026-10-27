@@ -345,3 +345,7 @@ Catatan Keamanan:
         except OSError:
             return 5
         return code
+
+
+if __name__ == "__main__":
+    sys.exit(main())

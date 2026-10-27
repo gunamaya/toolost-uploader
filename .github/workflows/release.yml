@@ -1,0 +1,98 @@
+name: Release Standalone Binaries
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-latest
+            artifact_name: toolost-macos-arm64
+            archive_name: toolost-macos-arm64.tar.gz
+            binary_name: toolost
+          - os: macos-13
+            artifact_name: toolost-macos-x86_64
+            archive_name: toolost-macos-x86_64.tar.gz
+            binary_name: toolost
+          - os: ubuntu-latest
+            artifact_name: toolost-linux-x86_64
+            archive_name: toolost-linux-x86_64.tar.gz
+            binary_name: toolost
+          - os: windows-latest
+            artifact_name: toolost-windows-x86_64
+            archive_name: toolost-windows-x86_64.zip
+            binary_name: toolost.exe
+
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install . pyinstaller
+
+      - name: Build Standalone Binary (Unix)
+        if: runner.os != 'Windows'
+        run: |
+          pyinstaller --clean -y --onefile --paths . --collect-all playwright --collect-all toolost_uploader --name toolost scripts/toolost_cli.py
+          chmod +x dist/toolost
+          ./dist/toolost --version
+          tar -czf ${{ matrix.archive_name }} -C dist toolost
+          cp dist/toolost ${{ matrix.artifact_name }}
+
+      - name: Build Standalone Binary (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          pyinstaller --clean -y --onefile --paths . --collect-all playwright --collect-all toolost_uploader --name toolost scripts/toolost_cli.py
+          .\dist\toolost.exe --version
+          7z a ${{ matrix.archive_name }} .\dist\toolost.exe
+          copy dist\toolost.exe ${{ matrix.artifact_name }}.exe
+
+      - name: Upload Build Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact_name }}
+          path: |
+            ${{ matrix.archive_name }}
+            ${{ matrix.artifact_name }}*
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: dist-release
+          merge-multiple: true
+
+      - name: Publish archive checksums
+        run: |
+          cd dist-release
+          sha256sum * > checksums.txt
+          cat checksums.txt
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          files: dist-release/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
