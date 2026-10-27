@@ -21,29 +21,59 @@ DEFAULT_LOGIN_URL = "https://toolost.com/login"
 
 
 def find_chrome_binary(custom_path: str | Path | None = None) -> Path | None:
-    """Temukan lokasi executable Google Chrome."""
+    """Temukan lokasi executable Google Chrome atau browser berbasis Chromium."""
+    def _is_executable(path: Path) -> bool:
+        if not path.is_file():
+            return False
+        if sys.platform == "win32":
+            return path.suffix.lower() == ".exe" or os.access(path, os.X_OK)
+        return os.access(path, os.X_OK)
+
     if custom_path:
         p = Path(custom_path).expanduser().resolve()
-        if p.is_file() and os.access(p, os.X_OK):
+        if _is_executable(p):
             return p
         return None
 
     env_path = os.environ.get("CHROME_BIN")
     if env_path:
         p = Path(env_path).expanduser().resolve()
-        if p.is_file() and os.access(p, os.X_OK):
+        if _is_executable(p):
             return p
 
     if sys.platform == "darwin":
-        mac_default = Path("/Applications/Google Chrome.app/Contents/MacOS/Google Chrome")
-        if mac_default.is_file() and os.access(mac_default, os.X_OK):
-            return mac_default
+        mac_candidates = [
+            Path("/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"),
+            Path("/Applications/Chromium.app/Contents/MacOS/Chromium"),
+            Path("/Applications/Brave Browser.app/Contents/MacOS/Brave Browser"),
+            Path("/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge"),
+        ]
+        for cand in mac_candidates:
+            if _is_executable(cand):
+                return cand.resolve()
 
-    for name in ("google-chrome", "google-chrome-stable", "chromium", "chromium-browser", "chrome"):
+    if sys.platform == "win32":
+        win_candidates = [
+            Path(os.environ.get("ProgramFiles", r"C:\Program Files")) / "Google" / "Chrome" / "Application" / "chrome.exe",
+            Path(os.environ.get("ProgramFiles(x86)", r"C:\Program Files (x86)")) / "Google" / "Chrome" / "Application" / "chrome.exe",
+            Path(os.environ.get("LocalAppData", str(Path.home() / "AppData" / "Local"))) / "Google" / "Chrome" / "Application" / "chrome.exe",
+            # Fallback Microsoft Edge (Chromium, built-in on Windows 10 & 11)
+            Path(os.environ.get("ProgramFiles(x86)", r"C:\Program Files (x86)")) / "Microsoft" / "Edge" / "Application" / "msedge.exe",
+            Path(os.environ.get("ProgramFiles", r"C:\Program Files")) / "Microsoft" / "Edge" / "Application" / "msedge.exe",
+            Path(os.environ.get("LocalAppData", str(Path.home() / "AppData" / "Local"))) / "Microsoft" / "Edge" / "Application" / "msedge.exe",
+            # Fallback Brave
+            Path(os.environ.get("ProgramFiles", r"C:\Program Files")) / "BraveSoftware" / "Brave-Browser" / "Application" / "brave.exe",
+            Path(os.environ.get("LocalAppData", str(Path.home() / "AppData" / "Local"))) / "BraveSoftware" / "Brave-Browser" / "Application" / "brave.exe",
+        ]
+        for cand in win_candidates:
+            if _is_executable(cand):
+                return cand.resolve()
+
+    for name in ("google-chrome", "google-chrome-stable", "chromium", "chromium-browser", "chrome", "msedge", "brave"):
         found = shutil.which(name)
         if found:
             p = Path(found).resolve()
-            if p.is_file() and os.access(p, os.X_OK):
+            if _is_executable(p):
                 return p
 
     return None
@@ -219,7 +249,12 @@ def ensure_cdp_ready(
     if log:
         log(f"Browser CDP di port {port} belum aktif; melakukan auto-bootup Chrome...")
 
-    launch_chrome(pdir, mode="cdp", port=port, chrome_path=chrome_path)
+    try:
+        launch_chrome(pdir, mode="cdp", port=port, chrome_path=chrome_path)
+    except Exception as exc:
+        if log:
+            log(f"Auto-bootup Chrome gagal: {exc}")
+        return False
 
     start_time = time.monotonic()
     while time.monotonic() - start_time < timeout:

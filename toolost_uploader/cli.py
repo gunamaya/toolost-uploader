@@ -269,9 +269,17 @@ Catatan Keamanan:
 
         cdp_active = is_cdp_available(args.cdp)
         if not cdp_active and args.auto_bootup:
-            if progress_log:
-                progress_log(f"CDP loopback {args.cdp} belum aktif; mencoba auto-bootup Chrome...")
-            cdp_active = ensure_cdp_ready(args.cdp, profile_dir=pdir, log=progress_log, chrome_path=chrome_bin)
+            if not chrome_bin:
+                if progress_log:
+                    progress_log("Executable Google Chrome tidak ditemukan di sistem; auto-bootup dilewati.")
+            else:
+                if progress_log:
+                    progress_log(f"CDP loopback {args.cdp} belum aktif; mencoba auto-bootup Chrome...")
+                try:
+                    cdp_active = ensure_cdp_ready(args.cdp, profile_dir=pdir, log=progress_log, chrome_path=chrome_bin)
+                except Exception as exc:
+                    if progress_log:
+                        progress_log(f"Auto-bootup Chrome gagal: {exc}")
 
         auth_info = None
         if cdp_active:

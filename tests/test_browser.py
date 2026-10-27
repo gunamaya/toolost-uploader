@@ -42,6 +42,24 @@ class BrowserModuleTests(unittest.TestCase):
         self.assertEqual(find_chrome_binary(dummy), dummy.resolve())
         self.assertIsNone(find_chrome_binary(self.root / "nonexistent"))
 
+    def test_find_chrome_binary_windows_detection(self):
+        chrome_exe = self.root / "Google" / "Chrome" / "Application" / "chrome.exe"
+        chrome_exe.parent.mkdir(parents=True, exist_ok=True)
+        chrome_exe.touch()
+
+        with patch("sys.platform", "win32"), patch.dict("os.environ", {"ProgramFiles": str(self.root)}):
+            res = find_chrome_binary()
+            self.assertEqual(res, chrome_exe.resolve())
+
+    def test_find_chrome_binary_windows_edge_fallback(self):
+        edge_exe = self.root / "Microsoft" / "Edge" / "Application" / "msedge.exe"
+        edge_exe.parent.mkdir(parents=True, exist_ok=True)
+        edge_exe.touch()
+
+        with patch("sys.platform", "win32"), patch.dict("os.environ", {"ProgramFiles(x86)": str(self.root), "ProgramFiles": "", "LocalAppData": ""}):
+            res = find_chrome_binary()
+            self.assertEqual(res, edge_exe.resolve())
+
     def test_resolve_profile_dir(self):
         pdir = resolve_profile_dir("test-prof", root=self.root)
         self.assertEqual(pdir, self.root / "test-prof")
