@@ -15,6 +15,9 @@ class Row:
     def scroll_into_view_if_needed(self):
         self.page.top = max(0, self.index - 1)
 
+    def evaluate(self, _script):
+        self.page.top = max(0, self.index - 1)
+
     def locator(self, selector):
         return self
 
@@ -23,10 +26,11 @@ class Row:
 
 
 class BatchPage:
-    def __init__(self, order, *, no_op=False, fail_move=False):
+    def __init__(self, order, *, no_op=False, fail_move=False, unsafe=False):
         self.order = order[:]
         self.top = 0
         self.no_op, self.fail_move = no_op, fail_move
+        self.unsafe = unsafe
         self.source = None
         self.down_count = self.up_count = 0
         self.mouse = self
@@ -59,6 +63,9 @@ class BatchPage:
 
     def wait_for_timeout(self, timeout):
         pass
+
+    def evaluate(self, _script, _coordinates):
+        return not self.unsafe
 
 
 class ReorderTests(unittest.TestCase):
@@ -93,3 +100,9 @@ class ReorderTests(unittest.TestCase):
         with self.assertRaisesRegex(RuntimeError, 'drag_failed'):
             ui.reorder_tracks()
         self.assertEqual(ui.page.up_count, 1)
+
+    def test_covered_or_offscreen_target_stops_before_mouse_down(self):
+        ui = self.make_ui([2, 1], unsafe=True)
+        with self.assertRaisesRegex(DraftError, 'track_reorder_target_not_visible'):
+            ui.reorder_tracks()
+        self.assertEqual(ui.page.down_count, 0)

@@ -666,3 +666,9 @@ Append-only sejak adopsi governance. Ini **bukan checkpoint executor/runtime**, 
 - Result hanya menyatakan `account_verified`; `profile_verified`, `persisted_state_verified`, dan `execution_available` tetap false. Tidak membuktikan provenance profile/manifest/journal, draft persisted state, remote audio hash atau kecocokan browser profile.
 - `.venv/bin/python -m unittest tests.test_recovery_inspection -q`: exit0, 8 tests. `.venv/bin/python -m unittest discover -s tests -q`: exit0, 221 tests, 219 passed, 2 skipped. `git diff --check`: exit0. Tidak ada live browser/user data, network, install, commit/push.
 - REC-04 selesai sesuai bounded helper dan fake tests. REC-03 tetap blocked karena acceptance lebih luas membutuhkan binding identity/target/manifest dan safe executor. Next priority: review/decision atas provenance non-navigation untuk REC-03; alternatif tetap offline review-only.
+
+## CP-041 — 6 November 2026 — UPD-04 menunggu rekonsiliasi
+
+- Intake explicit user: perbaikan viewport/hit test adjacent drag dan tes fake offline; tanpa browser live atau commit. HEAD `6fa3af95b5d0760234eb4c4b571c7fd82361a346`; dirty paths saat intake: `tests/test_recovery_inspection.py`, `toolost_uploader/live_draft.py`, `toolost_uploader/recovery_inspection.py` (terakhir staged dan unstaged).
+- `live_draft.py` sudah memuat patch adjacent drag yang belum dikomit, berbeda dari HEAD; kepemilikan tidak diketahui. Aturan lifecycle melarang mengambil alih perubahan tidak dikenal. Tidak mengklaim atau mengedit runtime/test, tidak menjalankan tes/live/commit.
+- Status UPD-04 `needs_reconciliation`; next priority handoff pemilik patch adjacent drag atau konfirmasi user untuk melanjutkan di atas perubahan tersebut. Alternatif: pemilik menyelesaikan patch sendiri. UPD-03 tetap blocked pada gate live terpisah.

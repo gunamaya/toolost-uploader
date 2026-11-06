@@ -16,6 +16,7 @@ Status: `ready`, `in_progress`, `blocked`, `needs_reconciliation`, `done`, `defe
 
 | ID | Prioritas | Status | Hasil pekerjaan | Prasyarat / gate |
 |---|---|---|---|---|
+| UPD-04 | P1 | in_progress | Perbaikan viewport dan hit test untuk adjacent drag | Handoff direkonsiliasi: perubahan adjacent drag berasal dari sesi assistant saat ini |
 | REC-04 | P1 | done | Verifikasi akun non-navigation terbatas untuk page draft | CP-040; provenance profile/manifest tetap di luar scope |
 | REC-03 | P1 | blocked | Recovery review dua tahap offline, tanpa reupload | Provenance account/profile/draft dari page aktif belum terbukti; fail closed |
 | REC-02 | P1 | blocked | Inspeksi recovery read-only tanpa navigasi | CP-038: pembanding snapshot saja; provenance account/profile browser belum terbukti |
@@ -43,18 +44,20 @@ Alasan urutan: tata kerja dulu, kemudian review command/integrasi sesuai arah pr
 
 ## Register klaim aktif
 
+UPD-04: assistant/sesi-saat-ini, 6 November 2026; HEAD 6fa3af9 + dirty recovery/adjacent-drag milik sesi ini, scope `toolost_uploader/live_draft.py`, `tests/test_reorder_tracks.py`; tes focused dan live satu draft yang diizinkan user. Stop pada mismatch, tidak Save/Publish.
+
 REC-04: assistant/rec04-20261106 selesai CP-040; claim dilepas. Verifikasi non-navigation hanya pada page draft yang dipanggil, GET same-origin `/api/auth/me`, exact origin/draft, response bounded/fail-closed, tanpa CLI atau eksekusi.
 
 REC-03: assistant/recovery-20261106 dilepas setelah CP-039; status blocked pada gate provenance identity non-navigation.
 
 ## Checkpoint terbaru
 
-- CP-039: REC-03 blocked; fingerprint review dan approval snapshot offline, execution disabled; 217 tes 2 skip.
+- CP-041: UPD-04 needs_reconciliation; patch adjacent drag sudah dirty dengan kepemilikan tidak diketahui, tidak ada edit runtime atau tes.
 - CP-040: REC-04 selesai offline; helper same-origin non-navigation dan fake failure tests; 221 tes 2 skip, diff check bersih. Profile/manifest provenance, persisted state, remote hash dan live browser tetap belum terbukti.
+- CP-039: REC-03 blocked; fingerprint review dan approval snapshot offline, execution disabled; 217 tes 2 skip.
 - CP-038: REC-02 blocked; pembanding snapshot offline bukan inspeksi browser terikat identity, 216 tes 2 skip; CLI tidak ditambahkan.
 - CP-037: TMO-01 selesai offline; adaptive timeout chooser dan deadline observasi batch/append, 213 tes 2 skip, diff check bersih. Tidak live/install/commit.
 - CP-036: tes fixture batch/append gagal guard login fake; diperbaiki sebelum CP-037.
-- CP-035: tes awal gagal Python sistem tanpa Playwright dan fixture count; diperbaiki sebelum CP-037.
 
 
 

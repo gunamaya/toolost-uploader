@@ -2,29 +2,36 @@ import unittest
 from copy import deepcopy
 
 from toolost_uploader.live_journal import DraftError
-from toolost_uploader.recovery_inspection import (compare_snapshot, prepare_review,
-                                                  verify_open_draft_account, verify_review)
+from toolost_uploader.recovery_inspection import (compare_snapshot, observe_open_draft,
+                                                  prepare_review, verify_open_draft_account,
+                                                  verify_review, verify_account_on_separate_tab)
 
 
 class FakeLocator:
-    def __init__(self, count=0):
-        self._count = count
+    def __init__(self, count=0, texts=None):
+        self._count, self._texts = count, texts or []
 
     def count(self):
         return self._count
 
+    def all_inner_texts(self):
+        return list(self._texts)
+
 
 class FakePage:
     def __init__(self, account='12', url='https://toolost.com/uploader/edit/34',
-                 closed=False, dialogs=0, login_fields=0, error=None):
+                 closed=False, dialogs=0, login_fields=0, error=None, labels=None):
         self.account, self.url, self.closed = account, url, closed
         self.dialogs, self.login_fields, self.error = dialogs, login_fields, error
+        self.labels = ['1 a.wav', '2 b.wav'] if labels is None else labels
         self.evaluated = []
 
     def is_closed(self):
         return self.closed
 
     def locator(self, _selector):
+        if 'track-item' in _selector:
+            return FakeLocator(texts=self.labels)
         return FakeLocator(self.dialogs if 'dialog' in _selector else self.login_fields)
 
     def evaluate(self, script):
@@ -130,6 +137,37 @@ class RecoverySnapshotTests(unittest.TestCase):
         page.evaluate = changed
         with self.assertRaises(DraftError):
             verify_open_draft_account(page, expected_account='12', expected_draft='34')
+
+    def test_observe_open_draft_reads_without_navigation(self):
+        page = FakePage(labels=['1 a.wav', '2 b.wav'])
+        result = observe_open_draft(page, expected_account='12', expected_draft='34')
+        self.assertTrue(result['read_only'])
+        self.assertEqual(result['observation']['track_labels'], ['1 a.wav', '2 b.wav'])
+        self.assertEqual(len(page.evaluated), 2)
+
+    def test_observe_open_draft_rejects_empty_labels(self):
+        with self.assertRaises(DraftError):
+            observe_open_draft(FakePage(labels=[]), expected_account='12', expected_draft='34')
+
+    def test_verify_account_uses_and_closes_only_new_tab(self):
+        class Response:
+            url = 'https://toolost.com/api/auth/me'
+            status = 200
+            def json(self): return {'user': {'id': 12}}
+        class Portal:
+            closed = False
+            def on(self, _event, callback): self.callback = callback
+            def goto(self, *_args, **_kwargs): self.callback(Response())
+            def get_by_role(self, *_args, **_kwargs): return self
+            def wait_for(self, **_kwargs): pass
+            def wait_for_timeout(self, _ms): pass
+            def close(self): self.closed = True
+        class Context:
+            def __init__(self): self.portal = Portal()
+            def new_page(self): return self.portal
+        context = Context()
+        self.assertTrue(verify_account_on_separate_tab(context, expected_account='12')['account_verified'])
+        self.assertTrue(context.portal.closed)
 
 
 if __name__ == '__main__':

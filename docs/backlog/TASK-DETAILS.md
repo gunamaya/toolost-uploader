@@ -308,6 +308,13 @@ Gunakan nomor unik berikutnya; jangan renumber history. Evidence offline tidak m
 - Acceptance: ukuran kecil/besar/batas, chooser menerima timeout, count dan dialog berbagi deadline, ambiguity dan timeout berhenti aman; focused/full unittest dan diff check. Verifier assistant. Izin edit offline eksplisit user.
 - CP-037: selesai offline; chooser dan observasi masing-masing bounded menurut ukuran, count dan dialog berbagi deadline; 213 tes, 2 skip. Portal dan package belum diverifikasi.
 
+## UPD-04 — Viewport adjacent drag
+
+- P1, needs_reconciliation; permintaan eksplisit user untuk perbaikan offline adjacent drag, terkait UPD-03 tanpa menutup gate live-nya.
+- Scope masuk: pemusatan viewport dan hit test aman sebelum drag, tes fake offscreen, overlay dan mouse release di `tests/test_reorder_tracks.py`. Scope keluar: browser live, upload, Save, Publish, instalasi dan commit.
+- Acceptance: titik sumber dan tujuan tervalidasi aman, kegagalan fail-closed dan mouse dilepas saat diperlukan; tes focused dan full offline serta `git diff --check`. Verifier assistant; izin hanya implementasi dan verifikasi offline.
+- CP-041: sebelum klaim ditemukan patch adjacent drag yang sudah dirty di file target, pemiliknya tidak diketahui. Stop untuk handoff; tidak mengambil alih patch dan tidak mengubah runtime.
+
 ## UPD-03 — Reorder batch panjang
 
 - Intake user: lanjut reorder batch setelah CP-032. Dependency UPD-02 dan evidence CP-032; P1. Mendukung REM-22 integrator tanpa menutup parent.

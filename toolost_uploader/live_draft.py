@@ -387,31 +387,38 @@ class DraftUI:
         order = read_order()
         for target in range(count):
             actual = order.index(target)
-            if actual == target:
-                continue
-            self.guard_target()
-            source = items.nth(actual).locator('.track-item__drag')
-            source.scroll_into_view_if_needed()
-            handle = source.bounding_box()
-            if not handle:
-                raise DraftError('track_reorder_failed')
-            self.page.mouse.move(handle['x'] + handle['width'] / 2, handle['y'] + handle['height'] / 2)
-            self.page.mouse.down()
-            try:
-                destination = items.nth(target)
-                destination.scroll_into_view_if_needed()
+            while actual > target:
+                self.guard_target()
+                source = items.nth(actual).locator('.track-item__drag')
+                destination = items.nth(actual - 1)
+                destination.evaluate("e => e.scrollIntoView({block: 'center', inline: 'nearest', behavior: 'instant'})")
+                handle = source.bounding_box()
                 box = destination.bounding_box()
-                if not box:
+                if not handle or not box:
                     raise DraftError('track_reorder_failed')
-                self.page.mouse.move(box['x'] + box['width'] / 2, box['y'] + 5, steps=10)
-            finally:
-                self.page.mouse.up()
-            self.page.wait_for_timeout(1000)
-            expected = order[:]
-            expected.insert(target, expected.pop(actual))
-            order = read_order()
-            if order != expected:
-                raise DraftError('track_reorder_failed')
+                safe = self.page.evaluate('''({sx, sy, dx, dy}) => {
+                    const usable = (x, y) => x >= 0 && x < innerWidth && y >= 64 && y < innerHeight - 16;
+                    const source = document.elementFromPoint(sx, sy);
+                    const destination = document.elementFromPoint(dx, dy);
+                    return usable(sx, sy) && usable(dx, dy) &&
+                        !!source?.closest('.track-item__drag') && !!destination?.closest('.track-item');
+                }''', {'sx': handle['x'] + handle['width'] / 2, 'sy': handle['y'] + handle['height'] / 2,
+                       'dx': box['x'] + box['width'] / 2, 'dy': box['y'] + 5})
+                if safe is not True:
+                    raise DraftError('track_reorder_target_not_visible')
+                self.page.mouse.move(handle['x'] + handle['width'] / 2, handle['y'] + handle['height'] / 2)
+                self.page.mouse.down()
+                try:
+                    self.page.mouse.move(box['x'] + box['width'] / 2, box['y'] + 5, steps=10)
+                finally:
+                    self.page.mouse.up()
+                self.page.wait_for_timeout(1000)
+                expected = order[:]
+                expected.insert(actual - 1, expected.pop(actual))
+                order = read_order()
+                if order != expected:
+                    raise DraftError('track_reorder_failed')
+                actual -= 1
 
     def audio(self):
         if not self.serial_audio:

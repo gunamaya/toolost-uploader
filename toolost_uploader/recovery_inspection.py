@@ -65,6 +65,60 @@ def verify_open_draft_account(page, *, expected_account, expected_draft):
             'persisted_state_verified': False, 'execution_available': False}
 
 
+def observe_open_draft(page, *, expected_account, expected_draft, track_selector='.track-item:visible'):
+    """Read current draft DOM without navigation, clicks, uploads, or Save."""
+    identity = verify_open_draft_account(page, expected_account=expected_account, expected_draft=expected_draft)
+    try:
+        labels = page.locator(track_selector).all_inner_texts()
+        if not isinstance(labels, list) or not labels or any(not isinstance(x, str) or not x.strip() for x in labels):
+            raise ValueError
+        verify_open_draft_account(page, expected_account=expected_account, expected_draft=expected_draft)
+        observation = {
+            'account': expected_account,
+            'profile': '',
+            'closed': False,
+            'dialog_count': 0,
+            'login_visible': False,
+            'url': page.url,
+            'track_labels': labels,
+        }
+        return {**identity, 'observation': observation, 'read_only': True}
+    except Exception:
+        raise DraftError('recovery_snapshot_ambiguous') from None
+
+
+def verify_account_on_separate_tab(context, *, expected_account, portal_url='https://toolost.com/user-portal/releases/manage/1'):
+    """Verify account on a new tab, leaving the active draft page untouched."""
+    page = context.new_page()
+    try:
+        observed = []
+        def response(item):
+            from urllib.parse import urlsplit
+            u = urlsplit(item.url)
+            if u.scheme == 'https' and u.netloc == 'toolost.com' and u.path == '/api/auth/me' and item.status == 200:
+                try:
+                    value = item.json().get('user', {}).get('id')
+                    if type(value) is int:
+                        observed.append(str(value))
+                except Exception:
+                    pass
+        page.on('response', response)
+        page.goto(portal_url, wait_until='domcontentloaded', timeout=30000)
+        page.get_by_role('button', name='Create New Release', exact=True).wait_for(state='visible', timeout=30000)
+        for _ in range(40):
+            if observed:
+                break
+            page.wait_for_timeout(250)
+        if not observed or any(value != expected_account for value in observed):
+            raise DraftError('account_mismatch_or_unobserved')
+        return {'account_verified': True, 'account_id': expected_account, 'draft_page_untouched': True}
+    finally:
+        try:
+            page.close()
+        except Exception:
+            pass
+
+
 def prepare_review(*, manifest, expected_account, expected_profile, expected_draft, observation):
     """Buat fingerprint review lokal, bukan izin untuk menyentuh browser."""
     comparison = compare_snapshot(
