@@ -16,6 +16,12 @@ Status: `ready`, `in_progress`, `blocked`, `needs_reconciliation`, `done`, `defe
 
 | ID | Prioritas | Status | Hasil pekerjaan | Prasyarat / gate |
 |---|---|---|---|---|
+| REC-04 | P1 | done | Verifikasi akun non-navigation terbatas untuk page draft | CP-040; provenance profile/manifest tetap di luar scope |
+| REC-03 | P1 | blocked | Recovery review dua tahap offline, tanpa reupload | Provenance account/profile/draft dari page aktif belum terbukti; fail closed |
+| REC-02 | P1 | blocked | Inspeksi recovery read-only tanpa navigasi | CP-038: pembanding snapshot saja; provenance account/profile browser belum terbukti |
+| TMO-01 | P1 | done | Timeout audio adaptif ukuran untuk batch dan append | CP-037 offline; bukan bukti live |
+| UPD-03 | P1 | blocked | Reorder-only berhenti pre-drag karena existing dialog kosong CP-034 | Perlu review/tutup dialog oleh user; tanpa reload/Save/upload |
+| UPL-01 | P1 | blocked | Upload serial opt-in dan journal per-track; boundary buffer | REM-22 integrator; offline only, no resume mutasi |
 | GOV-01 | P1 | done | Adopsi lifecycle task/backlog/checkpoint dari yt-to-flowmusic | CP-003; docs-only |
 | REC-01 | P1 | done | Hardening recovery executor + regresi offline | Implementasi 684acd6; batas offline CP-001 |
 | CLI-01 | P2 | done | Review subset draft CLI dan kontrak integrator yang benar-benar didukung | Hasil di CLI-REVIEW.md; CP-005 |
@@ -37,14 +43,22 @@ Alasan urutan: tata kerja dulu, kemudian review command/integrasi sesuai arah pr
 
 ## Register klaim aktif
 
-*(Tidak ada klaim aktif — seluruh task telah diselesaikan)*
+REC-04: assistant/rec04-20261106 selesai CP-040; claim dilepas. Verifikasi non-navigation hanya pada page draft yang dipanggil, GET same-origin `/api/auth/me`, exact origin/draft, response bounded/fail-closed, tanpa CLI atau eksekusi.
+
+REC-03: assistant/recovery-20261106 dilepas setelah CP-039; status blocked pada gate provenance identity non-navigation.
 
 ## Checkpoint terbaru
 
-- [CP-020](backlog/CHECKPOINT-HISTORY.md#cp-020--publikasi-rilis-012-ke-pypi-optimalisasi-tab-memory--tab-lyrics): Rilis 0.1.2 ke PyPI produksi; menyertakan fitur optimalisasi memori tab dan otomasi lirik.
-- [CP-021](backlog/CHECKPOINT-HISTORY.md#cp-021--selesai-cdp-02--rilis-013-dukungan-unggah-berkas-audio-besar-50mb-via-is_local-di-cdp): CDP-02 done; dukungan is_local di connect_over_cdp mengangkat batas 50MB Playwright; rilis 0.1.3 live di PyPI.
-- [CP-022](backlog/CHECKPOINT-HISTORY.md#cp-022--selesai-fin-01--rilis-014-finalisasi-step-pasca-readback-done-track-terakhir-save-changes--kembali-ke-portal): FIN-01 done; tombol Done track terakhir selalu diklik, Save Changes pasca-verifikasi dijalankan, dan browser dinavigasikan kembali ke portal daftar rilis; rilis 0.1.4 live di PyPI.
-- [CP-023](backlog/CHECKPOINT-HISTORY.md#cp-023--selesai-upd-01--rilis-015-fitur-update-komprehensif-judul-tanggal-rilis-artwork-metadata-track--append-lagu-susulan): UPD-01 done; dukungan sinkronisasi update komprehensif (judul album, tanggal rilis, artwork, perbaikan lirik/AI/judul lagu, serta append lagu susulan); 188 tes; rilis 0.1.5 live di PyPI.
-- [CP-024](backlog/CHECKPOINT-HISTORY.md#cp-024--selesai-upd-02--rilis-016-dukungan-penyisipan-lagu-di-posisi-sembarang--reordering-track): UPD-02 done; kontinuitas update berbasis integritas audio hash (subset) mendukung penyisipan lagu di tengah urutan dan penataan posisi fisik track via drag & drop; rilis 0.1.6 live di PyPI.
+- CP-039: REC-03 blocked; fingerprint review dan approval snapshot offline, execution disabled; 217 tes 2 skip.
+- CP-040: REC-04 selesai offline; helper same-origin non-navigation dan fake failure tests; 221 tes 2 skip, diff check bersih. Profile/manifest provenance, persisted state, remote hash dan live browser tetap belum terbukti.
+- CP-038: REC-02 blocked; pembanding snapshot offline bukan inspeksi browser terikat identity, 216 tes 2 skip; CLI tidak ditambahkan.
+- CP-037: TMO-01 selesai offline; adaptive timeout chooser dan deadline observasi batch/append, 213 tes 2 skip, diff check bersih. Tidak live/install/commit.
+- CP-036: tes fixture batch/append gagal guard login fake; diperbaiki sebelum CP-037.
+- CP-035: tes awal gagal Python sistem tanpa Playwright dan fixture count; diperbaiki sebelum CP-037.
+
+
+
+
+
 
 Maksimal lima ringkasan terbaru di sini; history lengkap append-only. Jangan memasukkan path privat, ID akun/draft, aset, token, capture atau isi checkpoint runtime ke backlog.

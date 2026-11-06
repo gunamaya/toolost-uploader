@@ -19,6 +19,28 @@ Status/prioritas/dependency/klaim terkini mengikuti [current index](../ANTRIAN-P
 - **Evidence:** CP-001 merujuk laporan suite 154 tes, 2 skip, py_compile/diff check; bukan bukti live baru. Smoke sukses 74a24b2 tetap historis, tidak diulang.
 - **Tidak termasuk:** resume produksi, publish/distribusi, rights/artist/services/AI Documentation otomatis, build/install opt-in terbaru.
 
+## REC-02 — Inspeksi recovery tanpa navigasi
+
+- **Prioritas/dependency:** P1; REC-01 selesai, tidak menutup UPD-03 atau UPL-01.
+- **Masuk:** inspeksi hanya page draft terbuka, binding account/profile/draft/manifest, identitas label track unik dan rencana urutan, fail closed; tes fake offline. CLI hanya bila identity aman dapat dibuktikan.
+- **Keluar/izin:** tidak ada live calls saat development, navigasi, save, upload, reorder, perubahan journal atau state pengguna, install/commit/publish. User mengizinkan development offline saja.
+- **Acceptance:** target dan identitas dibuktikan bukan hanya klaim input, label dan mapping unik tepat, perubahan state/ambiguitas menolak; hasil tidak mengklaim hash audio remote terbukti dan tidak mengandung secret.
+- **Verifier:** tes unit sintetis offline dan `git diff --check`; tanpa bukti portal live.
+- **CP-038:** blocked; hanya pembanding snapshot sintetis tanpa provenance dan tanpa CLI. Binding akun/profil pada tab terbuka perlu mekanisme bukti read-only yang tidak menavigasi sebelum acceptance bisa dipenuhi.
+
+## REC-04 — Verifikasi akun non-navigation terbatas
+
+- Child REC-02, P1. Implementasi helper pada page draft yang diberikan, exact origin/draft dan akun via GET same-origin read-only; fail closed pada perubahan atau respons ambigu, fake tests offline.
+- Di luar scope: pemilihan/provenance profil, binding journal/manifest, CLI, recovery mutation, browser nyata, data user, navigasi, install dan commit.
+- Acceptance: guard sebelum/sesudah, batas waktu dan respons, redirect ditolak, ID integer ketat, error tersanitasi; tidak mengklaim persisted state atau identitas profil. Verifier focused/full offline dan diff check.
+
+## REC-03 — Recovery draft existing dua tahap
+
+- P1; permintaan user untuk reorder dan lirik pada draft existing tanpa reupload; bergantung REC-02 dan safeguards journal REC-01. Mengganti batas scope REC-02 hanya untuk task ini, bukan menutupnya.
+- Masuk: inspeksi tanpa navigasi, rencana terikat identity/target/manifest, approval eksplisit, verifikasi ulang sebelum mutasi, fail closed dan journal intent/unknown, tes offline.
+- Keluar: operasi browser atau state user saat development, upload, publish, retry buta, commit.
+- Acceptance: identity akun dan draft terbukti dari browser yang sama, track unik dan cocok, approval mengikat rencana serta perubahan terdeteksi, Save dan readback aman, journal fail-stop; verifier focused/full offline dan diff check. Tanpa bukti identity dan target yang kuat jangan membuka jalur eksekusi.
+
 ## CLI-01 — Review subset draft CLI dan integrator
 
 - **Sumber:** target CLI terpisah untuk yt-to-flowmusic; kontrak existing [CONTRACT-V1](../CONTRACT-V1.md), [CONTRACT-PLAN](../CONTRACT-PLAN.md), implementasi [LIVE-DRAFT](../LIVE-DRAFT.md).
@@ -277,3 +299,43 @@ Next: satu ID + alasan; alternatif bila blocked; izin yang masih dibutuhkan
 ```
 
 Gunakan nomor unik berikutnya; jangan renumber history. Evidence offline tidak menutup acceptance live/package/release. Tidak commit/push otomatis.
+
+## TMO-01 — Timeout upload audio adaptif
+
+- P1; dependency CLI-02 dan UPL-01; overlap UPL-01 dibatasi ke timeout shared, tidak menutup blocker serial/buffer maupun UPD-03.
+- Scope: timeout chooser dan total observasi batch/append berdasarkan ukuran byte, dibatasi; unknown fail-stop tanpa retry, tes offline sintetis termasuk serial.
+- Di luar scope: live, resume/retry, perubahan reorder, artwork, instalasi/paket, commit/push.
+- Acceptance: ukuran kecil/besar/batas, chooser menerima timeout, count dan dialog berbagi deadline, ambiguity dan timeout berhenti aman; focused/full unittest dan diff check. Verifier assistant. Izin edit offline eksplisit user.
+- CP-037: selesai offline; chooser dan observasi masing-masing bounded menurut ukuran, count dan dialog berbagi deadline; 213 tes, 2 skip. Portal dan package belum diverifikasi.
+
+## UPD-03 — Reorder batch panjang
+
+- Intake user: lanjut reorder batch setelah CP-032. Dependency UPD-02 dan evidence CP-032; P1. Mendukung REM-22 integrator tanpa menutup parent.
+- Scope masuk: shared reorder, mapping seluruh track sebelum mutasi, scroll sumber/target dan koordinat segar, pelepasan mouse saat error, postcondition urutan; regresi sintetis permutation25/offscreen/no-op/ambiguity.
+- Scope keluar: upload ulang, metadata/Save/Publish, resume journal, serial/buffer, dependency/package/commit. Tidak ada izin live pada slice offline ini.
+- Acceptance: focused dan full offline lulus dengan batas eksplisit; tidak mengklaim portal berhasil tanpa live. Verifier assistant; bukti bounded watchdog dan diff check. Stop pada ambiguity/no progress tanpa retry otomatis.
+- CP-033: offline acceptance lulus (43 focused; full208 dengan206passed2skipped). Synthetic permutation25 mereproduksi offscreen failure; patch scroll+fresh coordinates, mapping preflight, mouse cleanup dan exact order readback. Status authoritative blocked menunggu portal/live; REM-22 tidak ditutup. No live/commit/push; owner dilepas.
+- Izin baru user: reorder-only pada draft uji existing yang sama, tanpa upload ulang/Save/Publish. Owner assistant/upd03-live-reorder-20261029; no reload/navigation (preserve unsaved state), exact account/title/count/identity, network mutations blocked, private evidence terpisah dari journal lama. Hard180s dan no retry otomatis.
+- CP-034: preflight stopped existing_dialog sebelum identitas/account fetch atau drag. Read-only scoped inspection: dialog kosong hanya tombol Close. Tidak ditutup otomatis/no retry; owner dilepas, blocked review dialog user. Runtime tidak berubah; tes CP-033 tetap evidence offline saja.
+
+## UPL-01 — Serial opt-in dan journal per-track
+
+- Priority P1, in_progress; owner assistant/upl01-20261029. User mengizinkan edit repo uploader dari sesi REM-22 integrator. Dependency CLI-02/CDP-02/UPD-02; RES-01 tetap superseded.
+- Scope masuk: --serial-audio opt-in, satu file per chooser berurutan, journal trackID/hash/index intent unknown→observed, fail-stop no retry; --bound-buffer opt-in validasi hash byte tepat untuk aset<=50MB, reject>50MB sebelum mutasi. Pertahankan path besar default/CDP is_local.
+- Scope keluar: resume mutasi, publish, live/login, perubahan data lama/journal migration, package release/commit/push.
+- Acceptance: offline fake chooser/journal tests partial failure no later track, old journal compatibility, per-track mismatch rejected, bytes bound under50MB dan oversized reject; regression full offline unittest. Bukan acceptance portal/native/live.
+- Blocker konkret: Playwright installed convert_input_files membatasi total buffer50MiB; user target1GiB adalah target desain bukan override library. Tidak mengganti jalur100MB default atau klaim bound-byte besar tersedia.
+
+- CP-026: UPL-01 blocked remaining bound-byte>50MiB dan live/package; offline slice serial/journal/metadata hash selesai. Flags opt-in, default path100MB tidak diubah. 200tests198passed2skipped; review3temuan diperbaiki. Owner dilepas, no commit/push.
+
+- Izin baru: review failure-boundary dan live satu draft uji baru, draft-only. Target profil/account/aset belum diberikan; live belum dijalankan. Scope offline perbaiki klasifikasi error pasca mutasi, sync intent sebelum checkpoint, reorder fail-closed dan duplicate hash/count guards; owner assistant/upl01-failure-live.
+
+- CP-028: failure-boundary guards post-intent InvalidInput→reconciliation, sync_pending durable, strict reorder mapping, duplicate hashes blocked dan count polling. 203tests201passed2skipped0.999s. UPL-01 blocked live target details; user memilih draft uji baru tetapi profile/account/manifest belum tersedia. Owner dilepas; no live started.
+
+- Izin live diperjelas: satu draft TEST ONLY dengan25take mastered→ID3 (tepat1/lagu), cover placeholder3000² lokal; alias/account/source eksplisit dalam percakapan, tidak masukkan detail privat ke backlog. No Publish/delete/auto retry/source mutation. Owner assistant/upl01-live25, watchdog1800s poll10–15s, stop unknown/mismatch.
+
+- CP-030: live25 semua transfer observed (25 track events), count25 UI read-only; parent audio unknown akibat label ordinal+basename+Edit concatenated. No metadata/Save. Parser fixed+offline204tests202passed2skipped. UPL-01 blocked explicit same-draft reconciliation; no reupload/create/delete/auto retry.
+
+- Izin baru batch live: user telah menghapus sebagian track manual, mengizinkan hapus seluruh sisa dari draft uji yang sama lalu uji batch/path lokal25aset approved. No draft baru/source edit/Publish; journal serial lama historis tidak di-reset. Owner assistant/upl01-batch-live; stop unknown dan verifikasi target/dialog/count0 sebelum upload.
+
+- CP-032: same-draft batch25 path selesai transfer,25visible tetapi order salah dan reorder fail-stop. No remaining tracks before batch after user manual removal; no delete performed. No Save/Publish/metadata. UPL-01 blocked reorder fix offline, no reupload.

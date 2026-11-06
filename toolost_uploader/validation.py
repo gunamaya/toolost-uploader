@@ -121,6 +121,45 @@ def file_reference(reference, base, lyrics=False):
             reject("invalid_lyrics_encoding", "File lirik harus UTF-8.")
 
 
+
+BUFFER_LIMIT_BYTES = 50 * 1024 * 1024
+
+
+def verified_bytes(reference, base, *, lyrics=False, limit=None):
+    """Read once, hash the exact immutable bytes returned to the consumer."""
+    file_reference_structure(reference)
+    maximum = MAX_LYRICS_BYTES if lyrics else BUFFER_LIMIT_BYTES
+    if limit is not None:
+        maximum = min(maximum, limit)
+    path = Path(reference['path'])
+    if not path.is_absolute():
+        path = Path(base) / path
+    path = Path(os.path.abspath(path))
+    for part in (path, *path.parents):
+        if part.is_symlink():
+            reject('symlink_not_supported', 'Symlink aset tidak didukung.')
+    fd = os.open(path, os.O_RDONLY | os.O_NONBLOCK | getattr(os, 'O_NOFOLLOW', 0))
+    with os.fdopen(fd, 'rb') as stream:
+        info = os.fstat(stream.fileno())
+        if not stat.S_ISREG(info.st_mode) or info.st_size == 0:
+            reject('invalid_file', 'Aset harus file reguler non-empty.')
+        if info.st_size > maximum:
+            reject('buffer_limit_exceeded', 'Buffer Playwright dibatasi 50 MiB; gunakan mode path lokal atau file lebih kecil.')
+        data = stream.read(maximum + 1)
+        after = os.fstat(stream.fileno())
+        if len(data) > maximum:
+            reject('buffer_limit_exceeded', 'Aset melampaui batas buffer.')
+        if (info.st_size, info.st_mtime_ns, info.st_ctime_ns) != (after.st_size, after.st_mtime_ns, after.st_ctime_ns):
+            reject('file_changed', 'Aset berubah saat pembacaan.')
+    if hashlib.sha256(data).hexdigest() != reference['sha256']:
+        reject('hash_mismatch', 'Hash aset tidak cocok.')
+    if lyrics:
+        try:
+            data.decode('utf-8')
+        except UnicodeError:
+            reject('invalid_lyrics_encoding', 'Lirik harus UTF-8.')
+    return data
+
 def validate_manifest_structure(manifest):
     required = {"schema_version", "release_id", "release_type", "title", "release_date", "artwork", "tracks"}
     object_keys(manifest, required, RELEASE_TEXT | {"copyright"})

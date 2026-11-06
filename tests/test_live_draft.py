@@ -113,6 +113,7 @@ class LiveDraftTests(unittest.TestCase):
         cm = MagicMock()
         cm.__enter__.return_value = chooser_mock
         page.expect_file_chooser.return_value = cm
+        ui.reorder_tracks = Mock()  # Chooser contract; reorder has separate fail-closed tests.
         ui.audio()
         chooser_mock.value.set_files.assert_called_once()
         files_arg = chooser_mock.value.set_files.call_args[0][0]
@@ -433,6 +434,7 @@ class LiveDraftTests(unittest.TestCase):
         ui.remote_id = '123'
         ui.identity_verified = True
 
+        ui.reorder_tracks = Mock()
         ui.append_tracks([track2], expected_old_count=1)
         chooser_mock.value.set_files.assert_called_once()
 

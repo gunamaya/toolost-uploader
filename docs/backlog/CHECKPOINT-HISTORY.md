@@ -557,3 +557,112 @@ Append-only sejak adopsi governance. Ini **bukan checkpoint executor/runtime**, 
 - **Batas bukti:**
   - Mode eksekusi tetap aman dalam batas **draft-only** (tombol Publish dilarang ditekan).
 - **Next priority:** INT-01 (Implementasi adapter integrasi `TooLostClient` di repo `yt-to-flowmusic` mengacu pada `docs/INTEGRATION-PLAN.md`).
+
+## CP-025 — 29 Oktober 2026 — Intake UPL-01 dari REM-22
+
+- User mengizinkan edit repo uploader, offline saja; HEADb8420dff clean; scope/claim di index. Integrator HEAD30cfef6+dirty CP187–198 dipertahankan.
+- Actual Playwright convert_input_files: buffer>50MiB ditolak, local-path CDP is_local terbukti existing CDP-02. Karena itu serial+journal opt-in dan bounded-buffer<=50MB, reject besar eksplisit; default100MB path tidak diubah. Bound-byte besar tetap blocked. No live/login/install/migration/commit.
+- Next implement focused regression; alternatif bila source/journal incompatible report blocker tanpa menebak.
+
+## CP-026 — 29 Oktober 2026 — UPL-01 offline serial/journal dan bound-buffer
+
+- HEADb8420dff clean baseline; owner assistant/upl01-20261029 dilepas. Files live_draft/live_journal/validation/cli, tests/test_serial_audio.py, README/backlog. No .local/user data/login/network/upload/install/commit/push.
+- --serial-audio opt-in satu track per chooser, intent unknown/observed trackID/hash/index terikat stage journal; pending menghentikan stage dan require_reconciliation, no resume mutasi. Old journal events tanpa track_events tetap diterima. Metadata-only update tetap boleh; serial reorder/identity lama ditolak sebelum checkpoint update. Dialog upload tidak hilang→timeout, bukan observed.
+- --bound-buffer perlu serial, verified_bytes read-once/hash-same-byte; lyrics juga bounded verified UTF8. Playwright1.64.1 actual convert_input_files limit52428800bytes: >50MiB ditolak sebelum auto-boot/checkpoint. Default path/CDP is_local tidak diubah, file80–100MB tidak dipaksa buffer. 1GiB target integrator bukan override library; bound-byte besar belum tersedia.
+- Focused50tests0.222s /tmp/toolost-tests-20261029-150803.log; focused56tests0.234s /tmp/toolost-tests-20261029-151318.log; reviewer3issues (dialog timeout, metadata guard, pre-auto-boot) fixed+regressions. Fixture failures corrected (synthetic.bin allowlist, album-only update, fake login selector); final focused59tests0.210s /tmp/toolost-tests-20261029-151458.log.
+- Final .venv/bin/python -u -m unittest discover -s tests -q; watchdog120s, 200 tests in3.135s OK skipped2 (opt-in package install;198passed), wrapper3.25s /tmp/toolost-tests-20261029-151534.log+.status job_o126d7bhongr7zcv6sme3pwm PID30900 no process group. git diff --check clean. Not live/package/release/full portal verification.
+- UPL-01 blocked residual bound-byte100MB/portal serial compatibility; RES-01 stays superseded, PUB-01 deferred. Next review actual journal/failure boundaries and explicit live validation only with separate permission; alternative large-file bound-byte needs upstream Playwright/OS strategy, no silent fallback.
+
+- Integrator compatibility after new fields:39passed1.22s watchdog30 /tmp/cover-tests-20261029-151926-rem20.log+.status, job_pminwl1bh8ath1ptwyfgmjik PID31347 no group; first run36passed3failed due object.__new__ fake missing serial_audio, fixture corrected. No uploader runtime changes after200-test suite.
+
+## CP-027 — 29 Oktober 2026 — UPL-01 failure-boundary review/live gate
+
+- User memberi izin review dan live, memilih satu draft uji baru; alias/profile expected account/manifest tidak disediakan, no remote/browser dijalankan. HEADb8420dff+dirtyCP026 milik sesi ini. Owner assistant/upl01-failure-live scope exact di index.
+- Review found post-mutation InvalidInput classified preflight, checkpoint update before browser mistaken up-to-date, ambiguous swallowed reorder, duplicate hashes and early count; fix offline before live. No extra rights Publish/delete/auto retry.
+
+## CP-028 — 29 Oktober 2026 — UPL-01 failure guards offline, live target gate
+
+- User memberi izin live satu draft uji baru, tetapi belum alias profil/expected-account/aset manifest. Tidak membaca .local/akun/credentials, membuka browser atau memutasi remote. Owner assistant/upl01-failure-live dilepas; baseline b8420dff+dirtyCP026 sendiri. Files live_draft/live_journal, tests/test_serial_audio.py, tests/test_live_draft.py, backlog.
+- Review P1 fixed: InvalidInput setelah action unknown menjadi DraftError reconciliation; sync_pending disimpan sebelum checkpoint update dan cleared hanya readback baru; no false up-to-date after connect failure; reorder strict unique token-boundary mapping dan drag failure fail-stop; duplicate hash update rejected before checkpoint; default batch polls final count. Partial outcome unknown tidak retry. Tests fake chooser existing di-stub reorder karena scope beda, separate strict reorder test added.
+- Initial focused60tests2errors /tmp/toolost-tests-20261029-153146.log (fake count exhausted/duplicate basename fixture), corrected; full203tests1.030s /tmp/toolost-tests-20261029-153309.log. Final .venv/bin/python -u -m unittest discover -s tests -q watchdog120:203tests0.999s OK skipped2 packaging opt-in,201passed wrapper1.10s /tmp/toolost-tests-20261029-153405.log+.status job_l4zccskov1k5w2uf8pvm1up5 PID36552 no group. No live/package/release/install/migration/commit/push.
+- UPL-01 remains blocked profile/account/manifest for bounded draft-only live, plus bound-buffer>50MiB library limitation. Next user provides exact authorized target then readiness/manual login if needed; alternate more offline review. No Publish/delete/auto retry.
+
+## CP-029 — 29 Oktober 2026 — UPL-01 intake live25
+
+- User eksplisit mengizinkan satu draft baru,25lagu dengan lineage master→id3 dan placeholder TEST ONLY. Sumber/profil/account di percakapan, tidak disalin ke history. Kandidat25/25unik, total228.4MiB; aset asli read-only. Owner assistant/upl01-live25 claim di index; baseline b8420dff+dirtyCP026–028 sendiri.
+- Rencana salin aset ke .local run privat bernama unik, validate/check lalu serial draft-only Save/readback; watchdog1800s dan polling10–15s. No Publish/delete/auto retry/credential reads, stop unknown/account mismatch/login.
+
+## CP-030 — 29 Oktober 2026 — UPL-01 live25 berhenti aman, parser diperbaiki
+
+- User menyetujui satu draft TEST ONLY baru,25take master→id3 dan cover placeholder; semua kandidat unik,228.4MiB. Source project read-only; copy bernama unik dan hash diverifikasi di run privat ignored .local. Alias/account/path/remote ID tidak disalin ke backlog.
+- Offline validate valid. Readiness matched explicit expected account, exit0. Satu upload serial+bound-buffer draft-only dengan --no-auto-bootup, hard timeout1800s; background job_f12u9lnojjqftt741uphumg2 PID41316 exit4 setelah576.43s, tidak timeout, no process left. Semua25transfer observed dan25 journal track observed; parent audio unknown karena track_identity_ambiguous pada reorder setelah track25, sebelum metadata/Save.
+- Read-only CDP pada exact existing draft tab (tanpa goto/click/Save) menunjukkan25track labels ordinal+basename+Edit concatenated. Bukti privat run upload.log/status/selection/manifest/journal-summary/track-text-readonly retained; no cookies/password/login capture. No second upload/create/delete/publish.
+- Parser strict normalized ordinal/Edit dan exact basename/ext; regression tests synthetic observed label. Final .venv/bin/python -u -m unittest discover -s tests -q watchdog120:204tests1.008s OK skipped2 packaging opt-in (202passed), /tmp/toolost-tests-20261029-161136.log+.status job_q12z40hnv9k5708lkxui4xge PID42427 no group. No new live action after patch, no claim remote hash identity/metadata saved/native package.
+- UPL-01 blocked explicit reconciliation same draft and Save without reupload; RES-01 superseded unchanged, no journal manual edits. Next user approve bounded same-draft read-only reconciliation and continuation policy; alternative leave draft as-is for operator manual save. Claim released. No commit/push.
+
+## CP-031 — 29 Oktober 2026 — Intake remove sisa track dan batch live
+
+- User eksplisit meminta hapus semua sisa track pada draft uji sebelumnya dan uji batch default, setelah partial manual removal. No new draft/Publish/source mutation. HEADb8420dff+dirtyCP026–030 sendiri; owner assistant/upl01-batch-live. Private run bound existing target; serial journal lama tidak diubah.
+- Rencana readiness exact account, read target labels/dialog, remove per-track target-scoped, verify0, batch/path upload25approved; watchdog1800s polling10–15s, unknown stop no retry.
+
+## CP-032 — 29 Oktober 2026 — Batch25 path live transfer, reorder blocked
+
+- User explicit mengizinkan remove semua sisa track lalu batch di draft uji yang sama. Read-only target/account diperiksa; setelah reload+Manage Tracks count0 dan empty upload UI, jadi tidak ada delete operation. Source files unchanged, serial journal preserved historical. Owner assistant/upl01-batch-live dilepas; HEADb8420dff+dirtyCP026–030 sendiri. Tidak ada runtime patch pada slice ini.
+- First attempt ended pre-chooser account response unobserved, no mutation. Readiness exact expected account matched. Second attempt stopped pre-mutation target tab unavailable (readiness navigated portal). Existing actual verify_account route used afterwards; exact draft title/id and empty tracks checked, single call DraftUI.action(audio,ui.audio) default batch/path local; no create/save/publish, separate private experiment event log not resetting old journal.
+- Job_n8mlyp3gaomrqdqy5a3cq91g PID43530 PGID43530 hard900s, elapsed180.28s exit4 no timeout, group gone. One chooser25files; read-only progress23/25 98percent, all25final visible/dialog0; stopped track_reorder_failed after transfer. Final visible order mismatches manifest, private readback records mapping. Not final saved, not verified remote hash. No upload retry after transfer, no draft deletion, no metadata/Save/Publish.
+- Private ignored run contains batch-existing-verified.log/status, batch-existing-result.json, batch-final-readonly.json and inventory; account/draft/source not copied here. No tests/code edits besides docs and private experiment. Next priority fix drag/reorder using synthetic observed mapping/offline before any further live mutation; alternative user manually orders/saves. UPL-01 blocked; no commit/push.
+
+## CP-033 — 29 Oktober 2026 — UPD-03 reorder batch viewport offline
+
+- User meminta lanjut reorder batch. Owner assistant/upd03-20261029 mulai 2026-10-29T09:58Z, baseline HEAD b8420dff + dirty CP-026–032 dipertahankan. Slice hanya shared reorder, tests/test_reorder_tracks.py dan backlog. Tidak ada browser, upload ulang, metadata/Save/Publish, package, commit/push. Klaim dilepas; UPD-03 blocked pada portal verification, UPL-01/REM-22 tidak ditutup.
+- Evidence CP-032 membuktikan no-op drag, bukan sebab portal definitif. Synthetic25 permutation dengan viewport3rows mereproduksi pointer_outside_viewport pada kode lama; dua failure lain membuktikan mouse tidak dilepas saat move error dan identity unknown berikutnya baru ditolak setelah mutasi. Baseline command `.venv/bin/python /tmp/toolost-watchdog.py test_reorder_tracks -v`, hard30s, log /tmp/toolost-tests-20261029-170008.log + .status, PID46455, exit1, 4tests:1pass2fail1error, watchdog0.08s, process group gone.
+- Patch toolost_uploader/live_draft.py::reorder_tracks: mapping seluruh count/identity unik sebelum drag, scroll sumber sebelum mouse-down, scroll target lalu bounding_box baru, finally mouse-up, postcondition seluruh permutation setelah setiap drag. No automatic retry/no-op continuation. Shared caller batch/append/serial memakai fungsi sama; default path upload tidak diubah.
+- Focused command `.venv/bin/python /tmp/toolost-watchdog.py test_reorder_tracks test_serial_audio test_live_draft -v`, hard30s, /tmp/toolost-tests-20261029-170053.log + .status, PID46518, exit0,43passed0failed0skipped0deselected,0.075s (watchdog0.18s), no_process_group.
+- Full command `.venv/bin/python /tmp/toolost-watchdog.py discover -s tests -q`, background job_u2qks0lhitxf6j6u6mfcbyab, hard120s, /tmp/toolost-tests-20261029-170120.log + .status, PID46552, exit0,208tests:206passed2skipped0failed0deselected,0.999s(watchdog1.10s), no_process_group; ps PID absent. Dua skip packaging opt-in tetap belum diverifikasi. git diff --check bersih.
+- Batas: fake viewport bukan bukti native drag/portal Sortable berhasil, account/remote identity dan persisted order belum diverifikasi. Tidak menyentuh journal/live draft lama. Next priority izin bounded reorder-only pada draft sama dengan guard target/count/identity dan readback per drag, tanpa upload ulang/Save/Publish; alternatif user reorder manual. Serial/buffer/profiling tetap bukan prioritas.
+
+## CP-034 — 29 Oktober 2026 — UPD-03 live reorder-only preflight blocked
+
+- User eksplisit mengizinkan reorder-only draft uji sama. Owner assistant/upd03-live-reorder-20261029, HEADb8420dff+dirtyCP026–033 dipertahankan; runtime tidak diedit. Runner ignored .local/reorder-only.py dan .local/reorder-watchdog.py, private evidence baru tanpa reset journal. Tidak reload/navigation/upload/Save/Publish/commit/push.
+- Command `.venv/bin/python .local/reorder-watchdog.py`, background job_zxg2eiun0oyu2ynyuvnnc7pt, hard180s; /tmp/toolost-reorder-20261029-170753.log dan .status; PID/PGID47128 exit4, watchdog0.81s, operation0.52s, cleanup no_process_group. Stopped existing_dialog sebelum account fetch dan drag; exact tab matched, login guard checked, 0drag. Tidak ada retry otomatis.
+- Scoped read-only inspection sesudah stop pada tab sama: satu role=dialog aria-modal=true, text kosong, satu tombol Close. Tidak klik Close/tombol lain, tidak baca credential/cookie. Tidak mengklaim account/title/count/order terverifikasi pada run ini; belum melewati gate tersebut. Private result tetap stopped_requires_reconciliation.
+- UPD-03 blocked review dialog, REM-22 tidak ditutup. Klaim dilepas. Next priority user review/tutup dialog dan konfirmasi reorder-only kembali; alternatif reorder manual. Tes runtime tidak diulang karena hanya private runner/docs berubah; baseline CP-033206passed2skipped tetap offline bukan bukti live.
+
+## CP-035 — 6 November 2026 — TMO-01 checkpoint tes awal
+
+- HEAD b8420dff+dirty CP-026–034; claim assistant/tmo01-20261106 aktif. Patch awal timeout audio dan tes sintetis.
+- `python3 -m unittest discover -s tests -q` exit1: 212 tes, 2 error, 2 skipped. Python sistem tidak memiliki Playwright; fixture dialog lama kehabisan count setelah polling bersama. Tidak install; perbaiki fixture dan jalankan interpreter .venv yang sudah ada.
+- Next TMO-01: perbaiki fixture dan verifikasi offline; tidak ada live/commit.
+
+## CP-036 — 6 November 2026 — TMO-01 fixture integrasi
+
+- Tes .venv sebelumnya 212 OK skipped2; tambahan tes batch/append menghasilkan 213 tes dengan 2 failure fixture `login_required` karena fake locator baru mengganggu guard. Perbaiki guard pada fake, bukan runtime; claim tetap aktif. Tidak live/install/commit.
+
+## CP-037 — 6 November 2026 — TMO-01 selesai offline
+
+- Owner assistant/tmo01-20261106 dilepas; HEAD b8420dff06085e04d0780561aa1de2c0bb8a6f3e + dirty CP-026–034 dipertahankan. Files live_draft.py, tests/test_audio_timeout.py, tests/test_serial_audio.py dan backlog.
+- Timeout masing-masing chooser dan observasi: clamp(120000 + ceil(total_bytes * 1000 / 262144), 240000, 1800000) ms. Ukuran path stat atau buffer aktual; batch menjumlah aset, serial per chooser. Observasi count tepat dan dialog tertutup berbagi satu deadline monotonic; count berlebih ambiguity, deadline timeout, tidak retry. Set-files failure propagasi ke journal existing unknown.
+- `.venv/bin/python -m unittest discover -s tests -q` exit0, 213 tests 1.773s, 211 passed 2 skipped (package install opt-in); `git diff --check` exit0. Tes sintetis menguji bounds, sum, deadline, ambiguity, batch/append chooser timeout dan stop; tes serial/journal sebelumnya tetap lulus. Python sistem tanpa Playwright gagal CP-035; tidak install.
+- Tidak ada live, instalasi, package, remote, commit/push. Formula adalah kebijakan konservatif, bukan benchmark jaringan atau jaminan upload selesai; keseluruhan dua fase maksimal 60 menit ditambah operasi UI lain. Next UPD-03 tetap blocked: user review/tutup dialog dan izin terpisah sebelum reorder-only; alternatif manual. UPL-01 tetap blocked.
+
+## CP-038 — 6 November 2026 — REC-02 pembanding snapshot, inspeksi blocked
+
+- HEAD b8420dff06085e04d0780561aa1de2c0bb8a6f3e dan dirty same-session CP-026–037 dipertahankan. Claim assistant/rec02-20261106 dilepas. Files baru toolost_uploader/recovery_inspection.py dan tests/test_recovery_inspection.py; backlog index/details/history diperbarui.
+- Pembanding snapshot sintetis menolak mismatch akun/profil/URL/dialog/login, jumlah/label/ID duplikat atau ambigu; melaporkan urutan observasi dan target, dan secara eksplisit menyatakan provenance identity dan hash audio remote tidak terbukti. Ini bukan adapter browser, tidak membaca manifest terverifikasi atau journal, tidak membuktikan binding dan tidak menyelesaikan acceptance REC-02. Tidak ada CLI yang memberi kesan inspeksi sebenarnya tersedia.
+- `.venv/bin/python -m unittest discover -s tests -q`: exit0, 216 tests in 1.109s, OK skipped=2 (214 passed). `git diff --check`: exit0 sebelum perubahan backlog akhir. Tidak ada live calls, perubahan state pengguna, install atau commit.
+- Blocker: verify_account existing membutuhkan navigasi dan account/profile caller-supplied bukan bukti; tidak aman menghubungkannya sebagai inspection. Next: rancang dan review sumber bukti account/profile non-navigation yang dapat diverifikasi serta binding manifest/journal sebelum adapter dan CLI; alternatif berhenti pada snapshot yang secara eksplisit tidak membuktikan identity. UPD-03 dan UPL-01 tetap blocked.
+
+## CP-039 — 6 November 2026 — REC-03 recovery review offline
+
+- HEAD b8420df + dirty same-session dipertahankan; claim REC-03 dibuat sebelum edit. Menambahkan `prepare_review` dan `verify_review` di `toolost_uploader/recovery_inspection.py`, dengan digest manifest+target+observasi, approval wajib, dan `execution_available=False`. Tidak mengaktifkan browser, CLI, navigasi, upload, reorder, lirik, Save, Publish, journal runtime, install atau commit.
+- `.venv/bin/python -m unittest tests.test_recovery_inspection -q`: exit0, 4 passed. `.venv/bin/python -m unittest discover -s tests -q`: exit0, 217 tests, 215 passed, 2 skipped. `git diff --check`: exit0. Python sistem tidak memiliki Playwright, sehingga verifier suite hanya memakai `.venv`.
+- Batas: ini hanya two-phase approval binding untuk snapshot caller-supplied. Provenance account/profile/draft dari page aktif, persisted-state readback, remote audio hash, dan executor tanpa reupload belum terbukti. Karena itu REC-03 belum done dan tidak ada command live yang ditambahkan.
+- Status REC-03 tetap in_progress/blocked pada gate identity non-navigation. Next: review mekanisme sumber bukti read-only oleh user atau secara eksplisit terima berhenti di offline review; tidak ada fallback retry/upload ulang.
+
+## CP-040 — 6 November 2026 — REC-04 verifikasi akun non-navigation offline
+
+- HEAD b8420df + dirty same-session CP-026–039 dipertahankan; claim `assistant/rec04-20261106` dilepas. Menambahkan `verify_open_draft_account` pada `toolost_uploader/recovery_inspection.py` dan fake page tests.
+- Helper hanya memakai page yang diberikan, menolak closed/wrong exact URL/dialog/login field, lalu menjalankan satu `page.evaluate` berisi `fetch('/api/auth/me')` GET dengan `credentials: same-origin`, `redirect: error`, `cache: no-store`, timeout 5 detik, response 200 exact URL, body maksimal 64 KiB dan user ID positive safe integer. Guard diulang setelah request; perubahan target, mismatch, mock exception atau response ambigu menjadi `DraftError('recovery_identity_unverified')`. Tidak ada `goto`, page selection, click, atau mutation.
+- Result hanya menyatakan `account_verified`; `profile_verified`, `persisted_state_verified`, dan `execution_available` tetap false. Tidak membuktikan provenance profile/manifest/journal, draft persisted state, remote audio hash atau kecocokan browser profile.
+- `.venv/bin/python -m unittest tests.test_recovery_inspection -q`: exit0, 8 tests. `.venv/bin/python -m unittest discover -s tests -q`: exit0, 221 tests, 219 passed, 2 skipped. `git diff --check`: exit0. Tidak ada live browser/user data, network, install, commit/push.
+- REC-04 selesai sesuai bounded helper dan fake tests. REC-03 tetap blocked karena acceptance lebih luas membutuhkan binding identity/target/manifest dan safe executor. Next priority: review/decision atas provenance non-navigation untuk REC-03; alternatif tetap offline review-only.

@@ -249,3 +249,11 @@ git diff --check
 
 Proyek ini didistribusikan di bawah lisensi [MIT License](https://github.com/gunamaya/toolost-uploader/blob/main/LICENSE).
 Hak Cipta (c) 2026 Anggi Gunamaya.
+
+## Mode eksperimen offline-tested: serial audio
+
+`toolost upload manifest.json --draft-only --profile <alias> --expected-account <id> --approve-draft --accept-ui-date --serial-audio` memilih satu track per chooser. Default tetap batch/path lokal untuk kompatibilitas file besar. Mode serial mencatat intent/outcome per-track; kegagalan berhenti untuk rekonsiliasi manual, tidak auto retry atau resume mutasi. Belum diverifikasi live.
+
+Tambahkan `--bound-buffer` hanya untuk aset maksimal **50 MiB** per file; perlu `--serial-audio`. Mode ini menyerahkan buffer byte yang hash-nya diverifikasi dan menolak aset lebih besar sebelum auto-boot Chrome. Playwright1.64.1 membatasi buffer52428800 bytes walaupun CDP lokal; target buffer1GiB integrator tidak mengubah batas ini. Lagu80–100MB tetap gunakan mode path lokal existing; integritas byte setelah hash pada mode path belum dijamin. Lirik selalu dibaca dan diverifikasi hash pada buffer yang sama. Tidak ada mode publish.
+
+Checkpoint serial menerima update metadata dan append berurutan; mengubah urutan/identitas track lama memerlukan review dan ditolak sebelum checkpoint ditulis. Journal lama tetap dibaca tanpa migrasi; journal serial memuat `track_events`, sehingga jangan downgrade atau mengubah file checkpoint manual.

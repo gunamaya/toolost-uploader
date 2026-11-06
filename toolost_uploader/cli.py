@@ -78,6 +78,8 @@ Catatan Keamanan:
                             help="Unggah lagu susulan ke draft release album yang sudah ada di Too Lost.")
     upload_cmd.add_argument("--update", action="store_true",
                             help="Sinkronkan pembaruan judul, tanggal, artwork, metadata track, atau lagu susulan ke draft existing.")
+    upload_cmd.add_argument("--serial-audio", action="store_true", help="Upload satu track per chooser; kegagalan perlu rekonsiliasi manual.")
+    upload_cmd.add_argument("--bound-buffer", action="store_true", help="Kirim byte terverifikasi (perlu --serial-audio, maksimum 50 MiB per aset).")
     upload_cmd.add_argument("-v", "--verbose", action="store_true",
                             help="Tampilkan progres verbose secara real-time ke stderr.")
     upload_cmd.add_argument("--json", action="store_true", help="Tulis satu objek JSON hasil ke stdout.")
@@ -145,7 +147,7 @@ Catatan Keamanan:
                 return 5
             return 2
 
-        from .live_draft import execute, DraftError
+        from .live_draft import execute, DraftError, check_buffer_mode
         from .validation import InvalidInput
         from .browser import is_cdp_available, ensure_cdp_ready, resolve_profile_dir
 
@@ -156,15 +158,17 @@ Catatan Keamanan:
 
         progress_log = log_verbose if args.verbose else None
 
-        if getattr(args, "auto_bootup", True) and not is_cdp_available(args.cdp):
-            pdir = resolve_profile_dir(args.profile)
-            if progress_log:
-                progress_log(f"CDP loopback {args.cdp} belum aktif; melakukan auto-bootup Chrome...")
-            ready = ensure_cdp_ready(args.cdp, profile_dir=pdir, log=progress_log, chrome_path=args.chrome)
-            if not ready and progress_log:
-                progress_log(f"Peringatan: auto-bootup Chrome pada {args.cdp} belum merespons tepat waktu.")
-
         try:
+            check_buffer_mode(args.manifest, serial_audio=args.serial_audio, bound_buffer=args.bound_buffer,
+                              reconcile_only=args.reconcile_readback_only)
+            if getattr(args, "auto_bootup", True) and not is_cdp_available(args.cdp):
+                pdir = resolve_profile_dir(args.profile)
+                if progress_log:
+                    progress_log(f"CDP loopback {args.cdp} belum aktif; melakukan auto-bootup Chrome...")
+                ready = ensure_cdp_ready(args.cdp, profile_dir=pdir, log=progress_log, chrome_path=args.chrome)
+                if not ready and progress_log:
+                    progress_log(f"Peringatan: auto-bootup Chrome pada {args.cdp} belum merespons tepat waktu.")
+
             result = execute(
                 args.manifest,
                 alias=args.profile,
@@ -176,6 +180,8 @@ Catatan Keamanan:
                 reconcile_only=args.reconcile_readback_only,
                 allow_append=args.append,
                 allow_update=getattr(args, "update", False),
+                serial_audio=args.serial_audio,
+                bound_buffer=args.bound_buffer,
                 log=progress_log,
             )
             code = 0

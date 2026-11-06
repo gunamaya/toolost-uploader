@@ -1,13 +1,39 @@
 """Executor Playwright draft-only bounded; tidak menyediakan aksi Publish."""
 
 import re
+import time
 from copy import deepcopy
 from pathlib import Path
 from urllib.parse import urlsplit
 
 from .storage import profile
 from .live_journal import DraftError, LiveJournal
-from .validation import file_reference, load_manifest, validate_manifest, validate_manifest_structure
+from .validation import file_reference, load_manifest, validate_manifest, validate_manifest_structure, verified_bytes, BUFFER_LIMIT_BYTES, InvalidInput
+
+
+def audio_timeout_ms(assets):
+    size = sum(len(asset['buffer']) if isinstance(asset, dict) else Path(asset).stat().st_size for asset in assets)
+    return min(1800000, max(240000, 120000 + (size * 1000 + 262143) // 262144))
+
+
+def wait_for_audio(page, expected_total, timeout_ms):
+    deadline = time.monotonic() + timeout_ms / 1000
+    remaining = timeout_ms
+    items = page.locator('.track-item:visible')
+    dialog = page.locator('.tl-upload-dialog:visible')
+    while True:
+        count = items.count()
+        if count > expected_total:
+            raise DraftError('track_identity_ambiguous')
+        complete = count == expected_total and dialog.count() == 0
+        remaining = min(remaining, int((deadline - time.monotonic()) * 1000))
+        if remaining <= 0:
+            raise DraftError('audio_upload_timeout')
+        if complete:
+            return
+        delay = min(500, remaining)
+        page.wait_for_timeout(delay)
+        remaining -= delay
 
 
 def preflight(path, *, verify_assets=True):
@@ -32,11 +58,32 @@ def preflight(path, *, verify_assets=True):
     return manifest, path.parent
 
 
+def check_buffer_mode(path, *, serial_audio, bound_buffer, reconcile_only=False):
+    if bound_buffer and not serial_audio:
+        raise DraftError('bound_buffer_requires_serial_audio')
+    if not bound_buffer or reconcile_only:
+        return
+    manifest, base = preflight(path)
+    for reference in [manifest['artwork']] + [t['audio'] for t in manifest['tracks']]:
+        candidate = Path(reference['path'])
+        if not candidate.is_absolute():
+            candidate = base / candidate
+        if candidate.stat().st_size > BUFFER_LIMIT_BYTES:
+            raise InvalidInput('buffer_limit_exceeded', 'Buffer Playwright dibatasi 50 MiB per aset; tidak memulai browser.')
+
+
+def track_bindings(tracks):
+    return [(t['track_id'], t['audio']['sha256']) for t in tracks]
+
+
 class DraftUI:
-    def __init__(self, page, manifest, base, expected_account, record, log=None):
+    def __init__(self, page, manifest, base, expected_account, record, log=None, *, serial_audio=False, bound_buffer=False, record_track=None):
         self.page, self.manifest, self.base = page, deepcopy(manifest), base
         self.expected_account, self.record = expected_account, record
         self.log = log or (lambda msg: None)
+        self.serial_audio = serial_audio
+        self.bound_buffer = bound_buffer
+        self.record_track = record_track
         self.remote_id = None
         self.identity_verified = False
         self.identity_changed = False
@@ -113,7 +160,10 @@ class DraftUI:
             raise DraftError('duplicate_action_requires_reconciliation')
         self.attempted.add(name)
         self.record(name, 'unknown', self.remote_id)
-        operation()
+        try:
+            operation()
+        except InvalidInput as exc:
+            raise DraftError('asset_invalid_after_intent_requires_reconciliation') from exc
         if name == 'save':
             self.guard_identity()
         else:
@@ -251,8 +301,15 @@ class DraftUI:
         self.log(f"Tanggal rilis berhasil diatur: {inp.input_value() if hasattr(inp, 'input_value') else expected_val}")
 
     def asset(self, reference):
-        file_reference(reference, self.base)
         path = Path(reference['path'])
+        if self.bound_buffer:
+            mime = {'.mp3': 'audio/mpeg', '.wav': 'audio/wav', '.flac': 'audio/flac',
+                    '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg'}.get(path.suffix.lower())
+            if mime is None:
+                raise DraftError('unsupported_buffer_format')
+            data = verified_bytes(reference, self.base)
+            return dict(name=path.name, mimeType=mime, buffer=data)
+        file_reference(reference, self.base)
         return str(path if path.is_absolute() else self.base / path)
 
     def artwork(self):
@@ -273,7 +330,7 @@ class DraftUI:
             self.click(browse_btn)
         asset = self.asset(self.manifest['artwork'])
         self.guard_target()
-        self.log(f'Mengunggah file artwork: {asset}...')
+        self.log('Mengunggah artwork terverifikasi...')
         chooser.value.set_files(asset)
         self.log('Menunggu proses upload dan encoding artwork...')
         replace_btn = page.get_by_role('button', name=re.compile('Replace', re.I))
@@ -297,40 +354,85 @@ class DraftUI:
     def reorder_tracks(self):
         items = self.page.locator('.track-item:visible')
         if not hasattr(items, 'count'):
-            return
-        try:
-            count = items.count()
-        except Exception:
-            return
-        if type(count) is not int or count <= 1:
-            return
-        manifest_basenames = [Path(t['audio']['path']).stem.lower() for t in self.manifest['tracks']]
-        for target_idx, stem in enumerate(manifest_basenames):
+            raise DraftError('track_identity_ambiguous')
+        count = items.count()
+        if type(count) is not int or count != len(self.manifest['tracks']):
+            raise DraftError('track_identity_ambiguous')
+        stems = [Path(t['audio']['path']).stem.lower() for t in self.manifest['tracks']]
+        if len(set(stems)) != len(stems):
+            raise DraftError('track_identity_ambiguous')
+        labels = {}
+        for index, track in enumerate(self.manifest['tracks']):
+            for label in (stems[index], Path(track['audio']['path']).name.lower()):
+                if label in labels and labels[label] != index:
+                    raise DraftError('track_identity_ambiguous')
+                labels[label] = index
+
+        def read_order():
+            if items.count() != count:
+                raise DraftError('track_identity_ambiguous')
+            order = []
+            for i in range(count):
+                text = items.nth(i).text_content().lower()
+                # Portal text combines ordinal, filename and Edit without whitespace.
+                label = re.sub(r'^\s*\d+\s*', '', text).strip()
+                label = re.sub(r'\s*edit\s*$', '', label).strip()
+                if label not in labels:
+                    raise DraftError('track_identity_ambiguous')
+                order.append(labels[label])
+            if len(set(order)) != count:
+                raise DraftError('track_identity_ambiguous')
+            return order
+
+        order = read_order()
+        for target in range(count):
+            actual = order.index(target)
+            if actual == target:
+                continue
+            self.guard_target()
+            source = items.nth(actual).locator('.track-item__drag')
+            source.scroll_into_view_if_needed()
+            handle = source.bounding_box()
+            if not handle:
+                raise DraftError('track_reorder_failed')
+            self.page.mouse.move(handle['x'] + handle['width'] / 2, handle['y'] + handle['height'] / 2)
+            self.page.mouse.down()
             try:
-                current_texts = [items.nth(i).text_content().lower() for i in range(count)]
-            except Exception:
-                break
-            actual_idx = None
-            for idx, text in enumerate(current_texts):
-                if isinstance(text, str) and stem in text:
-                    actual_idx = idx
-                    break
-            if actual_idx is not None and actual_idx != target_idx and actual_idx > target_idx:
-                try:
-                    self.log(f"Menyesuaikan urutan track '{stem}' ke posisi {target_idx + 1}...")
-                    box_target = items.nth(target_idx).bounding_box()
-                    handle_actual = items.nth(actual_idx).locator('.track-item__drag').bounding_box()
-                    if box_target and handle_actual:
-                        self.page.mouse.move(handle_actual['x'] + handle_actual['width'] / 2,
-                                             handle_actual['y'] + handle_actual['height'] / 2)
-                        self.page.mouse.down()
-                        self.page.mouse.move(box_target['x'] + box_target['width'] / 2, box_target['y'] + 5, steps=10)
-                        self.page.mouse.up()
-                        self.page.wait_for_timeout(1000)
-                except Exception:
-                    pass
+                destination = items.nth(target)
+                destination.scroll_into_view_if_needed()
+                box = destination.bounding_box()
+                if not box:
+                    raise DraftError('track_reorder_failed')
+                self.page.mouse.move(box['x'] + box['width'] / 2, box['y'] + 5, steps=10)
+            finally:
+                self.page.mouse.up()
+            self.page.wait_for_timeout(1000)
+            expected = order[:]
+            expected.insert(target, expected.pop(actual))
+            order = read_order()
+            if order != expected:
+                raise DraftError('track_reorder_failed')
 
     def audio(self):
+        if not self.serial_audio:
+            return self._audio_batch(self.manifest['tracks'])
+        self._serial_tracks(self.manifest['tracks'], 0)
+
+    def _serial_tracks(self, tracks, expected_old_count):
+        if self.record_track is None:
+            raise DraftError('track_journal_required')
+        for offset, track in enumerate(tracks):
+            count = expected_old_count + offset
+            index = next(i for i, item in enumerate(self.manifest['tracks']) if item['track_id'] == track['track_id'])
+            self.record_track(track['track_id'], track['audio']['sha256'], index, 'unknown')
+            if count == 0:
+                self._audio_batch([track], reorder=False)
+            else:
+                self._append_batch([track], count, reorder=False)
+            self.record_track(track['track_id'], track['audio']['sha256'], index, 'observed')
+        self.reorder_tracks()
+
+    def _audio_batch(self, tracks, *, reorder=True):
         page = self.page
         self.log('Membuka tab Manage Tracks...')
         self.click(page.get_by_role('button', name='Manage Tracks', exact=True))
@@ -345,25 +447,26 @@ class DraftUI:
             dialog.wait_for(state='visible', timeout=15000)
         with page.expect_file_chooser(timeout=10000) as chooser:
             self.click(dialog.get_by_text('browse files', exact=True))
-        assets = [self.asset(t['audio']) for t in self.manifest['tracks']]
+        assets = [self.asset(t['audio']) for t in tracks]
+        timeout_ms = audio_timeout_ms(assets)
         self.guard_target()
         self.log(f'Mengunggah {len(assets)} file audio track...')
-        chooser.value.set_files(assets[0] if len(assets) == 1 else assets)
+        chooser.value.set_files(assets[0] if len(assets) == 1 else assets, timeout=timeout_ms)
         count = len(assets)
         btn_regex = r'^Upload\s+1\s+file' if count == 1 else rf'^Upload\s+{count}\s+files'
         self.click(dialog.get_by_role('button', name=re.compile(btn_regex, re.I)))
         self.log(f'Menunggu transfer dan encoding {count} file audio selesai...')
-        page.locator('.track-item:visible').first.wait_for(state='visible', timeout=240000)
-        if page.locator('.track-item:visible').count() != count:
-            raise DraftError('track_identity_ambiguous')
-        for _ in range(60):
-            if page.locator('.tl-upload-dialog:visible').count() == 0:
-                break
-            page.wait_for_timeout(500)
+        wait_for_audio(page, count, timeout_ms)
         self.log('Unggahan berkas audio selesai. Memeriksa urutan track...')
-        self.reorder_tracks()
+        if reorder:
+            self.reorder_tracks()
 
     def append_tracks(self, new_tracks, expected_old_count):
+        if self.serial_audio:
+            return self._serial_tracks(new_tracks, expected_old_count)
+        return self._append_batch(new_tracks, expected_old_count)
+
+    def _append_batch(self, new_tracks, expected_old_count, *, reorder=True):
         page = self.page
         self.log('Membuka tab Manage Tracks untuk append...')
         self.click(page.get_by_role('button', name='Manage Tracks', exact=True))
@@ -385,32 +488,19 @@ class DraftUI:
         with page.expect_file_chooser(timeout=10000) as chooser:
             self.click(dialog.get_by_text('browse files', exact=True))
         assets = [self.asset(t['audio']) for t in new_tracks]
+        timeout_ms = audio_timeout_ms(assets)
         self.guard_target()
         self.log(f'Mengunggah {len(assets)} file audio track susulan...')
-        chooser.value.set_files(assets[0] if len(assets) == 1 else assets)
+        chooser.value.set_files(assets[0] if len(assets) == 1 else assets, timeout=timeout_ms)
         count = len(assets)
         btn_regex = r'^Upload\s+1\s+file' if count == 1 else rf'^Upload\s+{count}\s+files'
         self.click(dialog.get_by_role('button', name=re.compile(btn_regex, re.I)))
         self.log(f'Menunggu transfer dan encoding {count} file audio susulan selesai...')
         expected_total = expected_old_count + count
-        if hasattr(page.locator('.track-item:visible'), 'first'):
-            first_item = page.locator('.track-item:visible').first
-            if hasattr(first_item, 'wait_for'):
-                first_item.wait_for(state='visible', timeout=240000)
-        for _ in range(240):
-            cnt = page.locator('.track-item:visible').count() if hasattr(page.locator('.track-item:visible'), 'count') else expected_total
-            if cnt == expected_total:
-                break
-            page.wait_for_timeout(500)
-        else:
-            raise DraftError('track_identity_ambiguous')
-        for _ in range(60):
-            cnt_dlg = page.locator('.tl-upload-dialog:visible').count() if hasattr(page.locator('.tl-upload-dialog:visible'), 'count') else 0
-            if cnt_dlg == 0:
-                break
-            page.wait_for_timeout(500)
+        wait_for_audio(page, expected_total, timeout_ms)
         self.log('Unggahan berkas audio susulan selesai. Memeriksa urutan track...')
-        self.reorder_tracks()
+        if reorder:
+            self.reorder_tracks()
 
     def editor(self, index=0):
         items = self.page.locator('.track-item:visible')
@@ -487,10 +577,7 @@ class DraftUI:
         self.click(self.page.get_by_role('button', name='Done', exact=True))
 
     def lyrics_text(self, track):
-        lpath = Path(track['lyrics']['path'])
-        if not lpath.is_absolute():
-            lpath = self.base / lpath
-        return lpath.read_text(encoding='utf-8')
+        return verified_bytes(track['lyrics'], self.base, lyrics=True).decode('utf-8')
 
     def lyrics_fill(self, track):
         text = self.lyrics_text(track)
@@ -663,7 +750,9 @@ def append_run_steps(ui, new_tracks, old_count):
 def execute(path, *, alias, expected_account, endpoint, approve_draft, accept_ui_date, root=None,
             resume_before_artwork=False, resume_before_audio=False, resume_selected_audio=False,
             resume_open_metadata=False, approve_release_title_amendment=False, reconcile_only=False,
-            allow_append=False, allow_update=False, log=None):
+            allow_append=False, allow_update=False, log=None, serial_audio=False, bound_buffer=False):
+    if bound_buffer and not serial_audio:
+        raise DraftError('bound_buffer_requires_serial_audio')
     if approve_draft is not True or accept_ui_date is not True:
         raise DraftError('confirmation_required')
     if not re.fullmatch(r'[1-9][0-9]*', expected_account):
@@ -681,6 +770,7 @@ def execute(path, *, alias, expected_account, endpoint, approve_draft, accept_ui
     if log:
         log(f"Memeriksa preflight manifest: {path}")
     manifest, base = preflight(path, verify_assets=not reconcile_only)
+    check_buffer_mode(path, serial_audio=serial_audio, bound_buffer=bound_buffer, reconcile_only=reconcile_only)
     with profile(alias, root=root) as session:
         is_existing = False
         try:
@@ -712,6 +802,9 @@ def execute(path, *, alias, expected_account, endpoint, approve_draft, accept_ui
             old_count = len(old_tracks)
             new_count = len(new_tracks)
 
+            new_hashes = [t['audio']['sha256'] for t in new_tracks]
+            if len(new_hashes) != len(set(new_hashes)):
+                raise DraftError('duplicate_audio_hash_requires_review')
             old_audio_hashes = {t['audio']['sha256'] for t in old_tracks}
             tracks_to_upload = [t for t in new_tracks if t['audio']['sha256'] not in old_audio_hashes]
 
@@ -726,6 +819,9 @@ def execute(path, *, alias, expected_account, endpoint, approve_draft, accept_ui
                 return dict(status='draft_up_to_date', run_id=old_checkpoint['run_id'], draft_id=remote_id,
                             warnings=['Manifest identik dengan checkpoint rilis tersimpan.'])
 
+            if journal.value.get('track_events') and track_bindings(manifest['tracks'][:len(old_tracks)]) != track_bindings(old_tracks):
+                raise DraftError('serial_checkpoint_reorder_requires_review')
+            journal.begin_sync()
             checkpoint = session.update_checkpoint(manifest, base, expected_revision=old_checkpoint['revision'])
             journal.update_for_append(checkpoint)
         else:
@@ -743,7 +839,8 @@ def execute(path, *, alias, expected_account, endpoint, approve_draft, accept_ui
             from toolost_uploader.browser import DEFAULT_PORTAL_URL, acquire_active_page, is_local_endpoint
             browser = p.chromium.connect_over_cdp(endpoint, is_local=is_local_endpoint(endpoint))
             page = acquire_active_page(browser, domain='toolost.com', default_url=DEFAULT_PORTAL_URL, log=log)
-            ui = DraftUI(page, journal.effective_manifest(), base, expected_account, record, log=log)
+            ui = DraftUI(page, journal.effective_manifest(), base, expected_account, record, log=log,
+                         serial_audio=serial_audio, bound_buffer=bound_buffer, record_track=journal.record_track)
             ui.read_only = reconcile_only
             try:
                 if reconcile_only:

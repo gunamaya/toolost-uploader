@@ -46,12 +46,14 @@ class LiveJournal:
         return value
 
     def _validate(self, value):
-        if not isinstance(value, dict) or set(value) != KEYS:
+        if not isinstance(value, dict) or not (KEYS <= set(value) <= KEYS | {'track_events', 'sync_pending'}):
             raise DraftError('legacy_or_invalid_live_journal')
         if type(value['journal_version']) is not int or any(value.get(k) != v for k, v in self.binding.items()):
             raise DraftError('journal_binding_mismatch')
         if value['record_sha256'] != _digest({k: v for k, v in value.items() if k != 'record_sha256'}):
             raise DraftError('journal_hash_mismatch')
+        if 'sync_pending' in value and type(value['sync_pending']) is not bool:
+            raise DraftError('invalid_sync_state')
         amendment = value['amendment']
         if amendment is not None and amendment != self._title_amendment():
             raise DraftError('invalid_title_amendment')
@@ -90,6 +92,48 @@ class LiveJournal:
                 raise DraftError('invalid_live_events')
         if (len(events) >= 2) != (remote is not None):
             raise DraftError('invalid_draft_identity')
+        self._validate_tracks(value)
+
+    def _validate_tracks(self, value):
+        events = value.get('track_events', [])
+        if not isinstance(events, list):
+            raise DraftError('invalid_track_events')
+        pending = None
+        completed = set()
+        manifest_tracks = self.checkpoint['manifest']['tracks']
+        for event in events:
+            if not isinstance(event, dict) or set(event) != {'track_id', 'sha256', 'index', 'outcome', 'stage_event'}:
+                raise DraftError('invalid_track_events')
+            index, stage = event['index'], event['stage_event']
+            if (type(index) is not int or not 0 <= index < len(manifest_tracks)
+                    or type(stage) is not int or not 0 <= stage < len(value['events'])):
+                raise DraftError('invalid_track_binding')
+            parent = value['events'][stage]
+            if parent['operation'] not in ('audio', 'append_audio') or parent['outcome'] != 'unknown':
+                raise DraftError('invalid_track_stage')
+            expected = manifest_tracks[index]
+            if event['track_id'] != expected['track_id'] or event['sha256'] != expected['audio']['sha256']:
+                raise DraftError('invalid_track_binding')
+            key = (stage, index, event['track_id'], event['sha256'])
+            if event['outcome'] == 'unknown':
+                if pending is not None or key in completed:
+                    raise DraftError('track_outcome_unknown')
+                pending = key
+            elif event['outcome'] == 'observed' and pending == key:
+                completed.add(key)
+                pending = None
+            else:
+                raise DraftError('invalid_track_sequence')
+        if pending is not None and len(value['events']) != pending[0] + 1:
+            raise DraftError('track_outcome_unknown')
+
+    def record_track(self, track_id, sha256, index, outcome):
+        candidate = deepcopy(self.value)
+        if not candidate['events'] or candidate['events'][-1]['operation'] not in ('audio', 'append_audio') or candidate['events'][-1]['outcome'] != 'unknown':
+            raise DraftError('track_stage_not_active')
+        candidate.setdefault('track_events', []).append(dict(track_id=track_id, sha256=sha256,
+            index=index, outcome=outcome, stage_event=len(candidate['events']) - 1))
+        self._write(candidate)
 
     def _write(self, candidate, *, initial=False):
         if not initial and self.read() != self.value:
@@ -107,6 +151,8 @@ class LiveJournal:
             raise DraftError('draft_target_changed')
         candidate['remote_draft_id'] = remote_id
         candidate['events'].append(dict(operation=operation, outcome=outcome, remote_draft_id=remote_id))
+        if operation == 'readback' and outcome == 'verified_subset' and candidate.get('sync_pending'):
+            candidate['sync_pending'] = False
         self._write(candidate)
 
     def _title_amendment(self):
@@ -136,6 +182,8 @@ class LiveJournal:
         value = self.read()
         if value != self.value:
             raise DraftError('live_journal_changed')
+        if value.get('sync_pending'):
+            raise DraftError('sync_outcome_unknown_requires_review')
         if not value['events'] or value['events'][-1]['operation'] not in ('save', 'readback'):
             raise DraftError('manual_reconciliation_required')
         return value['remote_draft_id']
@@ -144,6 +192,12 @@ class LiveJournal:
         remote = self.require_reconciliation()
         if self.value['events'][-1]['operation'] != 'readback':
             self.record('readback', 'verified_subset', remote)
+
+    def begin_sync(self):
+        self.require_reconciliation()
+        candidate = deepcopy(self.value)
+        candidate['sync_pending'] = True
+        self._write(candidate)
 
     def update_for_append(self, new_checkpoint):
         if self.checkpoint['release_id'] != new_checkpoint['release_id']:
@@ -154,6 +208,14 @@ class LiveJournal:
         value = _read(self.session.directory, self.name)
         if not isinstance(value, dict) or not value.get('events') or value['events'][-1]['operation'] not in ('save', 'readback'):
             raise DraftError('manual_reconciliation_required')
+        # Existing per-track bindings belong to the old immutable manifest revision.
+        # Preserve the audit trail only when track identity/order remains compatible.
+        if value.get('track_events'):
+            old_tracks = self.checkpoint['manifest']['tracks']
+            new_tracks = new_checkpoint['manifest']['tracks']
+            bindings = lambda tracks: [(t['track_id'], t['audio']['sha256']) for t in tracks]
+            if bindings(new_tracks[:len(old_tracks)]) != bindings(old_tracks):
+                raise DraftError('serial_checkpoint_reorder_requires_review')
         self.checkpoint = deepcopy(new_checkpoint)
         self.binding['checkpoint_sha256'] = new_checkpoint['record_sha256']
         candidate = deepcopy(value)
