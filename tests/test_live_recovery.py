@@ -382,6 +382,7 @@ class LiveRecoveryTests(unittest.TestCase):
             ui.page.url = 'https://toolost.com/uploader/edit/456'
         with browser, patch.object(DraftUI, 'verify_account', verify), patch.object(DraftUI, 'create', create), \
                 patch.object(DraftUI, 'artwork'), patch('toolost_uploader.live_draft.normal_upload_audio'), \
+                patch('toolost_uploader.live_draft.finalize_normal_upload'), \
                 patch.object(DraftUI, 'metadata'), patch.object(DraftUI, 'save'), patch.object(DraftUI, 'readback'):
             result = execute(path, **self.kwargs(approve_release_title_amendment=True))
         self.assertEqual(result['status'], 'draft_saved_subset')

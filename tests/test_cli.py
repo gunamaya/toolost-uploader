@@ -14,6 +14,23 @@ from toolost_uploader.validation import validate
 
 
 class CLITests(unittest.TestCase):
+    def test_profile_review_loads_real_manifest_from_cli_string(self):
+        import tempfile
+        from toolost_uploader.storage import profile
+
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / 'manifest.json'
+            path.write_text(json.dumps({'release_id': 'review_test'}))
+            result = {'status': 'review_only', 'review_digest': 'a' * 64}
+            with patch('toolost_uploader.storage.profile',
+                       side_effect=lambda alias: profile(alias, root=Path(tmp).resolve() / 'state')), \
+                 patch('toolost_uploader.remote_binding.review_live', return_value=result):
+                code, out, _ = self.invoke([
+                    'review-binding', str(path), '--profile', 'test',
+                    '--expected-account', '12', '--draft-id', '34', '--json'])
+            self.assertEqual(code, 0, out)
+            self.assertEqual(json.loads(out)['status'], 'review_only')
+
     def invoke(self, args):
         out, err = io.StringIO(), io.StringIO()
         with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):

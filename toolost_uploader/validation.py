@@ -62,7 +62,7 @@ def nonfinite(_):
 
 
 def load_manifest(path):
-    with path.open("rb") as stream:
+    with Path(path).open("rb") as stream:
         raw = stream.read(MAX_MANIFEST_BYTES + 1)
     if len(raw) > MAX_MANIFEST_BYTES:
         reject("manifest_too_large", "Manifest melebihi batas lokal 1 MiB.")

@@ -87,3 +87,11 @@ REC-03: assistant/recovery-20261106 dilepas setelah CP-039; status blocked pada 
 
 
 Maksimal lima ringkasan terbaru di sini; history lengkap append-only. Jangan memasukkan path privat, ID akun/draft, aset, token, capture atau isi checkpoint runtime ke backlog.
+
+## FIX-30 — in_progress
+- Claim assistant/fix-review-path-20261109: HEAD 0c39eb1, clean baseline. Files validation.py, tests/test_cli.py, backlog; intended unittest suite, read-only review source/frozen dan installed signature. Root cause load_manifest(str) memanggil str.open pada wrapper review-binding --profile. Tanpa mutasi portal atau commit/push.
+- FIX-30 done CP-056; assistant/fix-review-path-20261109 dilepas. CLI berprofil source/frozen/installed berhasil, app rebuilt dan dipasang; proses lama perlu reopen.
+
+## FIX-33 — in_progress
+- assistant/crash-binding-20261109, HEAD0c39eb1+dirty FIX30 dipertahankan. Active Vue editor transfer observation and deferred numeric binding after normal Save; no duplicate on unsaved state. Backend281tests279passed2skipped. No portal mutation/commit; rebuild/install.
+- FIX-33 done CP-057 offline/package; active unsaved state observed without navigation, binding after normal Save;281tests279passed2skipped; rebuilt installed. Claim released; no automatic retry existing unsaved draft.

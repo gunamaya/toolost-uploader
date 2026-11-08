@@ -372,3 +372,6 @@ Gunakan nomor unik berikutnya; jangan renumber history. Evidence offline tidak m
 - Izin baru batch live: user telah menghapus sebagian track manual, mengizinkan hapus seluruh sisa dari draft uji yang sama lalu uji batch/path lokal25aset approved. No draft baru/source edit/Publish; journal serial lama historis tidak di-reset. Owner assistant/upl01-batch-live; stop unknown dan verifikasi target/dialog/count0 sebelum upload.
 
 - CP-032: same-draft batch25 path selesai transfer,25visible tetapi order salah dan reorder fail-stop. No remaining tracks before batch after user manual removal; no delete performed. No Save/Publish/metadata. UPL-01 blocked reorder fix offline, no reupload.
+
+## FIX-30 — AttributeError review CLI berprofil
+- P1; laporan user inspection_failed AttributeError. Scope normalisasi input filesystem loader, tes CLI real path, rebuild executable dan penggantian binary app terpasang. Tanpa mutasi portal/create/upload/Save/Publish; tanpa commit/push baru. Acceptance CLI source/frozen review read-only sukses, suite offline, signature dan hash binary terpasang cocok.

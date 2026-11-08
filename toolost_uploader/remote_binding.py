@@ -7,11 +7,61 @@ import re
 from .live_journal import DraftError
 
 
+def observe_active_editor(page, *, account, draft):
+    """Read the Vue row props without navigation or exposing audio references."""
+    if (any(not isinstance(x, str) or not re.fullmatch(r'[1-9][0-9]*', x) for x in (account, draft))
+            or page.url != 'https://toolost.com/uploader/edit/' + draft):
+        raise DraftError('recovery_identity_unverified')
+    value = page.evaluate("""() => {
+        let identity = null, tracks = null;
+        for (const el of document.querySelectorAll('*')) {
+            let vm = el.__vue__;
+            for (let depth = 0; vm && depth < 10; depth++, vm = vm.$parent) {
+                const computed = vm.$options.computed || {};
+                if (computed.user && computed.id && computed.release) {
+                    identity = {account: String(vm.user && vm.user.id), draft: String(vm.id)};
+                    tracks = vm.release && vm.release.tracks;
+                    break;
+                }
+            }
+            if (identity) break;
+        }
+        return {identity, tracks: Array.isArray(tracks) ? tracks.map(t => ({
+            editor_key: t.id, saved: t.saved, title: t.metadata && t.metadata.title,
+            track_order: t.index, audio_present: typeof t.url === 'string' && !!t.url
+        })) : null};
+    }""")
+    if (not isinstance(value, dict) or value.get('identity') != {'account': account, 'draft': draft}
+            or not isinstance(value.get('tracks'), list)):
+        raise DraftError('recovery_identity_unverified')
+    keys, orders = set(), set()
+    for row in value['tracks']:
+        if (not isinstance(row, dict) or not isinstance(row.get('editor_key'), (str, int))
+                or not str(row['editor_key']) or str(row['editor_key']) in keys
+                or type(row.get('saved')) is not bool or not isinstance(row.get('title'), str)
+                or not row['title'].strip() or type(row.get('track_order')) is not int
+                or row['track_order'] < 0 or row['track_order'] in orders
+                or row.get('audio_present') is not True):
+            raise DraftError('active_editor_observation_requires_review')
+        keys.add(str(row['editor_key']))
+        orders.add(row['track_order'])
+    return value['tracks']
+
+
+def guard_active_unsaved(context, *, account, draft):
+    for page in context.pages:
+        if page.url == 'https://toolost.com/uploader/edit/' + draft:
+            tracks = observe_active_editor(page, account=account, draft=draft)
+            if any(not t['saved'] for t in tracks):
+                raise DraftError('active_unsaved_upload_requires_review')
+
+
 def observe_release(context, *, account, draft):
     """Read an authenticated release response in a disposable same-context tab."""
     from urllib.parse import urlsplit
     if any(not isinstance(x, str) or not re.fullmatch(r'[1-9][0-9]*', x) for x in (account, draft)):
         raise DraftError('recovery_identity_unverified')
+    guard_active_unsaved(context, account=account, draft=draft)
     page = context.new_page()
     accounts, snapshots = [], []
     def on_response(response):
@@ -179,6 +229,8 @@ def review_live(path, *, account, draft, endpoint, alias=None, observed_binding=
         tracks = observe_release(browser.contexts[0], account=account, draft=draft)
     if observed_binding is not None:
         record = verify_record(observed_binding)
+        if any('editor_key' in t for t in record.get('snapshot') or []):
+            raise DraftError('deferred_upload_binding_requires_review')
         from .recovery_state import content_digest, audio_identity
         if any(record.get(k) != v for k, v in dict(profile=alias, account=account,
                 draft=draft).items()):

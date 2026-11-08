@@ -720,12 +720,14 @@ class DraftUI:
         self.log('Kembali ke portal daftar rilis berhasil: https://toolost.com/user-portal/releases/manage/1')
 
 
-def normal_upload_audio(ui, journal, observe):
+def normal_upload_audio(ui, journal, observe, *, observe_active=None):
     from .remote_binding import observed_upload_mapping, prepare_binding
 
     journal.read()
     if journal.value['events']:
         raise DraftError('new_upload_unknown_requires_review')
+    if observe_active is not None:
+        return _normal_upload_active(ui, journal, observe_active)
     before = observe()
     if before:
         raise DraftError('unexpected_existing_tracks')
@@ -762,10 +764,67 @@ def normal_upload_audio(ui, journal, observe):
     ui.reorder_tracks()
 
 
-def run_steps(ui, *, audio_operation=None):
+def _normal_upload_active(ui, journal, observe):
+    from .remote_binding import observed_upload_mapping
+
+    before = observe()
+    if before:
+        raise DraftError('unexpected_existing_tracks')
+    journal.append('new_upload_baseline', 'observed', snapshot=[], mapping={})
+    groups = [[t] for t in ui.manifest['tracks']] if ui.serial_audio else [ui.manifest['tracks']]
+    local = {}
+    for selected in groups:
+        journal.append('upload', 'unknown')
+        if ui.serial_audio:
+            track = selected[0]
+            index = ui.manifest['tracks'].index(track)
+            ui.record_track(track['track_id'], track['audio']['sha256'], index, 'unknown')
+        if before:
+            ui._append_batch(selected, len(before), reorder=False)
+        else:
+            ui._audio_batch(selected, reorder=False)
+        after = observe()
+        by_key = {str(t['editor_key']): t for t in after}
+        if any(by_key.get(str(t['editor_key'])) != t for t in before):
+            raise DraftError('new_upload_binding_requires_review')
+        # These are client keys, never persisted remote IDs or source hashes.
+        adapted = lambda rows: [dict(t, id=str(t['editor_key'])) for t in rows]
+        delta = observed_upload_mapping(ui.manifest, adapted(before), adapted(after), selected)
+        local.update(delta)
+        snapshot = [dict(by_key[key], local_track_id=track_id) for track_id, key in local.items()]
+        journal.append('new_upload_unsaved_labels', 'observed', snapshot=snapshot, mapping={})
+        if ui.serial_audio:
+            ui.record_track(track['track_id'], track['audio']['sha256'], index, 'observed')
+        before = after
+    ui.recovery_labels = {track_id: by_key[key]['title'] for track_id, key in local.items()}
+    ui.reorder_tracks()
+
+
+def finalize_normal_upload(ui, journal, observe):
+    from .remote_binding import prepare_binding
+
+    tracks = observe()
+    wanted = ui.manifest['tracks']
+    ordered = sorted(tracks, key=lambda t: t['track_order'])
+    if (len(ordered) != len(wanted)
+            or any(t['title'] != w['title'] for t, w in zip(ordered, wanted))):
+        raise DraftError('new_upload_saved_binding_requires_review')
+    mapping = {w['track_id']: str(t['id']) for t, w in zip(ordered, wanted)}
+    review = prepare_binding(manifest=ui.manifest, account=journal.binding['account'],
+                             draft=ui.remote_id, tracks=tracks, mapping=mapping)
+    if review['unmapped_remote_ids'] or review['missing_track_ids']:
+        raise DraftError('new_upload_saved_binding_requires_review')
+    journal.append('new_upload_saved_binding', 'observed', snapshot=review['snapshot'], mapping=mapping)
+
+
+def run_steps(ui, *, audio_operation=None, before_metadata=None, after_save=None):
     ui.verify_account()
     for name in ('create', 'artwork', 'audio', 'metadata', 'save'):
+        if name == 'metadata' and before_metadata is not None:
+            before_metadata()
         ui.action(name, audio_operation if name == 'audio' and audio_operation is not None else getattr(ui, name))
+        if name == 'save' and after_save is not None:
+            after_save()
     ui.readback()
     ui.record('readback', 'verified_subset', ui.remote_id)
 
@@ -923,12 +982,23 @@ def execute(path, *, alias, expected_account, endpoint, approve_draft, accept_ui
                     update_run_steps(ui, title_changed, date_changed, artwork_changed, tracks_to_upload, old_count)
                 else:
                     from .live_journal import RecoveryJournal
-                    from .remote_binding import observe_release
+                    from .remote_binding import observe_release, observe_active_editor
+                    upload_journals = []
                     def upload_with_binding():
                         recovery_journal = RecoveryJournal(session, ui.manifest, expected_account, ui.remote_id, endpoint)
+                        upload_journals.append(recovery_journal)
                         normal_upload_audio(ui, recovery_journal,
-                            lambda: observe_release(page.context, account=expected_account, draft=ui.remote_id))
-                    run_steps(ui, audio_operation=upload_with_binding)
+                            lambda: observe_release(page.context, account=expected_account, draft=ui.remote_id),
+                            observe_active=lambda: observe_active_editor(page, account=expected_account, draft=ui.remote_id))
+                    def before_metadata():
+                        if upload_journals:
+                            upload_journals[0].append('metadata_save', 'unknown')
+                    def after_save():
+                        if upload_journals:
+                            finalize_normal_upload(ui, upload_journals[0],
+                                lambda: observe_release(page.context, account=expected_account, draft=ui.remote_id))
+                    run_steps(ui, audio_operation=upload_with_binding,
+                              before_metadata=before_metadata, after_save=after_save)
             finally:
                 ui.close()
         out_status = 'draft_readback_subset' if reconcile_only else ('draft_appended_subset' if (allow_append and not title_changed and not artwork_changed and not date_changed) else ('draft_updated_subset' if allow_sync else 'draft_saved_subset'))
@@ -951,6 +1021,8 @@ def recovery_steps(ui, journal, receipt, observe):
 
     journal.read()
     events = journal.value['events']
+    if any('editor_key' in t for t in journal.value.get('snapshot') or []):
+        raise DraftError('deferred_upload_binding_requires_review')
     pending = bool(events and events[-1]['outcome'] == 'unknown')
     if pending and events[-1]['operation'] == 'upload':
         # Bahkan snapshot kosong tidak membuktikan transfer lama batal di server.

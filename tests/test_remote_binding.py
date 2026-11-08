@@ -8,6 +8,7 @@ from toolost_uploader.remote_binding import observe_release
 class ObservationTests(unittest.TestCase):
     def test_observation_requires_account_and_matching_release(self):
         context = Mock()
+        context.pages = []
         page = context.new_page.return_value
         page.url = 'https://toolost.com/uploader/edit/34'
         def go(*args, **kwargs):
