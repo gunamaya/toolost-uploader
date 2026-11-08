@@ -672,3 +672,91 @@ Append-only sejak adopsi governance. Ini **bukan checkpoint executor/runtime**, 
 - Intake explicit user: perbaikan viewport/hit test adjacent drag dan tes fake offline; tanpa browser live atau commit. HEAD `6fa3af95b5d0760234eb4c4b571c7fd82361a346`; dirty paths saat intake: `tests/test_recovery_inspection.py`, `toolost_uploader/live_draft.py`, `toolost_uploader/recovery_inspection.py` (terakhir staged dan unstaged).
 - `live_draft.py` sudah memuat patch adjacent drag yang belum dikomit, berbeda dari HEAD; kepemilikan tidak diketahui. Aturan lifecycle melarang mengambil alih perubahan tidak dikenal. Tidak mengklaim atau mengedit runtime/test, tidak menjalankan tes/live/commit.
 - Status UPD-04 `needs_reconciliation`; next priority handoff pemilik patch adjacent drag atau konfirmasi user untuk melanjutkan di atas perubahan tersebut. Alternatif: pemilik menyelesaikan patch sendiri. UPD-03 tetap blocked pada gate live terpisah.
+
+## CP-042 — 8 November 2026 — UPD-05 menunggu handoff
+
+- Intake eksplisit user untuk memperbaiki identitas track berawalan angka dan tes offline. HEAD `d71851caf3535cdbb2d55678e8fac32b3740d043`, working tree bersih sebelum perubahan backlog. Current index tetap mencatat UPD-04 `in_progress` dan owner `assistant/sesi-saat-ini` pada `toolost_uploader/live_draft.py` dan `tests/test_reorder_tracks.py`; kepemilikan sesi ini tidak terbukti, meskipun patch terdahulu kini committed. Detail UPD-04 dan CP-041 berbeda dari current index, yang authoritative.
+- UPD-05 `needs_reconciliation`: tidak mengambil alih klaim aktif, tidak mengedit runtime atau tes, tidak menjalankan tes, tidak mengakses portal atau data pengguna. Hanya index, detail dan checkpoint diubah.
+- Next: handoff dari owner UPD-04 atau rekonsiliasi status/klaim sebelum mengerjakan UPD-05; alternatif owner UPD-04 menyelesaikan perbaikan. Tidak ada izin tambahan untuk portal atau mutasi data.
+
+## CP-043 — 8 November 2026 — UPD-05 handoff dan regresi offline
+
+- User mengonfirmasi tidak ada agent UPD aktif dan memberi izin takeover. HEAD d71851c; dirty backlog CP-042 dipertahankan. UPD-04 tidak dinyatakan selesai; claim lama dilepas, acceptance needs_reconciliation. Claim UPD-05 dilepas setelah tes.
+- `live_draft.py` membuang ordinal posisi yang tepat, bukan rangkaian digit greedy; `tests/test_reorder_tracks.py` menambah tes nama file bernomor dan collision case-insensitive. Regresi awal 7 tes: satu error terkonfirmasi. Percobaan focused pertama gagal import fixture karena PYTHONPATH, diperbaiki pada invokasi.
+- `PYTHONPATH=tests:. .venv/bin/python -m unittest test_reorder_tracks test_serial_audio -q`: 22 passed; `.venv/bin/python -m unittest discover -s tests -q`: 227 tests, 225 passed, 2 skipped; `git diff --check` bersih. Tes offline bukan bukti live, paket belum diinstal. Tidak ada portal, upload, Save, Publish, commit atau push.
+- REC-05 didaftarkan blocked: nama file saja tidak membuktikan identitas audio atau persistensi remote; perlu bukti dan desain recovery sebelum retry otomatis. Next prioritas audit provenance dan bukti remote untuk recovery tanpa duplikat; alternatif review manual.
+
+## CP-044 — 8 November 2026 — REC-05 review track parsial
+
+- Implementasi `review_track_labels` dan `inspect_existing_tracks`: inspeksi akun dan draft terbuka read-only, klasifikasi kecocokan, missing dan unexpected untuk review, normalisasi Unicode/case/tanda baca dengan collision fail-closed. Tidak membuktikan identitas byte, profile browser, persistensi atau keamanan retry. Tidak terintegrasi ke CLI/uploader; REC-05 tetap blocked, claim dilepas.
+- Tes awal gagal pada kontrak existing yang menolak daftar kosong; ditambahkan allow_empty opt-in pada inspeksi recovery. `PYTHONPATH=tests:. .venv/bin/python -m unittest test_recovery_inspection test_reorder_tracks -q` 21 passed; `.venv/bin/python -m unittest discover -s tests -q` 230 tests, 228 passed, 2 skipped; git diff --check bersih. Tidak ada portal, upload, save atau publish.
+- Next: integrasi inspeksi aman ke CLI dan pembuktian identitas/persistensi remote sebelum mengizinkan resume; alternatif review manual. Tidak mengklaim recovery end-to-end selesai.
+
+## CP-045 — 8 November 2026 — REC-05 CLI inspeksi
+
+- Menambah `inspect-draft`: manifest divalidasi, CDP lokal saja, tepat satu page draft existing, verifikasi akun pada page, inspeksi label tanpa navigasi/klik/upload/Save; hasil tegas retry_safe=false, identitas audio dan persistensi tidak terbukti. Tidak mengaktifkan retry atau resume mutasi.
+- Live read-only satu kali untuk draft yang diminta berhenti `recovery_identity_unverified`; tidak ada perubahan remote. Tidak ada klaim pemeriksaan track live berhasil. Offline focused 52 passed, full unittest 233 tests 231 passed 2 skipped, git diff --check bersih. Tidak ada publish/install/commit.
+- REC-05 tetap blocked untuk recovery otomatis: butuh pembuktian identitas audio remote, state tersimpan, dan integrasi retry. Next audit metadata portal untuk bukti ini; alternatif review manual tanpa upload ulang.
+
+## CP-046 — 8 November 2026 — REC-05 verifikasi akun same-context
+
+- Inspeksi CLI memakai verifikasi akun pada tab sementara dalam browser context yang sama seperti draft; tab ditutup setelah pemeriksaan. Draft tidak dinavigasi atau dimutasi. Dialog kosong dapat dilewati hanya pada inspeksi read-only; dialog berteks dan target berubah fail-closed.
+- Live read-only draft yang ditentukan: akun tervalidasi, namun panel Manage Tracks tidak aktif sehingga daftar kosong; sekarang ditolak dan tidak dilaporkan sebagai missing. Inspeksi terpisah portal setelah Save user melihat 12 track tersimpan dengan urutan berbeda dari manifest. Metadata track tidak diverifikasi; hash audio remote dan persistensi tiap metadata tidak dibuktikan. Tidak ada upload/Save/Publish.
+- Offline unittest discover: 234 tests, 232 passed, 2 skipped; git diff --check bersih. REC-05 tetap blocked terhadap resume otomatis; next aktifkan panel untuk inspeksi read-only dengan guard dan desain recovery terikat identitas sebelum mutasi.
+
+## CP-047 — 8 November 2026 — REC-05 takeover dan matching review
+
+- User mengizinkan takeover dan implementasi offline. HEAD d71851caf3535cdbb2d55678e8fac32b3740d043; dirty baseline tercatat di klaim intake dan dipertahankan. Owner assistant/rec05-takeover-20261108 dilepas. Edit slice: toolost_uploader/recovery_inspection.py, tests/test_recovery_inspection.py dan backlog.
+- Matching review mengevaluasi label utuh dan kandidat tanpa akhiran kontrol Edit; bila dua kandidat menunjuk track berbeda, stop ambiguity. Tes mencakup judul yang benar-benar berakhir Edit dan collision. Label tetap hanya indikasi, bukan bukti identitas audio; inspect-draft tetap retry_safe=false.
+- `.venv/bin/python -m unittest tests.test_recovery_inspection -q`: 17 passed; `.venv/bin/python -m unittest discover -s tests -q`: 235 tests, 233 passed, 2 skipped (packaging opt-in). `git diff --check` diverifikasi setelah checkpoint. Tidak ada portal, data pengguna, upload, Save, Publish, instalasi, commit/push.
+- REC-05 tetap blocked: perubahan ini belum mengintegrasikan pemeriksaan existing ke jalur retry, panel track aktif belum ditangani, dan bukti identitas audio/persistensi belum ada. Tidak mengaktifkan retry dengan pencocokan nama semata. Next REC-05: rancang jalur inspeksi panel dan sumber bukti identitas/persistensi yang aman sebelum executor; alternatif review manual tanpa retry. Live memerlukan izin terpisah.
+## CP-048 — REC-06 recovery existing offline
+
+- Klaim assistant/rec06-20261108, 2026-11-08T14:50:50Z, HEAD d71851c. Dirty awal: docs/ANTRIAN-PEKERJAAN-UTAMA.md, docs/backlog/CHECKPOINT-HISTORY.md, docs/backlog/TASK-DETAILS.md, tests/test_cli.py, tests/test_recovery_inspection.py, tests/test_reorder_tracks.py, toolost_uploader/cli.py, toolost_uploader/live_draft.py, toolost_uploader/recovery_inspection.py. User mengizinkan takeover; perubahan unrelated tidak diambil alih. Klaim dilepas.
+- Perubahan: recovery_inspection.py memverifikasi akun pada halaman draft sebelum dan sesudah pembacaan, tanpa tab/navigasi baru, menolak semua dialog termasuk kosong. tests/test_recovery_inspection.py menambah tes perubahan akun, dialog, judul Unicode/punctuation unik dan collision. Review tidak membuktikan audio/persistensi dan tidak membuka retry. User menangani perubahan draft sendiri; tidak ada portal/live atau mutasi draft.
+- Verifikasi: `python3 -m unittest discover -s tests -p 'test_recovery_inspection.py' -q` 19 lulus; `python3 -m unittest discover -s tests -q` 237 dijalankan, 2 skip, 1 error karena system Python tanpa playwright. `.venv/bin/python -m unittest discover -s tests -q` 237 sukses, 2 skip. `git diff --check` bersih. Tidak ada commit/push.
+- Sisa: REC-05 tetap blocked, identitas audio remote dan persistensi belum terbukti. Rekomendasi berikutnya: user menyelesaikan kebutuhan draft secara terpisah, lalu tentukan bukti read-only identitas/persistensi sebelum mempertimbangkan retry; alternatif aman tetap inspeksi tanpa mutasi.
+
+## CP-049 — REC-07 blocked, binding review parsial
+
+- Claim assistant/rec07-20261108, 2026-11-08T15:17:31Z, HEAD d71851caf3535cdbb2d55678e8fac32b3740d043. Dirty awal: docs/ANTRIAN-PEKERJAAN-UTAMA.md, docs/backlog/CHECKPOINT-HISTORY.md, docs/backlog/TASK-DETAILS.md, tests/test_cli.py, tests/test_recovery_inspection.py, tests/test_reorder_tracks.py, toolost_uploader/cli.py, toolost_uploader/live_draft.py, toolost_uploader/recovery_inspection.py.
+- Hasil: toolost_uploader/remote_binding.py dan tests/test_remote_binding.py menyediakan helper review/konfirmasi snapshot eksplisit, menolak mapping duplikat, tidak mengekspos audio URL, dan tidak mengklaim byte/provenance/persistensi. Belum ada fetch API, penyimpanan receipt, CLI maupun gate eksekusi; helper saja tidak mencegah duplikasi di runtime. Tidak ada live atau commit.
+- Verifikasi: `python3 -m unittest discover -s tests -p 'test_remote_binding.py' -q` lulus 4; `python3 -m unittest discover -s tests -q` menjalankan 241, 2 skip, 1 error karena Python sistem tanpa modul playwright; `git diff --check` lulus sebelum checkpoint ini.
+- Sisa: integrasi pembacaan API terikat akun/draft, receipt persisten dan gate lifecycle fail-closed, pengujian failure injection dan suite lengkap. Rekomendasi berikutnya: lanjutkan integrasi dengan memeriksa kontrak response dan journal existing secara hati-hati, memakai environment proyek yang telah menyediakan Playwright; alternatif instalasi perlu izin terpisah. Claim dilepas, status blocked, acceptance belum terpenuhi.
+
+## CP-050 — 8 November 2026 — REC-07 guard checkpoint
+
+- `execute` tidak lagi menafsirkan checkpoint rusak sebagai tidak ditemukan; error selain checkpoint_not_found menghentikan operasi sebelum create. Tes mock membuktikan create_checkpoint tidak dipanggil.
+- Focused `PYTHONPATH=tests:. .venv/bin/python -m unittest test_live_draft test_remote_binding -q`: 30 passed. Full `.venv/bin/python -m unittest discover -s tests -q`: 242 tests, 240 passed, 2 skipped; `git diff --check` bersih. Tidak ada akses live atau mutasi portal.
+- REC-07 tetap blocked: helper binding belum terhubung CLI/journal/retry; perlu observasi API terikat akun dan snapshot receipt sebelum recovery bisa dilakukan. Next integrasi observasi dan review; alternatif manual. Claim dilepas.
+
+## CP-051 — 8 November 2026 — REC-07 evidence endpoint belum tersedia
+
+- Intake eksplisit integrasi recovery offline, tanpa portal live, commit atau repo lain. HEAD d71851caf3535cdbb2d55678e8fac32b3740d043; dirty baseline: docs/ANTRIAN-PEKERJAAN-UTAMA.md, docs/backlog/CHECKPOINT-HISTORY.md, docs/backlog/TASK-DETAILS.md, tests/test_cli.py, tests/test_live_draft.py, tests/test_recovery_inspection.py, tests/test_reorder_tracks.py, toolost_uploader/cli.py, toolost_uploader/live_draft.py, toolost_uploader/recovery_inspection.py, tests/test_remote_binding.py dan toolost_uploader/remote_binding.py. Semua dipertahankan; hanya antrean dan checkpoint diperbarui, tanpa claim implementasi.
+- RESEARCH, current index, CP-046–050 dan detail REC-07 diperiksa. Pencarian dalam docs, source, scripts dan capture lokal yang relevan tidak menemukan path endpoint track dan bentuk respons 200 page load; satu path release yang terdokumentasi memiliki observasi 401, bukan kontrak track 200. Helper binding menerima data caller, bukan bukti sumber API. Tidak aman mengarang endpoint, response schema atau hubungan ID draft; belum ada CLI/receipt/retry baru.
+- Tidak menjalankan tes karena tidak ada perubahan runtime; tidak mengakses portal, kredensial, upload, Save, Publish, install atau commit. `git diff --check` diperiksa sesudah checkpoint ini. REC-07 tetap blocked; retry tetap tidak aman dan tidak tersedia.
+- Next: minta handoff path/metode, bentuk respons 200 dan bukti pengikatan akun/draft yang tersanitasi (tanpa URL audio, token, cookie atau ID privat), lalu lanjutkan implementasi dan tes offline. Alternatif aman: tetap memakai inspeksi review-only yang ada tanpa retry.
+
+## CP-052 — 8 November 2026 — REC-07 review CLI
+
+- User memberi izin integrasi. Evidence sesi read-only: GET /api/distribution/release/<draft> status 200 ketika page load; body info.id/user_id dan tracks id/title/track_order/audio_url. CLI `review-binding` memvalidasi manifest, CDP loopback, account response, ID draft dan pemetaan judul unik; respons hanya review, retry_safe=false. Belum ada persetujuan binding tersimpan atau resume/retry.
+- Tes `.venv/bin/python -m unittest discover -s tests -q` 243 tests, 241 passed, 2 skipped; git diff --check. Tidak ada portal live pada implementasi ini, upload, Save atau commit. REC-07 blocked sisa receipt, validasi snapshot serta executor retry; claim dilepas.
+
+## CP-053 — 8 November 2026 — REC-07 collision review
+
+- `propose_mapping` menolak judul manifest dengan normalisasi collision meskipun belum ada track remote; normalisasi tanda baca tetap cocok bila unik. Tanpa mutasi portal, receipt atau retry.
+- Focused `PYTHONPATH=tests:. .venv/bin/python -m unittest test_remote_binding -q`: 7 passed; full `.venv/bin/python -m unittest discover -s tests -q`: 245 tests, 243 passed, 2 skipped; git diff --check bersih. REC-07 tetap blocked untuk receipt dan retry, claim dilepas. Next integrasi persetujuan snapshot dan persistensi, tanpa menganggap kecocokan judul membuktikan byte audio.
+
+## CP-054 — 8 November 2026 — REC-07 receipt snapshot
+
+- `review-binding --profile <alias> --confirm-digest <digest>` mengobservasi ulang dan menyimpan receipt privat terikat digest, akun, draft, profil, manifest dan mapping; perubahan snapshot ditolak, file tidak ditimpa; tidak memberi izin retry dan tidak mengklaim kesamaan byte. Tidak ada portal live, upload, Save atau Publish.
+- Focused test awal gagal karena path /var symlink macOS; diperbaiki dengan resolve. Focused 23 passed; full `.venv/bin/python -m unittest discover -s tests -q`: 246 tests, 244 passed, 2 skipped; git diff --check bersih.
+- REC-07 tetap blocked untuk receipt refresh, GUI dan retry yang terintegrasi; next validasi lifecycle receipt/IDs dan approval snapshot lintas writer. Klaim dilepas; tidak ada commit.
+
+## CP-055 — 8 November 2026 — REC-07 recovery lintas repo
+
+- Receipt v2 integrity/idempotensi/history, profile lock, review snapshot/account/draft dan CLI `recover` terintegrasi. Executor tidak create draft, skip ID bound, upload missing serial, persist intent sebelum transfer dan ID observed sebelum metadata, fail closed unknown sampai re-review, reorder/metadata/Save/reopen. Normal upload juga mencatat durable observed IDs sebelum metadata. ID binding bukan bukti byte audio remote.
+- Legacy checkpoint/live journal dipertahankan. Content identity mengabaikan hanya path artwork/audio/lyrics, bukan hashes/metadata; approval receipt tetap exact snapshot. Successor hasil recovery dipakai update berikutnya, metadata revision memerlukan explicit review; unknown events/history tidak dihapus. Snapshot GUI existing memakai review-confirm-recover pada snapshot yang sama.
+- Audit read-only menemukan dua HIGH (relokasi path ledger dan update pasca-recovery); keduanya direproduksi dan diremediasi dengan public integration tests. Regresi album dua track dengan lirik, interupsi upload/metadata/Save, corrupt/identity/stale/concurrency dan no duplicate tersedia.
+- Final `.venv/bin/python -m unittest discover -s tests -q` timeout120s: 275 tests, 273 passed, 2 skipped, 1.217s; `git diff --check` bersih. HEAD d71851c dirty handoff dipertahankan; files runtime remote_binding/live_draft/live_journal/cli/recovery_state dan tests terkait. Tanpa install/commit/portal mutation/Publish.
+- Implementasi offline selesai, REC-07 blocked hanya acceptance portal end-to-end. Batas: ledger dari versi eksperimen lama tanpa semantic identity tetap fail-closed; audio identity/order berubah pada metadata revision ditolak, bukan append otomatis. Next priority verifikasi native/portal existing draft yang disetujui; alternatif tetap read-only tanpa mutasi. Klaim dilepas.

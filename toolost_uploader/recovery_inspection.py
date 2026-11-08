@@ -3,10 +3,120 @@
 import re
 import hashlib
 import json
+import unicodedata
 from pathlib import PurePath
 from urllib.parse import urlsplit
 
 from .live_journal import DraftError
+
+
+def _track_key(value):
+    value = unicodedata.normalize('NFKC', value).casefold()
+    return ''.join(c for c in value if c.isalnum())
+
+
+def review_track_labels(manifest, labels):
+    """Classify visible track names for review, never as proof of remote audio."""
+    try:
+        tracks = manifest['tracks']
+        if not isinstance(tracks, list) or not tracks or not isinstance(labels, list):
+            raise ValueError
+        lookup, ids = {}, set()
+        for index, track in enumerate(tracks):
+            tid, path = track['track_id'], track['audio']['path']
+            if not isinstance(tid, str) or not tid or tid in ids or not isinstance(path, str) or not path:
+                raise ValueError
+            ids.add(tid)
+            aliases = [PurePath(path).name, PurePath(path).stem]
+            if isinstance(track.get('title'), str) and track['title'].strip():
+                aliases.append(track['title'])
+            for alias in aliases:
+                key = _track_key(alias)
+                if not key or (key in lookup and lookup[key] != index):
+                    raise ValueError
+                lookup[key] = index
+        matched, unexpected = [], []
+        for position, text in enumerate(labels, 1):
+            if not isinstance(text, str) or not text.strip():
+                raise ValueError
+            text = text.strip()
+            prefix = str(position)
+            if not text.startswith(prefix):
+                raise ValueError
+            text = text[len(prefix):].strip()
+            candidates = {lookup[key] for candidate in (text, text[:-4].strip() if text.casefold().endswith('edit') else text)
+                          if (key := _track_key(candidate)) in lookup}
+            if len(candidates) > 1:
+                raise ValueError
+            if not candidates:
+                unexpected.append(text[:-4].strip() if text.casefold().endswith('edit') else text)
+                continue
+            index = candidates.pop()
+            if index in matched:
+                raise ValueError
+            else:
+                matched.append(index)
+        return {'matched_track_ids': [tracks[i]['track_id'] for i in matched],
+                'missing_track_ids': [t['track_id'] for i, t in enumerate(tracks) if i not in matched],
+                'unexpected_labels': unexpected, 'remote_audio_hashes_verified': False,
+                'persisted_state_verified': False, 'retry_safe': False}
+    except (KeyError, TypeError, ValueError, AttributeError):
+        raise DraftError('recovery_snapshot_ambiguous') from None
+
+
+def inspect_existing_tracks(page, *, manifest, expected_account, expected_draft):
+    """Inspect the already-open draft without retrying or modifying it."""
+    if not re.fullmatch(r'[1-9][0-9]*', expected_account) or not re.fullmatch(r'[1-9][0-9]*', expected_draft):
+        raise DraftError('recovery_identity_unverified')
+    target = 'https://toolost.com/uploader/edit/' + expected_draft
+    verify_open_draft_account(page, expected_account=expected_account, expected_draft=expected_draft)
+    try:
+        verify_open_draft_account(page, expected_account=expected_account, expected_draft=expected_draft)
+        if page.locator('input[type=password]:visible,input[autocomplete=one-time-code]:visible').count():
+            raise ValueError
+        dialogs = page.locator('[role=dialog]:visible,[aria-modal=true]:visible')
+        if dialogs.count():
+            raise ValueError
+        labels = page.locator('.track-item:visible').all_inner_texts()
+        if not labels:
+            raise ValueError
+        if page.is_closed() or page.url != target:
+            raise ValueError
+    except Exception:
+        raise DraftError('recovery_identity_unverified') from None
+    result = review_track_labels(manifest, labels)
+    return {**result, 'account_verified': True, 'profile_verified': False,
+            'status': 'inspection_only', 'execution_available': False}
+
+
+def inspect_connected_draft(browser, *, manifest, expected_account, expected_draft):
+    """Select exactly one existing page without navigation or closing browser state."""
+    target = 'https://toolost.com/uploader/edit/' + expected_draft
+    pages = [page for context in browser.contexts for page in context.pages
+             if not page.is_closed() and page.url == target]
+    if len(pages) != 1:
+        raise DraftError('recovery_page_not_unique')
+    return inspect_existing_tracks(pages[0], manifest=manifest,
+                                   expected_account=expected_account, expected_draft=expected_draft)
+
+
+def inspect_manifest_draft(path, *, expected_account, expected_draft, endpoint):
+    """Read-only CDP inspection; never starts Chrome or mutates journal/portal."""
+    from pathlib import Path
+    from .browser import is_local_endpoint
+    from .validation import load_manifest, validate_manifest
+    if not is_local_endpoint(endpoint):
+        raise DraftError('loopback_endpoint_required')
+    if not isinstance(expected_draft, str) or not re.fullmatch(r'[1-9][0-9]*', expected_draft):
+        raise DraftError('recovery_identity_unverified')
+    path = Path(path).absolute()
+    manifest = load_manifest(path)
+    validate_manifest(manifest, path.parent)
+    from playwright.sync_api import sync_playwright
+    with sync_playwright() as playwright:
+        browser = playwright.chromium.connect_over_cdp(endpoint)
+        return inspect_connected_draft(browser, manifest=manifest, expected_account=expected_account,
+                                       expected_draft=expected_draft)
 
 
 _ACCOUNT_REQUEST = """async () => {
@@ -65,12 +175,12 @@ def verify_open_draft_account(page, *, expected_account, expected_draft):
             'persisted_state_verified': False, 'execution_available': False}
 
 
-def observe_open_draft(page, *, expected_account, expected_draft, track_selector='.track-item:visible'):
+def observe_open_draft(page, *, expected_account, expected_draft, track_selector='.track-item:visible', allow_empty=False):
     """Read current draft DOM without navigation, clicks, uploads, or Save."""
     identity = verify_open_draft_account(page, expected_account=expected_account, expected_draft=expected_draft)
     try:
         labels = page.locator(track_selector).all_inner_texts()
-        if not isinstance(labels, list) or not labels or any(not isinstance(x, str) or not x.strip() for x in labels):
+        if not isinstance(labels, list) or (not labels and not allow_empty) or any(not isinstance(x, str) or not x.strip() for x in labels):
             raise ValueError
         verify_open_draft_account(page, expected_account=expected_account, expected_draft=expected_draft)
         observation = {

@@ -224,3 +224,67 @@ class LiveJournal:
         self._validate(candidate)
         _atomic_write(self.session.directory, self.name, candidate)
         self.value = candidate
+
+
+class RecoveryJournal:
+    """Ledger terpisah agar recovery tidak menulis ulang riwayat live lama."""
+
+    def __init__(self, session, manifest, account, draft, endpoint, *, receipt=None):
+        self.session = session
+        self.name = session._check(manifest['release_id']).removesuffix('.json') + '.recovery.json'
+        from .recovery_state import content_digest, content_manifest
+        self.binding = dict(version=1, profile=session.alias, release_id=manifest['release_id'],
+                            manifest_sha256=content_digest(manifest), account=account, draft=draft,
+                            endpoint=endpoint)
+        try:
+            self.value = _read(session.directory, self.name)
+        except FileNotFoundError:
+            self.value = dict(self.binding, manifest=content_manifest(manifest), events=[], snapshot=None, mapping={})
+            self._save()
+        # A new exact receipt explicitly authorizes a new metadata revision, never
+        # silently discard the previous attempt or its unresolved mutation intent.
+        from .recovery_state import audio_identity
+        from .remote_binding import verify_record
+        old = self.value
+        if (old.get('manifest_sha256') != self.binding['manifest_sha256']
+                and receipt is not None):
+            verify_record(old)
+            verify_record(receipt)
+            if (any(old.get(k) != v for k, v in self.binding.items() if k != 'manifest_sha256')
+                    or receipt.get('manifest_sha256') != _digest(manifest)
+                    or any(receipt.get(k) != v for k, v in dict(profile=session.alias,
+                        release_id=manifest['release_id'], account=account, draft=draft).items())
+                    or receipt.get('review_digest') == old.get('approval_digest')
+                    or 'manifest' not in old
+                    or audio_identity(old['manifest']) != audio_identity(manifest)):
+                raise DraftError('recovery_manifest_reapproval_required')
+            old.setdefault('history', []).append(deepcopy({k: v for k, v in old.items() if k != 'history'}))
+            old['manifest_sha256'] = self.binding['manifest_sha256']
+            old['manifest'] = content_manifest(manifest)
+            self._save()
+        self.read()
+
+    def read(self):
+        value = _read(self.session.directory, self.name)
+        if (not isinstance(value, dict) or any(value.get(k) != v for k, v in self.binding.items())
+                or value.get('record_sha256') != _digest({k: v for k, v in value.items() if k != 'record_sha256'})
+                or not isinstance(value.get('events'), list)):
+            raise DraftError('recovery_journal_corrupt_or_mismatched')
+        if value != self.value:
+            raise DraftError('recovery_journal_changed')
+        return deepcopy(value)
+
+    def _save(self):
+        self.value['record_sha256'] = _digest({k: v for k, v in self.value.items() if k != 'record_sha256'})
+        _atomic_write(self.session.directory, self.name, self.value)
+
+    def append(self, operation, outcome, *, snapshot=None, mapping=None, track_id=None, approval_digest=None):
+        self.read()
+        if approval_digest is not None:
+            self.value['approval_digest'] = approval_digest
+        self.value['events'].append(dict(operation=operation, outcome=outcome, track_id=track_id))
+        if snapshot is not None:
+            self.value['snapshot'] = deepcopy(snapshot)
+        if mapping is not None:
+            self.value['mapping'] = dict(mapping)
+        self._save()

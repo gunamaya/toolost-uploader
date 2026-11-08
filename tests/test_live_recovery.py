@@ -381,7 +381,7 @@ class LiveRecoveryTests(unittest.TestCase):
             ui.remote_id = '456'
             ui.page.url = 'https://toolost.com/uploader/edit/456'
         with browser, patch.object(DraftUI, 'verify_account', verify), patch.object(DraftUI, 'create', create), \
-                patch.object(DraftUI, 'artwork'), patch.object(DraftUI, 'audio'), \
+                patch.object(DraftUI, 'artwork'), patch('toolost_uploader.live_draft.normal_upload_audio'), \
                 patch.object(DraftUI, 'metadata'), patch.object(DraftUI, 'save'), patch.object(DraftUI, 'readback'):
             result = execute(path, **self.kwargs(approve_release_title_amendment=True))
         self.assertEqual(result['status'], 'draft_saved_subset')
@@ -410,7 +410,7 @@ class LiveRecoveryTests(unittest.TestCase):
             ui.remote_id = '456'
             ui.page.url = 'https://toolost.com/uploader/edit/456'
         with browser, patch.object(DraftUI, 'verify_account', verify), patch.object(DraftUI, 'create', create), \
-                patch.object(DraftUI, 'artwork'), patch.object(DraftUI, 'audio'), \
+                patch.object(DraftUI, 'artwork'), patch('toolost_uploader.live_draft.normal_upload_audio'), \
                 patch.object(DraftUI, 'metadata'), patch.object(DraftUI, 'save', side_effect=TimeoutError) as save, \
                 patch.object(DraftUI, 'readback') as readback:
             with self.assertRaises(TimeoutError):

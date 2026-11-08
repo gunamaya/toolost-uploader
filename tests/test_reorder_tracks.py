@@ -82,6 +82,21 @@ class ReorderTests(unittest.TestCase):
         self.assertEqual(ui.page.order, [Path(t['audio']['path']).stem for t in ui.manifest['tracks']])
         self.assertEqual(ui.page.down_count, ui.page.up_count)
 
+    def test_numbered_filenames_are_preserved_after_portal_ordinal(self):
+        ui = self.make_ui([2, 1])
+        ui.manifest = {'tracks': [{'audio': {'path': '01 - First.flac'}}, {'audio': {'path': '02 - Second.flac'}}]}
+        ui.page.order = ['02 - Second', '01 - First']
+        ui.reorder_tracks()
+        self.assertEqual(ui.page.order, ['01 - First', '02 - Second'])
+
+    def test_case_insensitive_duplicate_filename_is_ambiguous(self):
+        ui = self.make_ui([1, 2])
+        ui.manifest = {'tracks': [{'audio': {'path': '01 - Same.flac'}}, {'audio': {'path': '01 - same.mp3'}}]}
+        ui.page.order = ['01 - Same', '01 - same']
+        with self.assertRaisesRegex(DraftError, 'track_identity_ambiguous'):
+            ui.reorder_tracks()
+        self.assertEqual(ui.page.down_count, 0)
+
     def test_unknown_later_track_blocks_all_drag(self):
         ui = self.make_ui([2, 1, 3])
         ui.page.order[-1] = 'unknown'

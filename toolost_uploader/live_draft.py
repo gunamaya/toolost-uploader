@@ -6,7 +6,7 @@ from copy import deepcopy
 from pathlib import Path
 from urllib.parse import urlsplit
 
-from .storage import profile
+from .storage import profile, StorageError
 from .live_journal import DraftError, LiveJournal
 from .validation import file_reference, load_manifest, validate_manifest, validate_manifest_structure, verified_bytes, BUFFER_LIMIT_BYTES, InvalidInput
 
@@ -359,11 +359,13 @@ class DraftUI:
         if type(count) is not int or count != len(self.manifest['tracks']):
             raise DraftError('track_identity_ambiguous')
         stems = [Path(t['audio']['path']).stem.lower() for t in self.manifest['tracks']]
-        if len(set(stems)) != len(stems):
+        if not hasattr(self, 'recovery_labels') and len(set(stems)) != len(stems):
             raise DraftError('track_identity_ambiguous')
         labels = {}
         for index, track in enumerate(self.manifest['tracks']):
-            for label in (stems[index], Path(track['audio']['path']).name.lower()):
+            choices = getattr(self, 'recovery_labels', None)
+            for label in ((choices[track['track_id']].lower(),) if choices is not None else
+                          (stems[index], Path(track['audio']['path']).name.lower())):
                 if label in labels and labels[label] != index:
                     raise DraftError('track_identity_ambiguous')
                 labels[label] = index
@@ -375,7 +377,11 @@ class DraftUI:
             for i in range(count):
                 text = items.nth(i).text_content().lower()
                 # Portal text combines ordinal, filename and Edit without whitespace.
-                label = re.sub(r'^\s*\d+\s*', '', text).strip()
+                prefix = str(i + 1)
+                text = text.lstrip()
+                if not text.startswith(prefix):
+                    raise DraftError('track_identity_ambiguous')
+                label = text[len(prefix):].strip()
                 label = re.sub(r'\s*edit\s*$', '', label).strip()
                 if label not in labels:
                     raise DraftError('track_identity_ambiguous')
@@ -714,10 +720,52 @@ class DraftUI:
         self.log('Kembali ke portal daftar rilis berhasil: https://toolost.com/user-portal/releases/manage/1')
 
 
-def run_steps(ui):
+def normal_upload_audio(ui, journal, observe):
+    from .remote_binding import observed_upload_mapping, prepare_binding
+
+    journal.read()
+    if journal.value['events']:
+        raise DraftError('new_upload_unknown_requires_review')
+    before = observe()
+    if before:
+        raise DraftError('unexpected_existing_tracks')
+    journal.append('new_upload_baseline', 'observed', snapshot=[], mapping={})
+    mapping = {}
+    groups = [[t] for t in ui.manifest['tracks']] if ui.serial_audio else [ui.manifest['tracks']]
+    for selected in groups:
+        journal.append('upload', 'unknown')
+        if ui.serial_audio:
+            track = selected[0]
+            index = ui.manifest['tracks'].index(track)
+            ui.record_track(track['track_id'], track['audio']['sha256'], index, 'unknown')
+        if before:
+            ui._append_batch(selected, len(before), reorder=False)
+        else:
+            ui._audio_batch(selected, reorder=False)
+        after = observe()
+        retained = [t for t in after if str(t['id']) in mapping.values()]
+        prior = prepare_binding(manifest=ui.manifest, account=journal.binding['account'],
+                                draft=ui.remote_id, tracks=retained, mapping=mapping)
+        if prior['snapshot'] != journal.value['snapshot']:
+            raise DraftError('new_upload_binding_requires_review')
+        mapping.update(observed_upload_mapping(ui.manifest, before, after, selected))
+        review = prepare_binding(manifest=ui.manifest, account=journal.binding['account'],
+                                 draft=ui.remote_id, tracks=after, mapping=mapping)
+        if review['unmapped_remote_ids']:
+            raise DraftError('new_upload_binding_requires_review')
+        journal.append('upload', 'observed', snapshot=review['snapshot'], mapping=mapping)
+        if ui.serial_audio:
+            ui.record_track(track['track_id'], track['audio']['sha256'], index, 'observed')
+        before = after
+    ui.recovery_labels = {local: next(t['title'] for t in before if str(t['id']) == remote)
+                          for local, remote in mapping.items()}
+    ui.reorder_tracks()
+
+
+def run_steps(ui, *, audio_operation=None):
     ui.verify_account()
     for name in ('create', 'artwork', 'audio', 'metadata', 'save'):
-        ui.action(name, getattr(ui, name))
+        ui.action(name, audio_operation if name == 'audio' and audio_operation is not None else getattr(ui, name))
     ui.readback()
     ui.record('readback', 'verified_subset', ui.remote_id)
 
@@ -778,12 +826,27 @@ def execute(path, *, alias, expected_account, endpoint, approve_draft, accept_ui
         log(f"Memeriksa preflight manifest: {path}")
     manifest, base = preflight(path, verify_assets=not reconcile_only)
     check_buffer_mode(path, serial_audio=serial_audio, bound_buffer=bound_buffer, reconcile_only=reconcile_only)
+    # Recovered drafts have their own authoritative ID-bound lifecycle. Do not
+    # reinterpret the unresolved legacy journal as permission to replay it.
+    if allow_sync:
+        from .recovery_state import read_successor
+        with profile(alias, root=root) as session:
+            successor = read_successor(session, manifest['release_id'], expected_account, endpoint)
+        if successor is not None:
+            result = recover(path, alias=alias, expected_account=expected_account,
+                             draft_id=successor['draft'], endpoint=endpoint,
+                             approve_draft=approve_draft, accept_ui_date=accept_ui_date,
+                             root=root, log=log)
+            result['status'] = 'draft_updated_subset'
+            return result
     with profile(alias, root=root) as session:
         is_existing = False
         try:
             old_checkpoint = session.read_checkpoint(manifest['release_id'])
             is_existing = True
-        except Exception:
+        except StorageError as error:
+            if str(error) != 'checkpoint_not_found':
+                raise DraftError('checkpoint_unreadable_requires_reconciliation') from error
             is_existing = False
 
         if reconcile_only:
@@ -802,7 +865,7 @@ def execute(path, *, alias, expected_account, endpoint, approve_draft, accept_ui
             old_manifest = old_checkpoint['manifest']
             title_changed = (manifest['title'] != old_manifest.get('title'))
             date_changed = (manifest.get('release_date') != old_manifest.get('release_date'))
-            artwork_changed = (manifest.get('artwork') != old_manifest.get('artwork'))
+            artwork_changed = (manifest['artwork']['sha256'] != old_manifest['artwork']['sha256'])
 
             old_tracks = old_manifest.get('tracks', [])
             new_tracks = manifest.get('tracks', [])
@@ -859,7 +922,13 @@ def execute(path, *, alias, expected_account, endpoint, approve_draft, accept_ui
                     ui.remote_id = remote_id
                     update_run_steps(ui, title_changed, date_changed, artwork_changed, tracks_to_upload, old_count)
                 else:
-                    run_steps(ui)
+                    from .live_journal import RecoveryJournal
+                    from .remote_binding import observe_release
+                    def upload_with_binding():
+                        recovery_journal = RecoveryJournal(session, ui.manifest, expected_account, ui.remote_id, endpoint)
+                        normal_upload_audio(ui, recovery_journal,
+                            lambda: observe_release(page.context, account=expected_account, draft=ui.remote_id))
+                    run_steps(ui, audio_operation=upload_with_binding)
             finally:
                 ui.close()
         out_status = 'draft_readback_subset' if reconcile_only else ('draft_appended_subset' if (allow_append and not title_changed and not artwork_changed and not date_changed) else ('draft_updated_subset' if allow_sync else 'draft_saved_subset'))
@@ -867,3 +936,158 @@ def execute(path, *, alias, expected_account, endpoint, approve_draft, accept_ui
                     run_id=checkpoint['run_id'], draft_id=ui.remote_id,
                     warnings=['Tanggal rilis disinkronkan dengan manifest.' if (allow_sync and date_changed) else 'Tanggal UI diwarisi; bukan release_date manifest terverifikasi.',
                               'Remote track identity dan rights/services belum diverifikasi; bukan siap distribusi.'])
+
+
+def recovery_steps(ui, journal, receipt, observe):
+    """Upload serial dengan ID baru dicatat sebelum metadata, tanpa replay unknown."""
+    from .remote_binding import prepare_binding
+
+    def snapshot(tracks, mapping):
+        review = prepare_binding(manifest=ui.manifest, account=receipt['account'],
+                                 draft=receipt['draft'], tracks=tracks, mapping=mapping)
+        if review['unmapped_remote_ids']:
+            raise DraftError('remote_binding_unmapped_tracks')
+        return review['snapshot']
+
+    journal.read()
+    events = journal.value['events']
+    pending = bool(events and events[-1]['outcome'] == 'unknown')
+    if pending and events[-1]['operation'] == 'upload':
+        # Bahkan snapshot kosong tidak membuktikan transfer lama batal di server.
+        # Review baru oleh manusia wajib sebelum memulai attempt pengganti.
+        if journal.value.get('approval_digest') == receipt['review_digest']:
+            raise DraftError('recovery_upload_unknown_requires_review')
+    elif pending and journal.value.get('approval_digest') == receipt['review_digest']:
+        raise DraftError('recovery_outcome_unknown_requires_review')
+    mapping = dict(receipt['mapping'])
+    expected = receipt['snapshot']
+    if journal.value.get('approval_digest') == receipt['review_digest'] and journal.value['snapshot'] is not None:
+        mapping = dict(journal.value['mapping'])
+        expected = journal.value['snapshot']
+    tracks = observe()
+    if snapshot(tracks, mapping) != expected:
+        raise DraftError('remote_binding_review_changed')
+    if events and events[-1]['operation'] == 'complete' and journal.value.get('approval_digest') == receipt['review_digest']:
+        return
+    journal.append('review', 'observed', snapshot=expected, mapping=mapping,
+                   approval_digest=receipt['review_digest'])
+
+    def fresh():
+        current = observe()
+        if snapshot(current, mapping) != journal.value['snapshot']:
+            raise DraftError('remote_binding_review_changed')
+        return current
+
+    for track in ui.manifest['tracks']:
+        if track['track_id'] in mapping:
+            continue
+        tracks = fresh()
+        journal.append('upload', 'unknown', track_id=track['track_id'])
+        if tracks:
+            ui._append_batch([track], len(tracks), reorder=False)
+        else:
+            ui._audio_batch([track], reorder=False)
+        after = observe()
+        before_ids = {str(t['id']) for t in tracks}
+        added = [t for t in after if str(t['id']) not in before_ids]
+        retained = [t for t in after if str(t['id']) in before_ids]
+        if len(added) != 1 or snapshot(retained, mapping) != journal.value['snapshot']:
+            raise DraftError('recovery_upload_unknown_requires_review')
+        mapping[track['track_id']] = str(added[0]['id'])
+        current = snapshot(after, mapping)
+        journal.append('upload', 'observed', snapshot=current, mapping=mapping, track_id=track['track_id'])
+
+    tracks = fresh()
+    by_id = {str(t['id']): t for t in tracks}
+    ui.recovery_labels = {local: by_id[remote]['title'] for local, remote in mapping.items()}
+    journal.append('metadata_save', 'unknown')
+    ui.click(ui.page.get_by_role('button', name='Manage Tracks', exact=True))
+    ui.sync_metadata_and_order()
+    ui.update_title()
+    ui.click(ui.page.get_by_role('button', name='Artwork', exact=True))
+    if ui.page.locator('.artwork-selected').count() == 0:
+        ui.artwork()
+    # Metadata/reorder hanyalah state UI sampai Save. Tidak refresh receipt dari
+    # tebakan judul: ID, audio URL, judul dan urutan harus cocok hasil operasi ini.
+    fresh()
+    ui.save()
+    after = observe()
+    actual = snapshot(after, mapping)
+    old_audio = {t['id']: t['audio_url_sha256'] for t in journal.value['snapshot']}
+    ordered = sorted(actual, key=lambda t: t['track_order'])
+    wanted = ui.manifest['tracks']
+    if (len(ordered) != len(wanted) or any(t['audio_url_sha256'] != old_audio.get(t['id']) for t in actual)
+            or any(t['id'] != mapping[w['track_id']] or t['title'] != w['title'] for t, w in zip(ordered, wanted))):
+        raise DraftError('recovery_saved_snapshot_mismatch')
+    journal.append('metadata_save', 'observed', snapshot=actual, mapping=mapping)
+    ui.read_only = True
+    ui.readback()
+    fresh()
+    journal.append('complete', 'observed')
+
+
+def recover(path, *, alias, expected_account, draft_id, endpoint, approve_draft,
+            accept_ui_date, root=None, log=None):
+    from .live_journal import RecoveryJournal
+    from .remote_binding import load_receipt, observe_release
+    if approve_draft is not True or accept_ui_date is not True:
+        raise DraftError('confirmation_required')
+    if any(not isinstance(x, str) or not re.fullmatch(r'[1-9][0-9]*', x) for x in (expected_account, draft_id)):
+        raise DraftError('recovery_identity_unverified')
+    if not re.fullmatch(r'http://127\.0\.0\.1:[0-9]{1,5}', endpoint) or not 1024 <= int(endpoint.rsplit(':', 1)[1]) <= 65535:
+        raise DraftError('loopback_endpoint_required')
+    manifest, base = preflight(path)
+    with profile(alias, root=root) as session:
+        receipt = load_receipt(session, manifest, expected_account, draft_id)
+        # Existing checkpoints are never replaced or removed by this command.
+        try:
+            checkpoint = session.read_checkpoint(manifest['release_id'])
+        except StorageError as error:
+            if str(error) != 'checkpoint_not_found':
+                raise
+        else:
+            if checkpoint['state'] != 'validated':
+                raise DraftError('resume_manifest_mismatch')
+            # Receipt binds the reviewed replacement; legacy integrity stays bound
+            # to its original checkpoint, never the new GUI asset snapshot.
+            from .storage import _read
+            try:
+                old = _read(session.directory, manifest['release_id'] + '.live.json')
+            except FileNotFoundError:
+                old = None
+            if old is not None:
+                journal_old = LiveJournal(session, checkpoint, expected_account, endpoint, existing=True)
+                if journal_old.value['remote_draft_id'] != draft_id:
+                    raise DraftError('draft_target_changed')
+        journal = RecoveryJournal(session, manifest, expected_account, draft_id, endpoint, receipt=receipt)
+        from playwright.sync_api import sync_playwright
+        from .browser import is_local_endpoint
+        with sync_playwright() as playwright:
+            browser = playwright.chromium.connect_over_cdp(endpoint, is_local=is_local_endpoint(endpoint))
+            if len(browser.contexts) != 1:
+                raise DraftError('recovery_context_not_unique')
+            context = browser.contexts[0]
+            tracks = observe_release(context, account=expected_account, draft=draft_id)
+            page = context.new_page()
+            ui = DraftUI(page, manifest, base, expected_account, lambda *a: None, log=log)
+            ui.remote_id = draft_id
+            try:
+                ui.read_only = True
+                page.goto('https://toolost.com/uploader/edit/' + draft_id, wait_until='domcontentloaded', timeout=30000)
+                # Identity came from a same-context authenticated page load, not cookies.
+                ui.identity_verified = True
+                ui.guard_target()
+                page.get_by_role('button', name='Save Changes', exact=True).wait_for(state='visible', timeout=30000)
+                if page.locator('[role=dialog]:visible,[aria-modal=true]:visible').count():
+                    raise DraftError('existing_dialog_requires_review')
+                ui.read_only = False
+                recovery_steps(ui, journal, receipt,
+                               lambda: observe_release(context, account=expected_account, draft=draft_id))
+            finally:
+                ui.close()
+                page.close()
+        from .recovery_state import save_successor
+        save_successor(session, manifest, expected_account, draft_id, endpoint, journal.read())
+        return dict(status='draft_recovered_subset', draft_id=draft_id,
+                    remote_audio_hashes_verified=False, warnings=['Binding ID disetujui pengguna, bukan kesamaan byte audio remote.',
+                    'Tanggal UI diwarisi; rights/services belum diverifikasi; tidak Publish.'])

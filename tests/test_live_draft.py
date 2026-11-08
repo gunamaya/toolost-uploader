@@ -460,6 +460,20 @@ class LiveDraftTests(unittest.TestCase):
         with self.assertRaisesRegex(DraftError, 'append_requires_existing_checkpoint'):
             execute(album_path, **kwargs)
 
+    def test_corrupt_checkpoint_never_falls_back_to_create(self):
+        from contextlib import contextmanager
+        from toolost_uploader.storage import StorageError
+        session = Mock()
+        session.read_checkpoint.side_effect = StorageError('record_hash_mismatch')
+        @contextmanager
+        def fake_profile(*args, **kwargs):
+            yield session
+        with patch('toolost_uploader.live_draft.profile', fake_profile):
+            with self.assertRaisesRegex(DraftError, 'checkpoint_unreadable_requires_reconciliation'):
+                execute(self.manifest_file(), alias='test', expected_account='123',
+                        endpoint='http://127.0.0.1:9437', approve_draft=True, accept_ui_date=True)
+        session.create_checkpoint.assert_not_called()
+
     def test_execute_append_full_flow(self):
         import hashlib
         album1 = copy.deepcopy(self.manifest)
@@ -481,6 +495,10 @@ class LiveDraftTests(unittest.TestCase):
         track2_asset = self.base / 'track2.bin'
         track2_asset.write_bytes(b'track 2 sound')
         album2 = copy.deepcopy(album1)
+        # GUI asset snapshots change paths even when artwork bytes are unchanged.
+        artwork_copy = self.base / 'next-artwork.bin'
+        artwork_copy.write_bytes(self.asset.read_bytes())
+        album2['artwork']['path'] = artwork_copy.name
         album2['tracks'].append({
             'track_id': 'track-2',
             'title': 'Track Dua Susulan',

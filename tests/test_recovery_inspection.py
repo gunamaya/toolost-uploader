@@ -1,10 +1,12 @@
 import unittest
 from copy import deepcopy
+from unittest.mock import patch
 
 from toolost_uploader.live_journal import DraftError
 from toolost_uploader.recovery_inspection import (compare_snapshot, observe_open_draft,
                                                   prepare_review, verify_open_draft_account,
-                                                  verify_review, verify_account_on_separate_tab)
+                                                  verify_review, verify_account_on_separate_tab,
+                                                  review_track_labels, inspect_existing_tracks, inspect_connected_draft)
 
 
 class FakeLocator:
@@ -25,6 +27,7 @@ class FakePage:
         self.dialogs, self.login_fields, self.error = dialogs, login_fields, error
         self.labels = ['1 a.wav', '2 b.wav'] if labels is None else labels
         self.evaluated = []
+        self.context = object()
 
     def is_closed(self):
         return self.closed
@@ -41,6 +44,24 @@ class FakePage:
         return self.account
 
 
+class ExistingTrackInspectionTests(unittest.TestCase):
+    def test_same_context_account_and_labels(self):
+        manifest = {'tracks': [{'track_id': 'a', 'audio': {'path': '01 - song.flac'}}]}
+        page = FakePage(labels=['101 - songEdit'])
+        result = inspect_existing_tracks(page, manifest=manifest, expected_account='12', expected_draft='34')
+        self.assertEqual(result['matched_track_ids'], ['a'])
+        self.assertEqual(len(page.evaluated), 2)
+
+    def test_account_change_and_empty_dialog_fail_closed(self):
+        manifest = {'tracks': [{'track_id': 'a', 'audio': {'path': 'a.wav'}}]}
+        page = FakePage(labels=['1 a Edit'])
+        page.evaluate = unittest.mock.Mock(side_effect=['12', '13'])
+        with self.assertRaises(DraftError):
+            inspect_existing_tracks(page, manifest=manifest, expected_account='12', expected_draft='34')
+        with self.assertRaises(DraftError):
+            inspect_existing_tracks(FakePage(dialogs=1), manifest=manifest, expected_account='12', expected_draft='34')
+
+
 class RecoverySnapshotTests(unittest.TestCase):
     def setUp(self):
         self.manifest = {'tracks': [
@@ -54,6 +75,65 @@ class RecoverySnapshotTests(unittest.TestCase):
     def compare(self):
         return compare_snapshot(manifest=self.manifest, expected_account='12', expected_profile='test',
                                 expected_draft='34', observation=self.observation)
+
+    def test_existing_tracks_review_handles_numbered_files_and_missing(self):
+        manifest = {'tracks': [{'track_id': 'a', 'title': 'First Song', 'audio': {'path': '01 - First Song.flac'}},
+                               {'track_id': 'b', 'title': 'Second Song', 'audio': {'path': '02 - Second Song.flac'}}]}
+        with patch('toolost_uploader.recovery_inspection.verify_account_on_separate_tab'):
+            result = inspect_existing_tracks(FakePage(labels=['102 - Second SongEdit']), manifest=manifest,
+                                             expected_account='12', expected_draft='34')
+        self.assertEqual(result['matched_track_ids'], ['b'])
+        self.assertEqual(result['missing_track_ids'], ['a'])
+        self.assertFalse(result['retry_safe'])
+
+    def test_connected_inspection_requires_exactly_one_existing_page(self):
+        from types import SimpleNamespace
+        page = FakePage(labels=['1 a Edit'])
+        browser = SimpleNamespace(contexts=[SimpleNamespace(pages=[page])])
+        with patch('toolost_uploader.recovery_inspection.verify_account_on_separate_tab'):
+            result = inspect_connected_draft(browser, manifest=self.manifest, expected_account='12', expected_draft='34')
+        self.assertEqual(result['matched_track_ids'], ['a'])
+        self.assertFalse(result['execution_available'])
+        for pages in ([], [page, page]):
+            browser.contexts[0].pages = pages
+            with self.assertRaisesRegex(DraftError, 'recovery_page_not_unique'):
+                inspect_connected_draft(browser, manifest=self.manifest, expected_account='12', expected_draft='34')
+        self.assertFalse(result['persisted_state_verified'])
+
+    def test_review_tolerates_punctuation_but_rejects_collisions_and_duplicates(self):
+        result = review_track_labels(self.manifest, ['1 A.wav Edit', '2 b.wav Edit'])
+        self.assertEqual(result['matched_track_ids'], ['a', 'b'])
+        with self.assertRaises(DraftError):
+            review_track_labels(self.manifest, ['1 a Edit', '2 A Edit'])
+        manifest = deepcopy(self.manifest)
+        manifest['tracks'][1]['audio']['path'] = 'a!.mp3'
+        with self.assertRaises(DraftError):
+            review_track_labels(manifest, [])
+
+    def test_edit_suffix_is_matched_only_if_unambiguous(self):
+        manifest = {'tracks': [{'track_id': 'a', 'title': 'Radio Edit', 'audio': {'path': 'song.wav'}}]}
+        self.assertEqual(review_track_labels(manifest, ['1 Radio Edit'])['matched_track_ids'], ['a'])
+        self.assertEqual(review_track_labels(manifest, ['1 Radio EditEdit'])['matched_track_ids'], ['a'])
+        manifest['tracks'].append({'track_id': 'b', 'title': 'Radio', 'audio': {'path': 'other.wav'}})
+        with self.assertRaisesRegex(DraftError, 'recovery_snapshot_ambiguous'):
+            review_track_labels(manifest, ['1 Radio Edit'])
+
+    def test_unicode_and_punctuation_title_matching_remains_unique(self):
+        manifest = {'tracks': [{'track_id': 'a', 'title': 'Café - SOIR!', 'audio': {'path': 'a.wav'}},
+                               {'track_id': 'b', 'title': 'Autre', 'audio': {'path': 'b.wav'}}]}
+        self.assertEqual(review_track_labels(manifest, ['1 Cafe\u0301 soir Edit'])['matched_track_ids'], ['a'])
+        manifest['tracks'][1]['title'] = 'CAFÉ soir'
+        with self.assertRaisesRegex(DraftError, 'recovery_snapshot_ambiguous'):
+            review_track_labels(manifest, ['1 Café soir Edit'])
+
+    def test_empty_or_unknown_labels_never_authorize_retry(self):
+        with patch('toolost_uploader.recovery_inspection.verify_account_on_separate_tab'):
+            with self.assertRaises(DraftError):
+                inspect_existing_tracks(FakePage(labels=[]), manifest=self.manifest,
+                                        expected_account='12', expected_draft='34')
+        result = review_track_labels(self.manifest, ['1 mystery Edit'])
+        self.assertEqual(result['unexpected_labels'], ['mystery'])
+        self.assertFalse(result['retry_safe'])
 
     def test_reversed_snapshot_is_not_identity_or_hash_proof(self):
         result = self.compare()

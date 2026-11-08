@@ -308,6 +308,32 @@ Gunakan nomor unik berikutnya; jangan renumber history. Evidence offline tidak m
 - Acceptance: ukuran kecil/besar/batas, chooser menerima timeout, count dan dialog berbagi deadline, ambiguity dan timeout berhenti aman; focused/full unittest dan diff check. Verifier assistant. Izin edit offline eksplisit user.
 - CP-037: selesai offline; chooser dan observasi masing-masing bounded menurut ukuran, count dan dialog berbagi deadline; 213 tes, 2 skip. Portal dan package belum diverifikasi.
 
+## REC-07 — Binding remote dan review recovery
+
+- P1 blocked CP-049; dependency REC-05/06. Izin user implementasi offline; tanpa live, publish atau commit. Masuk: binding ID track remote ke manifest, review draft lama dan pencegahan duplikasi/recovery. Keluar: klaim hash audio remote tanpa bukti; retry mutasi tanpa gate keselamatan.
+- Acceptance: review dan konfirmasi eksplisit mengikat account/draft/manifest dan observasi remote, ambiguity fail-closed, receipt tidak mengklaim kesamaan byte; pencegahan duplikasi dan recovery terintegrasi dengan tes failure injection dan suite offline. Verifier assistant; live dan publish tidak diizinkan.
+- CP-051: implementasi tertahan karena path endpoint track serta bentuk respons 200 dan pengikatan draft tidak terdokumentasi pada evidence yang diperiksa. Diperlukan handoff kontrak/fixture tersanitasi dari page load; jangan menebak endpoint atau mengaktifkan retry.
+
+## REC-06 — Recovery existing offline yang aman
+
+- P1 done CP-048; dependency REC-05, izin user takeover dan implementasi offline, tanpa akses portal/live, perubahan draft, commit atau publish. User menangani draft secara terpisah.
+- Masuk: review label track toleran jika kecocokan unik, inspeksi read-only aman serta tes. Keluar: menyamakan nama dengan bukti audio/persistensi atau mengaktifkan retry tanpa bukti tersebut.
+- Acceptance: hasil review deterministik dan ambigu fail-closed; inspeksi terikat akun/draft tanpa mutasi halaman; tes focused dan suite offline, diff check. Verifier assistant. REC-05 tetap blocked jika identitas audio/persistensi belum terbukti.
+
+## REC-05 — Rekonsiliasi upload existing
+
+- P1 blocked; izin user untuk merancang pengecekan track existing sebelum retry. Masuk: binding account/draft/manifest, observasi persisted state, identifikasi audio remote, review track existing/missing dan pencegahan duplikat. Keluar: publish, mengasumsikan nama sebagai bukti audio, replay mutasi tanpa bukti.
+- Acceptance: retry hanya tersedia ketika identitas dan persistensi dapat dibuktikan, ambiguity fail closed; tes failure injection dan integrasi offline, lalu live hanya dengan batas target yang disetujui. Verifier assistant. Dependency REC-02/03 dan bukti identitas remote; saat ini belum terbukti.
+- CP-047: matching review menolak label yang dapat berarti judul asli berakhiran Edit atau judul lain ditambah kontrol Edit. Belum terintegrasi ke retry, panel tidak diaktifkan dan identitas audio serta persistensi belum terbukti; tetap blocked.
+
+## UPD-05 — Identitas label track berawalan angka
+
+- P1; dependency handoff UPD-04 karena menyentuh runtime dan tes yang sama. Tidak menutup UPD-03 atau UPD-04.
+- Masuk: perbaiki penghapusan nomor urut portal agar angka pada nama file tetap utuh; mapping label tidak ambigu dan fail closed; tes regresi sintetis offline.
+- Keluar: akses portal, mutasi data pengguna, upload, Save, Publish, instalasi, commit/push.
+- Acceptance: nama file berawalan angka dikenali utuh, label ambigu ditolak sebelum drag, tes regresi dan suite offline lulus serta `git diff --check` bersih. Verifier assistant; izin implementasi offline diberikan user.
+- CP-043: user mengonfirmasi handoff; ordinal baris yang tepat dihapus tanpa memangkas digit nama; collision ditolak sebelum drag. Tes offline lulus; tidak ada live verification.
+
 ## UPD-04 — Viewport adjacent drag
 
 - P1, needs_reconciliation; permintaan eksplisit user untuk perbaikan offline adjacent drag, terkait UPD-03 tanpa menutup gate live-nya.

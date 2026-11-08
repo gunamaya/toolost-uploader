@@ -31,6 +31,22 @@ class CLITests(unittest.TestCase):
             self.assertEqual(err, '')
         self.assertIn(__version__, self.invoke(['--version'])[1])
 
+    def test_inspect_draft_reports_read_only_results(self):
+        result = {'status': 'inspection_only', 'retry_safe': False, 'matched_track_ids': ['a']}
+        with patch('toolost_uploader.recovery_inspection.inspect_manifest_draft', return_value=result) as inspect:
+            code, out, err = self.invoke(['inspect-draft', 'manifest.json', '--expected-account', '12', '--draft-id', '34', '--json'])
+        self.assertEqual(code, 0)
+        self.assertEqual(json.loads(out), result)
+        self.assertEqual(err, '')
+        inspect.assert_called_once()
+
+    def test_inspect_draft_failure_is_closed_and_does_not_leak(self):
+        with patch('toolost_uploader.recovery_inspection.inspect_manifest_draft', side_effect=OSError('secret')):
+            code, out, _ = self.invoke(['inspect-draft', 'private', '--expected-account', '12', '--draft-id', '34'])
+        self.assertEqual(code, 4)
+        self.assertFalse(json.loads(out)['retry_safe'])
+        self.assertNotIn('secret', out)
+
     def test_bad_args_do_not_echo_sensitive_values(self):
         secret = 'PRIVATE-SECRET-PATH'
         for args in ([], [secret], ['publish', secret], ['validate'],

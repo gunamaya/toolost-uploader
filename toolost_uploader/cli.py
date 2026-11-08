@@ -113,7 +113,120 @@ Catatan Keamanan:
     check_cmd.add_argument("-v", "--verbose", action="store_true", help="Tampilkan progres verbose ke stderr.")
     check_cmd.add_argument("--json", action="store_true", help="Tulis satu objek JSON hasil ke stdout.")
 
+    inspect_cmd = commands.add_parser('inspect-draft', allow_abbrev=False,
+                                      help='Periksa track draft terbuka tanpa upload atau perubahan.')
+    inspect_cmd.add_argument('manifest')
+    inspect_cmd.add_argument('--expected-account', required=True)
+    inspect_cmd.add_argument('--draft-id', required=True)
+    inspect_cmd.add_argument('--cdp', default='http://127.0.0.1:9437')
+    inspect_cmd.add_argument('--json', action='store_true')
+
+    review_cmd = commands.add_parser('review-binding', allow_abbrev=False,
+                                     help='Tinjau ID track remote tanpa memodifikasi draft.')
+    review_cmd.add_argument('manifest')
+    review_cmd.add_argument('--expected-account', required=True)
+    review_cmd.add_argument('--draft-id', required=True)
+    review_cmd.add_argument('--cdp', default='http://127.0.0.1:9437')
+    review_cmd.add_argument('--json', action='store_true')
+    review_cmd.add_argument('--profile', help='Profil penyimpanan privat untuk menyimpan konfirmasi.')
+    review_cmd.add_argument('--confirm-digest', help='Digest review yang sudah ditinjau; ulangi observasi sebelum menyimpan.')
+
+    recover_cmd = commands.add_parser('recover', allow_abbrev=False,
+                                      help='Pulihkan hanya draft existing dengan receipt mapping ID yang disetujui.')
+    recover_cmd.add_argument('manifest')
+    recover_cmd.add_argument('--profile', required=True)
+    recover_cmd.add_argument('--expected-account', required=True)
+    recover_cmd.add_argument('--draft-id', required=True)
+    recover_cmd.add_argument('--cdp', default='http://127.0.0.1:9437')
+    recover_cmd.add_argument('--approve-draft', action='store_true')
+    recover_cmd.add_argument('--accept-ui-date', action='store_true')
+    recover_cmd.add_argument('--json', action='store_true')
+    recover_cmd.add_argument('-v', '--verbose', action='store_true')
+
     args = parser.parse_args(argv)
+
+    if args.command == 'recover':
+        from .live_draft import recover
+        from .live_journal import DraftError
+        from .validation import InvalidInput
+        try:
+            result = recover(args.manifest, alias=args.profile, expected_account=args.expected_account,
+                             draft_id=args.draft_id, endpoint=args.cdp, approve_draft=args.approve_draft,
+                             accept_ui_date=args.accept_ui_date,
+                             log=(lambda message: print('[toolost] ' + message, file=sys.stderr, flush=True)) if args.verbose else None)
+            code = 0
+        except Exception as error:
+            result = {'status': 'reconciliation_required', 'code': str(error) if isinstance(error, DraftError) else type(error).__name__,
+                      'retry_safe': False}
+            code = 2 if isinstance(error, InvalidInput) else 4
+        try:
+            print(json.dumps(result, ensure_ascii=True, allow_nan=False))
+            sys.stdout.flush()
+        except OSError:
+            return 5
+        return code
+
+    if args.command == 'review-binding':
+        from .remote_binding import review_live
+        from .live_journal import DraftError
+        try:
+            from .remote_binding import save_review_receipt
+            from .storage import profile
+            from .validation import load_manifest
+            if args.profile:
+                manifest = load_manifest(args.manifest)
+                with profile(args.profile) as session:
+                    from .storage import _read
+                    from .remote_binding import _digest, verify_record
+                    try:
+                        recovery_state = verify_record(_read(session.directory, manifest['release_id'] + '.recovery.json'))
+                    except FileNotFoundError:
+                        recovery_state = None
+                    new_upload_state = recovery_state if recovery_state and any(
+                        event.get('operation') == 'new_upload_baseline'
+                        for event in recovery_state.get('events', [])) else None
+                    result = review_live(args.manifest, account=args.expected_account, draft=args.draft_id,
+                                         endpoint=args.cdp, alias=args.profile, observed_binding=new_upload_state)
+                    result['review_digest'] = _digest({'review': result['review_digest'],
+                        'recovery_state': recovery_state['record_sha256'] if recovery_state else None})
+                    if args.confirm_digest:
+                        receipt = save_review_receipt(session, release_id=manifest['release_id'], account=args.expected_account,
+                                                      draft=args.draft_id, review=result, approved_digest=args.confirm_digest)
+                        result = {**result, 'status': 'confirmed_id_binding', 'receipt_saved': True,
+                                  'review_digest': receipt['review_digest']}
+            else:
+                if args.confirm_digest:
+                    raise DraftError('profile_required')
+                result = review_live(args.manifest, account=args.expected_account, draft=args.draft_id, endpoint=args.cdp)
+            code = 0
+        except Exception as error:
+            result = {'status': 'inspection_failed', 'code': str(error) if isinstance(error, DraftError) else type(error).__name__, 'retry_safe': False}
+            code = 4
+        try:
+            print(json.dumps(result, ensure_ascii=True, allow_nan=False))
+            sys.stdout.flush()
+        except OSError:
+            return 5
+        return code
+
+    if args.command == 'inspect-draft':
+        from .recovery_inspection import inspect_manifest_draft
+        from .live_journal import DraftError
+        try:
+            result = inspect_manifest_draft(args.manifest, expected_account=args.expected_account,
+                                            expected_draft=args.draft_id, endpoint=args.cdp)
+            code = 0
+        except Exception as error:
+            result = {'status': 'inspection_failed',
+                      'code': str(error) if isinstance(error, DraftError) else type(error).__name__,
+                      'retry_safe': False, 'execution_available': False}
+            code = 4
+        try:
+            print(json.dumps(result, ensure_ascii=True, allow_nan=False))
+            sys.stdout.flush()
+        except OSError:
+            return 5
+        return code
 
     if args.command == "validate":
         result = validate(args.manifest)

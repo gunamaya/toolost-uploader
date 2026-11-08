@@ -16,7 +16,11 @@ Status: `ready`, `in_progress`, `blocked`, `needs_reconciliation`, `done`, `defe
 
 | ID | Prioritas | Status | Hasil pekerjaan | Prasyarat / gate |
 |---|---|---|---|---|
-| UPD-04 | P1 | in_progress | Perbaikan viewport dan hit test untuk adjacent drag | Handoff direkonsiliasi: perubahan adjacent drag berasal dari sesi assistant saat ini |
+| REC-07 | P1 | blocked | Binding ID remote, executor recovery dan successor terimplementasi | CP-055 offline selesai; verifikasi portal end-to-end belum dijalankan |
+| REC-06 | P1 | done | Recovery existing offline: review judul toleran unik dan inspeksi aman | CP-048; mutasi tetap bergantung bukti identitas audio dan persistensi |
+| UPD-05 | P1 | done | Perbaikan identitas label track berawalan angka | CP-043; verifikasi offline |
+| REC-05 | P1 | blocked | Rekonsiliasi upload existing sebelum retry | CP-047; identitas audio dan persistensi remote belum terbukti, retry belum terintegrasi |
+| UPD-04 | P1 | needs_reconciliation | Perbaikan viewport dan hit test untuk adjacent drag | User mengonfirmasi tidak ada agent aktif; validasi final tersendiri belum dilakukan |
 | REC-04 | P1 | done | Verifikasi akun non-navigation terbatas untuk page draft | CP-040; provenance profile/manifest tetap di luar scope |
 | REC-03 | P1 | blocked | Recovery review dua tahap offline, tanpa reupload | Provenance account/profile/draft dari page aktif belum terbukti; fail closed |
 | REC-02 | P1 | blocked | Inspeksi recovery read-only tanpa navigasi | CP-038: pembanding snapshot saja; provenance account/profile browser belum terbukti |
@@ -44,7 +48,25 @@ Alasan urutan: tata kerja dulu, kemudian review command/integrasi sesuai arah pr
 
 ## Register klaim aktif
 
-UPD-04: assistant/sesi-saat-ini, 6 November 2026; HEAD 6fa3af9 + dirty recovery/adjacent-drag milik sesi ini, scope `toolost_uploader/live_draft.py`, `tests/test_reorder_tracks.py`; tes focused dan live satu draft yang diizinkan user. Stop pada mismatch, tidak Save/Publish.
+REC-07: assistant/recovery-finish-20261108 dilepas CP-055. Implementasi offline selesai; acceptance portal tidak diklaim. HEAD d71851c + dirty handoff dipertahankan.
+
+REC-07: assistant/rec07-receipt-20261108 dilepas CP-054; GUI dan retry tetap blocked.
+
+REC-07: assistant/rec07-collision-20261108 dilepas CP-053; receipt dan retry tetap blocked.
+
+REC-07: assistant/rec07-integration-20261108 dilepas CP-052; receipt dan retry masih blocked.
+
+REC-07: assistant/rec07-guard-20261108 dilepas CP-050; runtime binding belum tersedia.
+
+REC-07: assistant/rec07-20261108 dilepas CP-049; klaim awal HEAD d71851c, dirty paths tercatat di history.
+
+REC-06: assistant/rec06-20261108 dilepas CP-048; klaim awal HEAD d71851c dan dirty paths dicatat di history.
+
+REC-05: assistant/rec05-takeover-20261108 dilepas CP-047; resume mutasi tetap blocked.
+
+UPD-04: klaim lama dilepas berdasarkan konfirmasi user bahwa tidak ada agent aktif; acceptance tetap needs_reconciliation.
+
+UPD-05: assistant/takeover-20261108 selesai CP-043; klaim dilepas.
 
 REC-04: assistant/rec04-20261106 selesai CP-040; claim dilepas. Verifikasi non-navigation hanya pada page draft yang dipanggil, GET same-origin `/api/auth/me`, exact origin/draft, response bounded/fail-closed, tanpa CLI atau eksekusi.
 
@@ -52,12 +74,12 @@ REC-03: assistant/recovery-20261106 dilepas setelah CP-039; status blocked pada 
 
 ## Checkpoint terbaru
 
-- CP-041: UPD-04 needs_reconciliation; patch adjacent drag sudah dirty dengan kepemilikan tidak diketahui, tidak ada edit runtime atau tes.
-- CP-040: REC-04 selesai offline; helper same-origin non-navigation dan fake failure tests; 221 tes 2 skip, diff check bersih. Profile/manifest provenance, persisted state, remote hash dan live browser tetap belum terbukti.
-- CP-039: REC-03 blocked; fingerprint review dan approval snapshot offline, execution disabled; 217 tes 2 skip.
-- CP-038: REC-02 blocked; pembanding snapshot offline bukan inspeksi browser terikat identity, 216 tes 2 skip; CLI tidak ditambahkan.
-- CP-037: TMO-01 selesai offline; adaptive timeout chooser dan deadline observasi batch/append, 213 tes 2 skip, diff check bersih. Tidak live/install/commit.
-- CP-036: tes fixture batch/append gagal guard login fake; diperbaiki sebelum CP-037.
+- CP-055: recovery CLI/receipt/ID ledger/successor terintegrasi, snapshot relocatable termasuk lirik; 275 tests, 273 passed, 2 skipped. GUI REC-08 terhubung; live belum diverifikasi.
+- CP-051: REC-07 tetap blocked; tidak ditemukan kontrak endpoint track respons 200 pada evidence lokal yang diperiksa, tidak mengarang API atau menjalankan portal.
+- CP-049: REC-07 helper review binding offline parsial; belum terintegrasi, retry tidak tersedia, suite sistem gagal karena Playwright tidak terpasang.
+- CP-048: REC-06 inspeksi page tanpa navigasi dan review judul unik lolos offline; retry tetap blocked.
+- CP-047: REC-05 perbaikan ambiguitas akhiran Edit lolos offline; retry belum terintegrasi dan tetap blocked.
+- CP-046: REC-05 account verified pada konteks sama; track panel dan identitas audio belum terbukti.
 
 
 
