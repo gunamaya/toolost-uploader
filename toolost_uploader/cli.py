@@ -3,6 +3,7 @@
 import argparse
 from datetime import datetime
 import json
+import re
 import sys
 
 from . import __version__
@@ -140,6 +141,8 @@ Catatan Keamanan:
     recover_cmd.add_argument('--cdp', default='http://127.0.0.1:9437')
     recover_cmd.add_argument('--approve-draft', action='store_true')
     recover_cmd.add_argument('--accept-ui-date', action='store_true')
+    recover_cmd.add_argument('--active-audio-timeout', action='store_true',
+                             help='Lanjutkan editor aktif lengkap tanpa upload ulang; tolak intent metadata/Save lama.')
     recover_cmd.add_argument('--json', action='store_true')
     recover_cmd.add_argument('-v', '--verbose', action='store_true')
 
@@ -153,11 +156,15 @@ Catatan Keamanan:
             result = recover(args.manifest, alias=args.profile, expected_account=args.expected_account,
                              draft_id=args.draft_id, endpoint=args.cdp, approve_draft=args.approve_draft,
                              accept_ui_date=args.accept_ui_date,
-                             log=(lambda message: print('[toolost] ' + message, file=sys.stderr, flush=True)) if args.verbose else None)
+                              log=(lambda message: print('[toolost] ' + message, file=sys.stderr, flush=True)) if args.verbose else None,
+                              **({'active_audio_timeout': True} if args.active_audio_timeout else {}))
             code = 0
         except Exception as error:
             result = {'status': 'reconciliation_required', 'code': str(error) if isinstance(error, DraftError) else type(error).__name__,
                       'retry_safe': False}
+            remote = getattr(error, 'remote_draft_id', None)
+            if isinstance(remote, str) and re.fullmatch(r'[1-9][0-9]*', remote):
+                result['draft_id'] = remote
             code = 2 if isinstance(error, InvalidInput) else 4
         try:
             print(json.dumps(result, ensure_ascii=True, allow_nan=False))
@@ -314,6 +321,13 @@ Catatan Keamanan:
                 "code": str(error) if isinstance(error, DraftError) else type(error).__name__,
                 "error": "Operasi dihentikan; periksa checkpoint privat sebelum tindakan berikutnya. Jangan retry create/upload/Save."
             }
+            remote_draft_id = getattr(error, "remote_draft_id", None)
+            if isinstance(remote_draft_id, str) and remote_draft_id.isascii() and remote_draft_id.isdigit() and not remote_draft_id.startswith("0"):
+                result["draft_id"] = remote_draft_id
+            for name in ("track_count", "expected_track_count", "dialog_visible"):
+                value = getattr(error, name, None)
+                if type(value) in (bool, int):
+                    result[name] = value
             code = 4
 
         try:

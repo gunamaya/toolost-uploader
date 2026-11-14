@@ -35,6 +35,16 @@ class AudioTimeoutTests(unittest.TestCase):
         with self.assertRaisesRegex(DraftError, 'track_identity_ambiguous'):
             wait_for_audio(self.page([3], []), 2, 1000)
 
+    def test_timeout_keeps_observed_counts_without_claiming_success(self):
+        page = self.page([1, 1], [1, 1])
+        with patch('toolost_uploader.live_draft.time.monotonic', return_value=0):
+            with self.assertRaises(DraftError) as caught:
+                wait_for_audio(page, 1, 500)
+        self.assertEqual(str(caught.exception), 'audio_upload_timeout')
+        self.assertEqual(caught.exception.track_count, 1)
+        self.assertEqual(caught.exception.expected_track_count, 1)
+        self.assertIs(caught.exception.dialog_visible, True)
+
     def test_real_deadline_includes_slow_poll(self):
         page = self.page([0, 0], [])
         with patch('toolost_uploader.live_draft.time.monotonic', side_effect=[0, 2]):

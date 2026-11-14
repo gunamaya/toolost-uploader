@@ -16,7 +16,10 @@ Status: `ready`, `in_progress`, `blocked`, `needs_reconciliation`, `done`, `defe
 
 | ID | Prioritas | Status | Hasil pekerjaan | Prasyarat / gate |
 |---|---|---|---|---|
+| REC-09 | P1 | done | Recovery bounded editor aktif sesudah timeout audio | CP-061; live portal verification remains unrun |
+| FIX-34 | P1 | done | Selector Continue pada dialog penamaan release | CP-059 binary installed/verified; live outcome remains unknown |
 | REC-07 | P1 | blocked | Binding ID remote, executor recovery dan successor terimplementasi | CP-055 offline selesai; verifikasi portal end-to-end belum dijalankan |
+| REC-08 | P1 | done | Mempertahankan remote draft ID dan mendiagnosis timeout audio pada error callback | CP-060; auto-recovery timeout masih child task terpisah |
 | REC-06 | P1 | done | Recovery existing offline: review judul toleran unik dan inspeksi aman | CP-048; mutasi tetap bergantung bukti identitas audio dan persistensi |
 | UPD-05 | P1 | done | Perbaikan identitas label track berawalan angka | CP-043; verifikasi offline |
 | REC-05 | P1 | blocked | Rekonsiliasi upload existing sebelum retry | CP-047; identitas audio dan persistensi remote belum terbukti, retry belum terintegrasi |
@@ -48,6 +51,12 @@ Alasan urutan: tata kerja dulu, kemudian review command/integrasi sesuai arah pr
 
 ## Register klaim aktif
 
+REC-09: assistant/timeout-recovery-20261114 dilepas CP-061. Offline bounded recovery selesai; live portal verification tetap belum dijalankan.
+
+REC-08: assistant/timeout-context-20261114 dilepas CP-060. Slice konteks error selesai offline; source belum dibuild/install. Dirty FIX-34 tetap dipertahankan; auto-recovery belum selesai.
+
+FIX-34: assistant/create-label-20261109 dilepas CP-058; source selector selesai, packaging/live recovery belum dijalankan.
+
 REC-07: assistant/recovery-finish-20261108 dilepas CP-055. Implementasi offline selesai; acceptance portal tidak diklaim. HEAD d71851c + dirty handoff dipertahankan.
 
 REC-07: assistant/rec07-receipt-20261108 dilepas CP-054; GUI dan retry tetap blocked.
@@ -73,6 +82,10 @@ REC-04: assistant/rec04-20261106 selesai CP-040; claim dilepas. Verifikasi non-n
 REC-03: assistant/recovery-20261106 dilepas setelah CP-039; status blocked pada gate provenance identity non-navigation.
 
 ## Checkpoint terbaru
+
+- CP-059: FIX-34 installed both bundle copies, codesign/hash/help passed; list GET403, existing dialog/journal preserved, no live retry.
+
+- CP-058: FIX-34 current/legacy naming submit selector; 282 tests280passed2skipped; read-only live locator1 enabled. Installed app unchanged, journal retained; no retry.
 
 - CP-055: recovery CLI/receipt/ID ledger/successor terintegrasi, snapshot relocatable termasuk lirik; 275 tests, 273 passed, 2 skipped. GUI REC-08 terhubung; live belum diverifikasi.
 - CP-051: REC-07 tetap blocked; tidak ditemukan kontrak endpoint track respons 200 pada evidence lokal yang diperiksa, tidak mengarang API atau menjalankan portal.

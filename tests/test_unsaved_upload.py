@@ -106,3 +106,80 @@ class UnsavedUploadTests(unittest.TestCase):
         page.evaluate.return_value['identity']['account'] = 'different'
         with self.assertRaisesRegex(DraftError, 'identity_unverified'):
             observe_active_editor(page, account='431006', draft='2095311')
+
+    def test_absent_index_uses_array_position_not_remote_id(self):
+        page = Mock(url='https://toolost.com/uploader/edit/2')
+        page.evaluate.return_value = dict(identity={'account': '1', 'draft': '2'}, tracks=[
+            dict(editor_key='client-a', saved=False, title='a', track_order=None, audio_present=True),
+            dict(editor_key='client-b', saved=False, title='b', audio_present=True)])
+        rows = observe_active_editor(page, account='1', draft='2')
+        self.assertEqual([r['track_order'] for r in rows], [0, 1])
+        self.assertNotIn('id', rows[0])
+        for account, draft in [('9', '2'), ('1', '9')]:
+            with self.assertRaises(DraftError):
+                observe_active_editor(page, account=account, draft=draft)
+
+    def test_duplicate_keys_and_missing_audio_fail_closed(self):
+        page = Mock(url='https://toolost.com/uploader/edit/2')
+        row = dict(editor_key='same', saved=False, title='a', track_order=None, audio_present=True)
+        for rows in ([row, dict(row, title='b')], [dict(row, audio_present=False)], [dict(row, editor_key=True)]):
+            page.evaluate.return_value = dict(identity={'account': '1', 'draft': '2'}, tracks=deepcopy(rows))
+            with self.assertRaises(DraftError):
+                observe_active_editor(page, account='1', draft='2')
+
+    def setup_active_recovery(self, session):
+        from toolost_uploader.live_draft import active_editor_recovery_steps
+        ui, active, journal = self.setup_run(session)
+        ui._audio_batch(ui.manifest['tracks'])
+        ui._audio_batch.reset_mock()
+        journal.append('new_upload_baseline', 'observed', snapshot=[], mapping={})
+        journal.append('upload', 'unknown')
+        live = Mock()
+        live.read.return_value = dict(remote_draft_id=ui.remote_id, events=[
+            dict(operation=op, outcome=outcome) for op, outcome in
+            [('create', 'unknown'), ('create', 'observed'), ('artwork', 'unknown'), ('artwork', 'observed'), ('audio', 'unknown')]])
+        persisted = [dict(id=i + 1, title=t['title'], track_order=i, audio_url='https://private/audio')
+                     for i, t in enumerate(ui.manifest['tracks'])]
+        call = lambda: active_editor_recovery_steps(ui, live, journal, lambda: deepcopy(active), lambda: deepcopy(persisted))
+        return ui, active, journal, live, call
+
+    def test_active_complete_continues_once_without_create_upload_or_extra_save(self):
+        with tempfile.TemporaryDirectory() as tmp, profile('test', root=Path(tmp).resolve() / 'private') as session:
+            ui, active, journal, live, call = self.setup_active_recovery(session)
+            call()
+            ui.create.assert_not_called()
+            ui._audio_batch.assert_not_called()
+            ui._append_batch.assert_not_called()
+            ui.sync_metadata_and_order.assert_called_once()
+            ui.save.assert_called_once()
+            self.assertIs(ui.read_only, True)
+            self.assertEqual(journal.read()['events'][-1]['operation'], 'complete')
+            self.assertNotIn('https://private', str(journal.read()))
+            with self.assertRaisesRegex(DraftError, 'stage_requires_review'):
+                call()
+            ui.save.assert_called_once()
+
+    def test_interrupted_metadata_or_save_never_replayed(self):
+        for operation in ('sync_metadata_and_order', 'save'):
+            with self.subTest(operation=operation), tempfile.TemporaryDirectory() as tmp, profile('test', root=Path(tmp).resolve() / 'private') as session:
+                ui, active, journal, live, call = self.setup_active_recovery(session)
+                getattr(ui, operation).side_effect = RuntimeError('private failure')
+                with self.assertRaises(RuntimeError):
+                    call()
+                with self.assertRaisesRegex(DraftError, 'stage_requires_review'):
+                    call()
+                self.assertEqual(getattr(ui, operation).call_count, 1)
+                ui.readback.assert_not_called()
+
+    def test_active_partial_ambiguous_or_wrong_stage_no_metadata_save(self):
+        for change in ('partial', 'duplicate-title', 'duplicate-key', 'metadata', 'draft'):
+            with self.subTest(change=change), tempfile.TemporaryDirectory() as tmp, profile('test', root=Path(tmp).resolve() / 'private') as session:
+                ui, active, journal, live, call = self.setup_active_recovery(session)
+                if change == 'partial': active.pop()
+                if change == 'duplicate-title': active[1]['title'] = active[0]['title']
+                if change == 'duplicate-key': active[1]['editor_key'] = active[0]['editor_key']
+                if change == 'metadata': live.read.return_value['events'].append(dict(operation='metadata', outcome='unknown'))
+                if change == 'draft': live.read.return_value['remote_draft_id'] = '8'
+                with self.assertRaises(DraftError): call()
+                ui.sync_metadata_and_order.assert_not_called()
+                ui.save.assert_not_called()

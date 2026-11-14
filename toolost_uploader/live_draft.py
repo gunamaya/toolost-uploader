@@ -25,10 +25,15 @@ def wait_for_audio(page, expected_total, timeout_ms):
         count = items.count()
         if count > expected_total:
             raise DraftError('track_identity_ambiguous')
-        complete = count == expected_total and dialog.count() == 0
+        dialog_visible = dialog.count() > 0 if count == expected_total else None
+        complete = count == expected_total and not dialog_visible
         remaining = min(remaining, int((deadline - time.monotonic()) * 1000))
         if remaining <= 0:
-            raise DraftError('audio_upload_timeout')
+            error = DraftError('audio_upload_timeout')
+            error.track_count = count
+            error.expected_track_count = expected_total
+            error.dialog_visible = dialog_visible
+            raise error
         if complete:
             return
         delay = min(500, remaining)
@@ -223,7 +228,7 @@ class DraftUI:
         self.guard_identity()
         self.log(f"Mengisi judul rilis: '{self.manifest['title']}'...")
         name_dialog.get_by_role('textbox').fill(self.manifest['title'])
-        self.click(name_dialog.get_by_role('button', name='Create Release', exact=True))
+        self.click(name_dialog.get_by_role('button', name=re.compile(r'^(?:Create Release|Continue)$')))
         page.wait_for_url(re.compile(r'https://toolost\.com/uploader/edit/[0-9]+$'), timeout=30000)
         self.remote_id = urlsplit(page.url).path.rsplit('/', 1)[1]
         page.get_by_role('button', name='Artwork', exact=True).wait_for(state='visible')
@@ -817,6 +822,51 @@ def finalize_normal_upload(ui, journal, observe):
     journal.append('new_upload_saved_binding', 'observed', snapshot=review['snapshot'], mapping=mapping)
 
 
+def recover_active_audio_timeout(ui, journal, observe_active):
+    """Continue one timed-out upload only when the dirty editor is complete.
+
+    This deliberately stays on the current editor.  Client row keys are used
+    only for the in-memory label map; they are never treated as persisted IDs.
+    """
+    from .remote_binding import observed_upload_mapping
+    journal.read()
+    events = journal.value['events']
+    if (not events or events[0] != dict(operation='new_upload_baseline', outcome='observed', track_id=None)
+            or any(e['operation'] not in ('new_upload_baseline', 'upload', 'new_upload_unsaved_labels') for e in events)
+            or sum(e['operation'] == 'new_upload_baseline' for e in events) != 1
+            or not any(e['operation'] == 'upload' and e['outcome'] == 'unknown' for e in events)):
+        raise DraftError('active_recovery_stage_requires_review')
+    rows = observe_active()
+    wanted = ui.manifest['tracks']
+    if len(rows) != len(wanted) or not rows:
+        raise DraftError('active_upload_incomplete_requires_review')
+    keys, titles = set(), set()
+    for row in rows:
+        if (row.get('audio_present') is not True or not isinstance(row.get('title'), str)
+                or type(row.get('editor_key')) not in (str, int)):
+            raise DraftError('active_upload_incomplete_requires_review')
+        key, title = str(row['editor_key']), row['title'].strip().casefold()
+        if not key or key in keys or not title or title in titles:
+            raise DraftError('active_upload_ambiguous_requires_review')
+        keys.add(key)
+        titles.add(title)
+    local_ids = [t['track_id'] for t in wanted]
+    if len(set(local_ids)) != len(wanted) or len({t['title'].casefold() for t in wanted}) != len(wanted):
+        raise DraftError('active_upload_ambiguous_requires_review')
+    by_key = {str(row['editor_key']): row for row in rows}
+    for prior in journal.value.get('snapshot') or []:
+        actual = by_key.get(str(prior.get('editor_key')))
+        if actual != {k: v for k, v in prior.items() if k != 'local_track_id'}:
+            raise DraftError('active_upload_snapshot_changed')
+    adapted = [dict(row, id=str(row['editor_key'])) for row in rows]
+    mapping = observed_upload_mapping(ui.manifest, [], adapted, wanted)
+    if observe_active() != rows:
+        raise DraftError('active_upload_snapshot_changed')
+    snapshot = [dict(by_key[key], local_track_id=local) for local, key in mapping.items()]
+    journal.append('new_upload_unsaved_labels', 'observed', snapshot=snapshot, mapping={})
+    ui.recovery_labels = {local: by_key[key]['title'] for local, key in mapping.items()}
+
+
 def run_steps(ui, *, audio_operation=None, before_metadata=None, after_save=None):
     ui.verify_account()
     for name in ('create', 'artwork', 'audio', 'metadata', 'save'):
@@ -999,6 +1049,11 @@ def execute(path, *, alias, expected_account, endpoint, approve_draft, accept_ui
                                 lambda: observe_release(page.context, account=expected_account, draft=ui.remote_id))
                     run_steps(ui, audio_operation=upload_with_binding,
                               before_metadata=before_metadata, after_save=after_save)
+            except Exception as error:
+                remote_id = journal.value.get('remote_draft_id') or ui.remote_id
+                if remote_id:
+                    error.remote_draft_id = remote_id
+                raise
             finally:
                 ui.close()
         out_status = 'draft_readback_subset' if reconcile_only else ('draft_appended_subset' if (allow_append and not title_changed and not artwork_changed and not date_changed) else ('draft_updated_subset' if allow_sync else 'draft_saved_subset'))
@@ -1099,7 +1154,7 @@ def recovery_steps(ui, journal, receipt, observe):
 
 
 def recover(path, *, alias, expected_account, draft_id, endpoint, approve_draft,
-            accept_ui_date, root=None, log=None):
+            accept_ui_date, root=None, log=None, active_audio_timeout=False):
     from .live_journal import RecoveryJournal
     from .remote_binding import load_receipt, observe_release
     if approve_draft is not True or accept_ui_date is not True:
@@ -1109,6 +1164,9 @@ def recover(path, *, alias, expected_account, draft_id, endpoint, approve_draft,
     if not re.fullmatch(r'http://127\.0\.0\.1:[0-9]{1,5}', endpoint) or not 1024 <= int(endpoint.rsplit(':', 1)[1]) <= 65535:
         raise DraftError('loopback_endpoint_required')
     manifest, base = preflight(path)
+    if active_audio_timeout:
+        return recover_active_editor(manifest, base, alias=alias, expected_account=expected_account,
+                                     draft_id=draft_id, endpoint=endpoint, root=root, log=log)
     with profile(alias, root=root) as session:
         receipt = load_receipt(session, manifest, expected_account, draft_id)
         # Existing checkpoints are never replaced or removed by this command.
@@ -1163,3 +1221,75 @@ def recover(path, *, alias, expected_account, draft_id, endpoint, approve_draft,
         return dict(status='draft_recovered_subset', draft_id=draft_id,
                     remote_audio_hashes_verified=False, warnings=['Binding ID disetujui pengguna, bukan kesamaan byte audio remote.',
                     'Tanggal UI diwarisi; rights/services belum diverifikasi; tidak Publish.'])
+
+
+def active_editor_recovery_steps(ui, live, journal, observe_active, observe_saved):
+    """Bounded continuation of audio only; metadata/Save intents cannot replay."""
+    value = live.read()
+    expected = [(name, outcome) for name in ('create', 'artwork') for outcome in ('unknown', 'observed')]
+    expected.append(('audio', 'unknown'))
+    if ([(e['operation'], e['outcome']) for e in value['events']] != expected
+            or value['remote_draft_id'] != ui.remote_id or value.get('track_events')
+            or value.get('sync_pending')):
+        raise DraftError('active_recovery_stage_requires_review')
+    journal.read()
+    if any(e['operation'] in ('metadata_save', 'active_metadata_save', 'complete') for e in journal.value['events']):
+        raise DraftError('active_recovery_stage_requires_review')
+    recover_active_audio_timeout(ui, journal, observe_active)
+    # Persist the no-replay barrier before reorder, metadata, or Save.
+    journal.append('active_metadata_save', 'unknown')
+    ui.click(ui.page.get_by_role('button', name='Manage Tracks', exact=True))
+    ui.sync_metadata_and_order()
+    ui.save()
+    finalize_normal_upload(ui, journal, observe_saved)
+    ui.read_only = True
+    ui.readback()
+    journal.append('complete', 'observed')
+
+
+def recover_active_editor(manifest, base, *, alias, expected_account, draft_id, endpoint, root=None, log=None):
+    from .live_journal import RecoveryJournal
+    from .remote_binding import observe_active_editor, observe_release
+    from .recovery_inspection import verify_open_draft_account
+    from .storage import _read
+    with profile(alias, root=root) as session:
+        checkpoint = session.read_checkpoint(manifest['release_id'])
+        live = LiveJournal(session, checkpoint, expected_account, endpoint, existing=True)
+        if live.effective_manifest() != manifest or live.value['remote_draft_id'] != draft_id:
+            raise DraftError('active_recovery_manifest_or_target_mismatch')
+        # A recovery ledger from this upload is mandatory; never synthesize one
+        # for an arbitrary dirty editor just because its titles happen to match.
+        _read(session.directory, manifest['release_id'] + '.recovery.json')
+        journal = RecoveryJournal(session, manifest, expected_account, draft_id, endpoint)
+        from playwright.sync_api import sync_playwright
+        from .browser import is_local_endpoint
+        with sync_playwright() as playwright:
+            browser = playwright.chromium.connect_over_cdp(endpoint, is_local=is_local_endpoint(endpoint))
+            if len(browser.contexts) != 1:
+                raise DraftError('recovery_context_not_unique')
+            context = browser.contexts[0]
+            pages = [p for p in context.pages if not p.is_closed() and p.url == 'https://toolost.com/uploader/edit/' + draft_id]
+            if len(pages) != 1:
+                raise DraftError('recovery_page_not_unique')
+            page = pages[0]
+            verify_open_draft_account(page, expected_account=expected_account, expected_draft=draft_id)
+            if page.locator('.tl-upload-dialog:visible').count():
+                raise DraftError('existing_dialog_requires_review')
+            ui = DraftUI(page, manifest, base, expected_account, lambda *a: None, log=log)
+            ui.remote_id, ui.identity_verified = draft_id, True
+            def active():
+                verify_open_draft_account(page, expected_account=expected_account, expected_draft=draft_id)
+                ui.guard_target()
+                return observe_active_editor(page, account=expected_account, draft=draft_id)
+            try:
+                active_editor_recovery_steps(ui, live, journal, active,
+                    lambda: observe_release(context, account=expected_account, draft=draft_id))
+            except Exception as error:
+                error.remote_draft_id = draft_id
+                raise
+            finally:
+                ui.close()
+        from .recovery_state import save_successor
+        save_successor(session, manifest, expected_account, draft_id, endpoint, journal.read())
+        return dict(status='draft_recovered_subset', draft_id=draft_id, retry_safe=False,
+                    remote_audio_hashes_verified=False, recovery_mode='active_audio_timeout')

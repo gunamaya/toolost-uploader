@@ -375,3 +375,21 @@ Gunakan nomor unik berikutnya; jangan renumber history. Evidence offline tidak m
 
 ## FIX-30 — AttributeError review CLI berprofil
 - P1; laporan user inspection_failed AttributeError. Scope normalisasi input filesystem loader, tes CLI real path, rebuild executable dan penggantian binary app terpasang. Tanpa mutasi portal/create/upload/Save/Publish; tanpa commit/push baru. Acceptance CLI source/frozen review read-only sukses, suite offline, signature dan hash binary terpasang cocok.
+
+## FIX-34 — Dialog nama release Continue
+- P1; owner assistant/create-label-20261109. User reports timeout. Read-only active dialog at /uploader shows STEP 2 Name your release with Back/Continue; journal create unknown no draft ID. Scope exact selector accepts old Create Release and current Continue within name dialog, offline tests. No automatic retries, journal reset, portal mutation, publish, commit/push. Acceptance scoped one click, no broad button fallback, tests pass; packaging verification separate.
+
+
+## REC-08: Konteks kegagalan upload
+- Scope: pertahankan ID draft yang teramati di journal pada DraftError dari executor; sertakan count/expected/dialog saat audio timeout. CLI tetap exit4/reconciliation_required, bukan sukses; tidak retry atau mengubah journal historis.
+- Acceptance slice: JSON error membawa numeric ASCII draft ID jika tersedia, diagnostik terbatas tanpa URL audio/secret, regresi offline dan diff check. Keluar: auto-recovery, melonggarkan deteksi encoding selesai, GUI redesign, build/install, live, commit/push.
+- Verifier: suite unittest offline via .venv dengan watchdog120s; bukti CP-060. Recovery mandiri pengguna belum dituntaskan slice ini.
+
+## REC-09: Recovery bounded editor aktif sesudah timeout
+- P1, child REC-08. User mengizinkan implementasi recovery upload, bukan live/build/install/commit/push. Baseline aaff29b dengan dirty FIX-34/REC-08 dipertahankan.
+- Masuk: deadline count/dialog, Vue index opsional tanpa menganggapnya ID remote, recovery existing editor seluruh audio hadir, exact journal/checkpoint/manifest/account/draft dan approval, no duplicate create/upload/save; exception context tersanitasi.
+- Keluar: partial audio/reupload, interrupted metadata/Save replay, identitas byte audio, publish, GUI/integrator changes, user files/live/build/install.
+- Acceptance: offline tests completion/deadline, absent index, all-tracks active recovery, fail closed metadata/Save unknown dan mismatch/ambiguity; CLI kontrak eksplisit; .venv suite watchdog120s dan diff check. Tidak mengklaim portal verified.
+
+### REC-09 hasil
+- Selesai CP-061 untuk bounded subset offline. Live portal, partial transfer, dan automatic invocation tetap di luar acceptance. Claim dilepas.

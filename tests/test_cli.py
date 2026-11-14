@@ -174,6 +174,23 @@ class CLITests(unittest.TestCase):
             self.assertEqual(payload['status'], 'reconciliation_required')
             self.assertEqual(payload['code'], 'account_mismatch')
 
+    def test_upload_timeout_preserves_remote_target_and_diagnostics(self):
+        from toolost_uploader.live_draft import DraftError
+        error = DraftError('audio_upload_timeout')
+        error.remote_draft_id = '456'
+        error.track_count = 16
+        error.expected_track_count = 16
+        error.dialog_visible = True
+        with patch('toolost_uploader.live_draft.execute', side_effect=error):
+            code, out, _ = self.invoke(['upload', 'manifest.json', '--draft-only', '--profile', 'test',
+                                        '--expected-account', '123', '--json'])
+        result = json.loads(out)
+        self.assertEqual(code, 4)
+        self.assertEqual(result['status'], 'reconciliation_required')
+        self.assertEqual(result['draft_id'], '456')
+        self.assertEqual(result['track_count'], 16)
+        self.assertIs(result['dialog_visible'], True)
+
     def test_upload_verbose_flag(self):
         code, out, err = self.invoke(['upload', '--help'])
         self.assertIn('--verbose', out)

@@ -31,20 +31,27 @@ def observe_active_editor(page, *, account, draft):
             track_order: t.index, audio_present: typeof t.url === 'string' && !!t.url
         })) : null};
     }""")
-    if (not isinstance(value, dict) or value.get('identity') != {'account': account, 'draft': draft}
+    if (page.url != 'https://toolost.com/uploader/edit/' + draft
+            or not isinstance(value, dict) or value.get('identity') != {'account': account, 'draft': draft}
             or not isinstance(value.get('tracks'), list)):
         raise DraftError('recovery_identity_unverified')
     keys, orders = set(), set()
-    for row in value['tracks']:
-        if (not isinstance(row, dict) or not isinstance(row.get('editor_key'), (str, int))
+    for position, row in enumerate(value['tracks']):
+        if (not isinstance(row, dict) or type(row.get('editor_key')) not in (str, int)
                 or not str(row['editor_key']) or str(row['editor_key']) in keys
                 or type(row.get('saved')) is not bool or not isinstance(row.get('title'), str)
-                or not row['title'].strip() or type(row.get('track_order')) is not int
-                or row['track_order'] < 0 or row['track_order'] in orders
+                or not row['title'].strip()
                 or row.get('audio_present') is not True):
             raise DraftError('active_editor_observation_requires_review')
+        # Vue array position is observation order, not a persisted track ID.
+        order = row.get('track_order')
+        if order is None:
+            order = position
+            row['track_order'] = order
+        if type(order) is not int or order < 0 or order in orders:
+            raise DraftError('active_editor_observation_requires_review')
         keys.add(str(row['editor_key']))
-        orders.add(row['track_order'])
+        orders.add(order)
     return value['tracks']
 
 

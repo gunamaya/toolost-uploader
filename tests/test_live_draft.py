@@ -75,6 +75,28 @@ class LiveDraftTests(unittest.TestCase):
         self.assertEqual(len(manifest['tracks']), 2)
         self.assertEqual(base, self.base)
 
+    def test_create_name_dialog_accepts_current_and_legacy_submit_labels(self):
+        page = Mock()
+        page.url = 'https://toolost.com/uploader/edit/123'
+        page.is_closed.return_value = False
+        page.locator.return_value.count.return_value = 0
+        ui = DraftUI(page, self.manifest, self.base, '123', Mock())
+        ui.identity_verified = True
+        name_dialog = Mock()
+        type_dialog = Mock()
+        page.get_by_role.return_value.filter.side_effect = [type_dialog, name_dialog]
+        ui.create()
+        name_dialog.get_by_role.assert_any_call('textbox')
+        calls = [c for c in name_dialog.get_by_role.call_args_list if c.args == ('button',)]
+        self.assertEqual(len(calls), 1)
+        selector = calls[0].kwargs['name']
+        for label in ('Continue', 'Create Release'):
+            self.assertIsNotNone(selector.fullmatch(label))
+        for label in ('Back', 'Publish', 'Continue to Publish', 'Create Release Again'):
+            self.assertIsNone(selector.fullmatch(label))
+        name_dialog.get_by_role.return_value.click.assert_called_once()
+        page.wait_for_url.assert_called_once()
+
     def test_album_create_and_audio_multi_files(self):
         album_manifest = copy.deepcopy(self.manifest)
         album_manifest['release_type'] = 'album'
